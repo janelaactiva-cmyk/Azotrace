@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import { TriangleAlert } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
@@ -88,22 +88,22 @@ export function MultiFactorChallengeContainer({
       >
         <div className={'flex flex-col space-y-4'}>
           <span className={'text-muted-foreground text-sm'}>
-            <Trans i18nKey={'account:verifyActivationCodeDescription'} />
+            <Trans i18nKey={'account.verifyActivationCodeDescription'} />
           </span>
 
           <div className={'flex w-full flex-col space-y-2.5'}>
             <div className={'flex flex-col space-y-4'}>
               <If condition={verifyMFAChallenge.error}>
                 <Alert variant={'destructive'}>
-                  <ExclamationTriangleIcon className={'h-5'} />
+                  <TriangleAlert className={'h-5'} />
 
                   <AlertTitle>
-                    <Trans i18nKey={'account:invalidVerificationCodeHeading'} />
+                    <Trans i18nKey={'account.invalidVerificationCodeHeading'} />
                   </AlertTitle>
 
                   <AlertDescription>
                     <Trans
-                      i18nKey={'account:invalidVerificationCodeDescription'}
+                      i18nKey={'account.invalidVerificationCodeDescription'}
                     />
                   </AlertDescription>
                 </Alert>
@@ -136,7 +136,7 @@ export function MultiFactorChallengeContainer({
 
                       <FormDescription>
                         <Trans
-                          i18nKey={'account:verifyActivationCodeDescription'}
+                          i18nKey={'account.verifyActivationCodeDescription'}
                         />
                       </FormDescription>
 
@@ -155,9 +155,9 @@ export function MultiFactorChallengeContainer({
             }
           >
             {verifyMFAChallenge.isPending ? (
-              <Trans i18nKey={'account:verifyingCode'} />
+              <Trans i18nKey={'account.verifyingCode'} />
             ) : (
-              <Trans i18nKey={'account:submitVerificationCode'} />
+              <Trans i18nKey={'account.submitVerificationCode'} />
             )}
           </Button>
         </div>
@@ -227,7 +227,7 @@ function FactorsListContainer({
         <Spinner />
 
         <div>
-          <Trans i18nKey={'account:loadingFactors'} />
+          <Trans i18nKey={'account.loadingFactors'} />
         </div>
       </div>
     );
@@ -237,14 +237,14 @@ function FactorsListContainer({
     return (
       <div className={'w-full'}>
         <Alert variant={'destructive'}>
-          <ExclamationTriangleIcon className={'h-4'} />
+          <TriangleAlert className={'h-4'} />
 
           <AlertTitle>
-            <Trans i18nKey={'account:factorsListError'} />
+            <Trans i18nKey={'account.factorsListError'} />
           </AlertTitle>
 
           <AlertDescription>
-            <Trans i18nKey={'account:factorsListErrorDescription'} />
+            <Trans i18nKey={'account.factorsListErrorDescription'} />
           </AlertDescription>
         </Alert>
       </div>
@@ -257,7 +257,7 @@ function FactorsListContainer({
     <div className={'flex flex-col space-y-4'}>
       <div>
         <span className={'font-medium'}>
-          <Trans i18nKey={'account:selectFactor'} />
+          <Trans i18nKey={'account.selectFactor'} />
         </span>
       </div>
 

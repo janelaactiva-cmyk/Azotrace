@@ -2,7 +2,8 @@
 
 import { Fragment } from 'react';
 
-import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { useParams, usePathname } from 'next/navigation';
 
 import {
   Breadcrumb,
@@ -22,7 +23,14 @@ export function AppBreadcrumbs(props: {
   maxDepth?: number;
 }) {
   const pathName = usePathname();
-  const splitPath = pathName.split('/').filter(Boolean);
+  const { locale } = useParams();
+
+  // Remove the locale from the path
+  const splitPath = pathName
+    .split('/')
+    .filter(Boolean)
+    .filter((path) => path !== locale);
+
   const values = props.values ?? {};
   const maxDepth = props.maxDepth ?? 6;
 
@@ -47,7 +55,7 @@ export function AppBreadcrumbs(props: {
               values[path]
             ) : (
               <Trans
-                i18nKey={`common:routes.${unslugify(path)}`}
+                i18nKey={`common.routes.${unslugify(path)}`}
                 defaults={unslugify(path)}
               />
             );
@@ -60,13 +68,19 @@ export function AppBreadcrumbs(props: {
                   fallback={label}
                 >
                   <BreadcrumbLink
-                    href={
-                      '/' +
-                      splitPath.slice(0, splitPath.indexOf(path) + 1).join('/')
+                    render={
+                      <Link
+                        href={
+                          '/' +
+                          splitPath
+                            .slice(0, splitPath.indexOf(path) + 1)
+                            .join('/')
+                        }
+                      >
+                        {label}
+                      </Link>
                     }
-                  >
-                    {label}
-                  </BreadcrumbLink>
+                  />
                 </If>
               </BreadcrumbItem>
 

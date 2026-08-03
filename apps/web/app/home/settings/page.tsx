@@ -1,12 +1,14 @@
-import { use } from 'react';
+import { Suspense } from 'react';
+
+import { getTranslations } from 'next-intl/server';
 
 import { PersonalAccountSettingsContainer } from '@kit/accounts/personal-account-settings';
 import { PageBody } from '@kit/ui/page';
+import { Skeleton } from '@kit/ui/skeleton';
 
+import { Delayed } from '~/components/skeletons/page-skeletons';
 import authConfig from '~/config/auth.config';
 import pathsConfig from '~/config/paths.config';
-import { createI18nServerInstance } from '~/lib/i18n/i18n.server';
-import { withI18n } from '~/lib/i18n/with-i18n';
 import { requireUserInServerComponent } from '~/lib/server/require-user-in-server-component';
 
 const callbackPath = pathsConfig.auth.callback;
@@ -21,8 +23,8 @@ const paths = {
 };
 
 export const generateMetadata = async () => {
-  const i18n = await createI18nServerInstance();
-  const title = i18n.t('account:settingsTab');
+  const t = await getTranslations();
+  const title = t('account.settingsTab');
 
   return {
     title,
@@ -30,20 +32,37 @@ export const generateMetadata = async () => {
 };
 
 function PersonalAccountSettingsPage() {
-  const user = use(requireUserInServerComponent());
-  const userId = user.id;
-
   return (
     <PageBody>
       <div className={'flex w-full flex-1 flex-col lg:max-w-2xl'}>
-        <PersonalAccountSettingsContainer
-          userId={userId}
-          paths={paths}
-          features={features}
-        />
+        <Suspense fallback={<SettingsSkeleton />}>
+          <AccountSettings />
+        </Suspense>
       </div>
     </PageBody>
   );
 }
 
-export default withI18n(PersonalAccountSettingsPage);
+async function AccountSettings() {
+  const user = await requireUserInServerComponent();
+
+  return (
+    <PersonalAccountSettingsContainer
+      userId={user.id}
+      paths={paths}
+      features={features}
+    />
+  );
+}
+
+function SettingsSkeleton() {
+  return (
+    <Delayed className={'flex flex-col gap-y-4'}>
+      <Skeleton className={'h-40 w-full rounded-lg'} />
+      <Skeleton className={'h-40 w-full rounded-lg'} />
+      <Skeleton className={'h-40 w-full rounded-lg'} />
+    </Delayed>
+  );
+}
+
+export default PersonalAccountSettingsPage;

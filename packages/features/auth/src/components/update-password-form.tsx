@@ -3,13 +3,13 @@
 import Link from 'next/link';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckIcon, ExclamationTriangleIcon } from '@radix-ui/react-icons';
-import { ArrowRightIcon } from 'lucide-react';
+import { ArrowRightIcon, Check, TriangleAlert } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 
 import { useUpdateUser } from '@kit/supabase/hooks/use-update-user-mutation';
 import { Alert, AlertDescription, AlertTitle } from '@kit/ui/alert';
+import { alertExtras } from '@kit/ui/alert-extras';
 import { Button } from '@kit/ui/button';
 import {
   Form,
@@ -48,7 +48,7 @@ export function UpdatePasswordForm(params: { redirectTo: string }) {
     <div className={'flex w-full flex-col space-y-6'}>
       <div className={'flex justify-center'}>
         <Heading level={5} className={'tracking-tight'}>
-          <Trans i18nKey={'auth:passwordResetLabel'} />
+          <Trans i18nKey={'auth.passwordResetLabel'} />
         </Heading>
       </div>
 
@@ -68,7 +68,7 @@ export function UpdatePasswordForm(params: { redirectTo: string }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    <Trans i18nKey={'common:password'} />
+                    <Trans i18nKey={'common.password'} />
                   </FormLabel>
 
                   <FormControl>
@@ -85,7 +85,7 @@ export function UpdatePasswordForm(params: { redirectTo: string }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    <Trans i18nKey={'common:repeatPassword'} />
+                    <Trans i18nKey={'common.repeatPassword'} />
                   </FormLabel>
 
                   <FormControl>
@@ -102,7 +102,7 @@ export function UpdatePasswordForm(params: { redirectTo: string }) {
               type="submit"
               className={'w-full'}
             >
-              <Trans i18nKey={'auth:passwordResetLabel'} />
+              <Trans i18nKey={'auth.passwordResetLabel'} />
             </Button>
           </div>
         </form>
@@ -114,22 +114,22 @@ export function UpdatePasswordForm(params: { redirectTo: string }) {
 function SuccessState(props: { redirectTo: string }) {
   return (
     <div className={'flex flex-col space-y-4'}>
-      <Alert variant={'success'}>
-        <CheckIcon className={'s-6'} />
+      <Alert className={alertExtras.success}>
+        <Check className={'s-6'} />
 
         <AlertTitle>
-          <Trans i18nKey={'account:updatePasswordSuccess'} />
+          <Trans i18nKey={'account.updatePasswordSuccess'} />
         </AlertTitle>
 
         <AlertDescription>
-          <Trans i18nKey={'account:updatePasswordSuccessMessage'} />
+          <Trans i18nKey={'account.updatePasswordSuccessMessage'} />
         </AlertDescription>
       </Alert>
 
       <Link href={props.redirectTo}>
         <Button variant={'outline'} className={'w-full'}>
           <span>
-            <Trans i18nKey={'common:backToHomePage'} />
+            <Trans i18nKey={'common.backToHomePage'} />
           </span>
 
           <ArrowRightIcon className={'ml-2 h-4'} />
@@ -143,19 +143,19 @@ function ErrorState(props: { onRetry: () => void }) {
   return (
     <div className={'flex flex-col space-y-4'}>
       <Alert variant={'destructive'}>
-        <ExclamationTriangleIcon className={'s-6'} />
+        <TriangleAlert className={'s-6'} />
 
         <AlertTitle>
-          <Trans i18nKey={'common:genericError'} />
+          <Trans i18nKey={'common.genericError'} />
         </AlertTitle>
 
         <AlertDescription>
-          <Trans i18nKey={'auth:resetPasswordError'} />
+          <Trans i18nKey={'auth.resetPasswordError'} />
         </AlertDescription>
       </Alert>
 
       <Button onClick={props.onRetry} variant={'outline'}>
-        <Trans i18nKey={'common:retry'} />
+        <Trans i18nKey={'common.retry'} />
       </Button>
     </div>
   );

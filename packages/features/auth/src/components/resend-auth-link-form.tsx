@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import { useSupabase } from '@kit/supabase/hooks/use-supabase';
 import { Alert, AlertDescription, AlertTitle } from '@kit/ui/alert';
+import { alertExtras } from '@kit/ui/alert-extras';
 import { Button } from '@kit/ui/button';
 import {
   Form,
@@ -32,14 +33,14 @@ export function ResendAuthLinkForm(props: { redirectPath?: string }) {
 
   if (resendLink.data && !resendLink.isPending) {
     return (
-      <Alert variant={'success'}>
+      <Alert className={alertExtras.success}>
         <AlertTitle>
-          <Trans i18nKey={'auth:resendLinkSuccess'} />
+          <Trans i18nKey={'auth.resendLinkSuccess'} />
         </AlertTitle>
 
         <AlertDescription>
           <Trans
-            i18nKey={'auth:resendLinkSuccessDescription'}
+            i18nKey={'auth.resendLinkSuccessDescription'}
             defaults={'Success!'}
           />
         </AlertDescription>
@@ -63,7 +64,7 @@ export function ResendAuthLinkForm(props: { redirectPath?: string }) {
             return (
               <FormItem>
                 <FormLabel>
-                  <Trans i18nKey={'common:emailAddress'} />
+                  <Trans i18nKey={'common.emailAddress'} />
                 </FormLabel>
 
                 <FormControl>
@@ -76,7 +77,7 @@ export function ResendAuthLinkForm(props: { redirectPath?: string }) {
         />
 
         <Button disabled={resendLink.isPending}>
-          <Trans i18nKey={'auth:resendLink'} defaults={'Resend Link'} />
+          <Trans i18nKey={'auth.resendLink'} defaults={'Resend Link'} />
         </Button>
       </form>
     </Form>

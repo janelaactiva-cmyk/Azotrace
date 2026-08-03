@@ -26,33 +26,30 @@ export const PasswordSchema = z
  * Refined password schema with additional requirements
  * This is required to validate the password requirements on sign up and password change
  */
-export const RefinedPasswordSchema = PasswordSchema.superRefine((val, ctx) =>
-  validatePassword(val, ctx),
-);
+export const RefinedPasswordSchema = PasswordSchema.superRefine((val, ctx) => {
+  validatePassword(val, ctx);
+});
 
-export function refineRepeatPassword(
-  data: { password: string; repeatPassword: string },
-  ctx: z.RefinementCtx,
-) {
+export function refineRepeatPassword<
+  T extends { password: string; repeatPassword: string },
+>(data: T, ctx: z.RefinementCtx<T>) {
   if (data.password !== data.repeatPassword) {
     ctx.addIssue({
-      message: 'auth:errors.passwordsDoNotMatch',
+      message: 'auth.errors.passwordsDoNotMatch',
       path: ['repeatPassword'],
       code: 'custom',
     });
   }
-
-  return true;
 }
 
-function validatePassword(password: string, ctx: z.RefinementCtx) {
+function validatePassword(password: string, ctx: z.RefinementCtx<string>) {
   if (requirements.specialChars) {
     const specialCharsCount =
       password.match(/[!@#$%^&*(),.?":{}|<>]/g)?.length ?? 0;
 
     if (specialCharsCount < 1) {
       ctx.addIssue({
-        message: 'auth:errors.minPasswordSpecialChars',
+        message: 'auth.errors.minPasswordSpecialChars',
         code: 'custom',
       });
     }
@@ -63,7 +60,7 @@ function validatePassword(password: string, ctx: z.RefinementCtx) {
 
     if (numbersCount < 1) {
       ctx.addIssue({
-        message: 'auth:errors.minPasswordNumbers',
+        message: 'auth.errors.minPasswordNumbers',
         code: 'custom',
       });
     }
@@ -72,11 +69,9 @@ function validatePassword(password: string, ctx: z.RefinementCtx) {
   if (requirements.uppercase) {
     if (!/[A-Z]/.test(password)) {
       ctx.addIssue({
-        message: 'auth:errors.uppercasePassword',
+        message: 'auth.errors.uppercasePassword',
         code: 'custom',
       });
     }
   }
-
-  return true;
 }

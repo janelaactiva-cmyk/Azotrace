@@ -1,13 +1,14 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckIcon } from '@radix-ui/react-icons';
+import { Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { useUpdateUser } from '@kit/supabase/hooks/use-update-user-mutation';
 import { Alert, AlertDescription, AlertTitle } from '@kit/ui/alert';
+import { alertExtras } from '@kit/ui/alert-extras';
 import { Button } from '@kit/ui/button';
 import {
   Form,
@@ -38,7 +39,7 @@ export function UpdateEmailForm({
   userEmail: string;
   callbackPath: string;
 }) {
-  const { t } = useTranslation('account');
+  const t = useTranslations('account');
   const updateUserMutation = useUpdateUser();
 
   const updateEmail = ({ email }: { email: string }) => {
@@ -77,15 +78,15 @@ export function UpdateEmailForm({
         onSubmit={form.handleSubmit(updateEmail)}
       >
         <If condition={updateUserMutation.data}>
-          <Alert variant={'success'}>
-            <CheckIcon className={'h-4'} />
+          <Alert className={alertExtras.success}>
+            <Check className={'h-4'} />
 
             <AlertTitle>
-              <Trans i18nKey={'account:updateEmailSuccess'} />
+              <Trans i18nKey={'account.updateEmailSuccess'} />
             </AlertTitle>
 
             <AlertDescription>
-              <Trans i18nKey={'account:updateEmailSuccessMessage'} />
+              <Trans i18nKey={'account.updateEmailSuccessMessage'} />
             </AlertDescription>
           </Alert>
         </If>
@@ -95,7 +96,7 @@ export function UpdateEmailForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  <Trans i18nKey={'account:newEmail'} />
+                  <Trans i18nKey={'account.newEmail'} />
                 </FormLabel>
 
                 <FormControl>
@@ -118,7 +119,7 @@ export function UpdateEmailForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  <Trans i18nKey={'account:repeatEmail'} />
+                  <Trans i18nKey={'account.repeatEmail'} />
                 </FormLabel>
 
                 <FormControl>
@@ -138,7 +139,7 @@ export function UpdateEmailForm({
 
           <div>
             <Button disabled={updateUserMutation.isPending}>
-              <Trans i18nKey={'account:updateEmailSubmitLabel'} />
+              <Trans i18nKey={'account.updateEmailSubmitLabel'} />
             </Button>
           </div>
         </div>
