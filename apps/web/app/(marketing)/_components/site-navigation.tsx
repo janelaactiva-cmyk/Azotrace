@@ -20,11 +20,11 @@ import { SiteNavigationItem } from './site-navigation-item';
  *
  * {
  *   FAQ: {
- *     label: 'marketing:faq',
+ *     label: 'marketing.faq',
  *     path: '/faq',
  *   },
  *   Pricing: {
- *     label: 'marketing:pricing',
+ *     label: 'marketing.pricing',
  *     path: '/pricing',
  *   },
  * }
@@ -39,7 +39,7 @@ const links: Record<
 > = {
   /*
     FAQ: {
-      label: 'marketing:faq',
+      label: 'marketing.faq',
       path: '/faq',
     },
      */
@@ -83,10 +83,11 @@ function MobileDropdown() {
           const className = 'flex w-full h-full items-center';
 
           return (
-            <DropdownMenuItem key={item.path} asChild>
-              <Link className={className} href={item.path}>
-                <Trans i18nKey={item.label} />
-              </Link>
+            <DropdownMenuItem
+              key={item.path}
+              render={<Link className={className} href={item.path} />}
+            >
+              <Trans i18nKey={item.label} />
             </DropdownMenuItem>
           );
         })}

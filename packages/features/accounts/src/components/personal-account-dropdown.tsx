@@ -122,7 +122,7 @@ export function PersonalAccountDropdown({
             className={'flex flex-col justify-start truncate text-left text-xs'}
           >
             <div className={'text-muted-foreground'}>
-              <Trans i18nKey={'common:signedInAs'} />
+              <Trans i18nKey={'common.signedInAs'} />
             </div>
 
             <div>
@@ -133,17 +133,19 @@ export function PersonalAccountDropdown({
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem asChild>
-          <Link
-            className={'s-full flex cursor-pointer items-center space-x-2'}
-            href={paths.home}
-          >
-            <Home className={'h-5'} />
+        <DropdownMenuItem
+          render={
+            <Link
+              className={'s-full flex cursor-pointer items-center space-x-2'}
+              href={paths.home}
+            />
+          }
+        >
+          <Home className={'h-5'} />
 
-            <span>
-              <Trans i18nKey={'common:routes.home'} />
-            </span>
-          </Link>
+          <span>
+            <Trans i18nKey={'common.routes.home'} />
+          </span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
@@ -164,7 +166,7 @@ export function PersonalAccountDropdown({
             <LogOut className={'h-5'} />
 
             <span>
-              <Trans i18nKey={'auth:signOut'} />
+              <Trans i18nKey={'auth.signOut'} />
             </span>
           </span>
         </DropdownMenuItem>

@@ -9,21 +9,22 @@ const iconClasses = 'w-4';
 
 const routes = [
   {
-    label: 'common:routes.application',
+    label: 'common.routes.application',
     children: [
       {
-        label: 'common:routes.home',
+        label: 'common.routes.home',
         path: pathsConfig.app.home,
         Icon: <Home className={iconClasses} />,
-        end: true,
+        // exact match: do not stay highlighted on nested routes like /home/settings
+        highlightMatch: `^${pathsConfig.app.home}$`,
       },
     ],
   },
   {
-    label: 'common:routes.settings',
+    label: 'common.routes.settings',
     children: [
       {
-        label: 'common:routes.profile',
+        label: 'common.routes.profile',
         path: pathsConfig.app.profileSettings,
         Icon: <User className={iconClasses} />,
       },

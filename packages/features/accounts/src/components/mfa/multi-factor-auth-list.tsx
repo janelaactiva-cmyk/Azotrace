@@ -4,10 +4,9 @@ import { useCallback, useState } from 'react';
 
 import type { Factor } from '@supabase/supabase-js';
 
-import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import { ShieldCheck, TriangleAlert, X } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ShieldCheck, X } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { useFetchAuthFactors } from '@kit/supabase/hooks/use-fetch-mfa-factors';
@@ -25,6 +24,7 @@ import {
   AlertDialogTitle,
 } from '@kit/ui/alert-dialog';
 import { Badge } from '@kit/ui/badge';
+import { badgeExtras } from '@kit/ui/badge-extras';
 import { Button } from '@kit/ui/button';
 import { If } from '@kit/ui/if';
 import { Spinner } from '@kit/ui/spinner';
@@ -43,6 +43,7 @@ import {
   TooltipTrigger,
 } from '@kit/ui/tooltip';
 import { Trans } from '@kit/ui/trans';
+import { cn } from '@kit/ui/utils';
 
 import { MultiFactorAuthSetupDialog } from './multi-factor-auth-setup-dialog';
 
@@ -71,7 +72,7 @@ function FactorsTableContainer(props: { userId: string }) {
         <Spinner />
 
         <div>
-          <Trans i18nKey={'account:loadingFactors'} />
+          <Trans i18nKey={'account.loadingFactors'} />
         </div>
       </div>
     );
@@ -81,14 +82,14 @@ function FactorsTableContainer(props: { userId: string }) {
     return (
       <div>
         <Alert variant={'destructive'}>
-          <ExclamationTriangleIcon className={'h-4'} />
+          <TriangleAlert className={'h-4'} />
 
           <AlertTitle>
-            <Trans i18nKey={'account:factorsListError'} />
+            <Trans i18nKey={'account.factorsListError'} />
           </AlertTitle>
 
           <AlertDescription>
-            <Trans i18nKey={'account:factorsListErrorDescription'} />
+            <Trans i18nKey={'account.factorsListErrorDescription'} />
           </AlertDescription>
         </Alert>
       </div>
@@ -104,11 +105,11 @@ function FactorsTableContainer(props: { userId: string }) {
           <ShieldCheck className={'h-4'} />
 
           <AlertTitle>
-            <Trans i18nKey={'account:multiFactorAuthHeading'} />
+            <Trans i18nKey={'account.multiFactorAuthHeading'} />
           </AlertTitle>
 
           <AlertDescription>
-            <Trans i18nKey={'account:multiFactorAuthDescription'} />
+            <Trans i18nKey={'account.multiFactorAuthDescription'} />
           </AlertDescription>
         </Alert>
       </div>
@@ -125,7 +126,7 @@ function ConfirmUnenrollFactorModal(
     setIsModalOpen: (isOpen: boolean) => void;
   }>,
 ) {
-  const { t } = useTranslation();
+  const t = useTranslations();
   const unEnroll = useUnenrollFactor(props.userId);
 
   const onUnenrollRequested = useCallback(
@@ -137,16 +138,17 @@ function ConfirmUnenrollFactorModal(
 
         if (!response.success) {
           const errorCode = response.data;
+          const errorKey = `auth.errors.${errorCode}`;
 
-          throw t(`auth:errors.${errorCode}`, {
-            defaultValue: t(`account:unenrollFactorError`),
-          });
+          throw t.has(errorKey)
+            ? t(errorKey)
+            : t(`account.unenrollFactorError`);
         }
       });
 
       toast.promise(promise, {
-        loading: t(`account:unenrollingFactor`),
-        success: t(`account:unenrollFactorSuccess`),
+        loading: t(`account.unenrollingFactor`),
+        success: t(`account.unenrollFactorSuccess`),
         error: (error: string) => {
           return error;
         },
@@ -160,17 +162,17 @@ function ConfirmUnenrollFactorModal(
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            <Trans i18nKey={'account:unenrollFactorModalHeading'} />
+            <Trans i18nKey={'account.unenrollFactorModalHeading'} />
           </AlertDialogTitle>
 
           <AlertDialogDescription>
-            <Trans i18nKey={'account:unenrollFactorModalDescription'} />
+            <Trans i18nKey={'account.unenrollFactorModalDescription'} />
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <AlertDialogFooter>
           <AlertDialogCancel>
-            <Trans i18nKey={'common:cancel'} />
+            <Trans i18nKey={'common.cancel'} />
           </AlertDialogCancel>
 
           <AlertDialogAction
@@ -178,7 +180,7 @@ function ConfirmUnenrollFactorModal(
             disabled={unEnroll.isPending}
             onClick={() => onUnenrollRequested(props.factorId)}
           >
-            <Trans i18nKey={'account:unenrollFactorModalButtonLabel'} />
+            <Trans i18nKey={'account.unenrollFactorModalButtonLabel'} />
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -201,13 +203,13 @@ function FactorsTable({
         <TableHeader>
           <TableRow>
             <TableHead>
-              <Trans i18nKey={'account:factorName'} />
+              <Trans i18nKey={'account.factorName'} />
             </TableHead>
             <TableHead>
-              <Trans i18nKey={'account:factorType'} />
+              <Trans i18nKey={'account.factorType'} />
             </TableHead>
             <TableHead>
-              <Trans i18nKey={'account:factorStatus'} />
+              <Trans i18nKey={'account.factorStatus'} />
             </TableHead>
 
             <TableHead />
@@ -222,15 +224,20 @@ function FactorsTable({
               </TableCell>
 
               <TableCell>
-                <Badge variant={'info'} className={'inline-flex uppercase'}>
+                <Badge className={cn('inline-flex uppercase', badgeExtras.info)}>
                   {factor.factor_type}
                 </Badge>
               </TableCell>
 
               <td>
                 <Badge
-                  className={'inline-flex capitalize'}
-                  variant={factor.status === 'verified' ? 'success' : 'outline'}
+                  variant={
+                    factor.status === 'verified' ? 'default' : 'outline'
+                  }
+                  className={cn(
+                    'inline-flex capitalize',
+                    factor.status === 'verified' && badgeExtras.success,
+                  )}
                 >
                   {factor.status}
                 </Badge>
@@ -239,18 +246,20 @@ function FactorsTable({
               <td className={'flex justify-end'}>
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant={'ghost'}
-                        size={'icon'}
-                        onClick={() => setUnenrolling(factor.id)}
-                      >
-                        <X className={'h-4'} />
-                      </Button>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant={'ghost'}
+                          size={'icon'}
+                          onClick={() => setUnenrolling(factor.id)}
+                        >
+                          <X className={'h-4'} />
+                        </Button>
+                      }
+                    />
 
                     <TooltipContent>
-                      <Trans i18nKey={'account:unenrollTooltip'} />
+                      <Trans i18nKey={'account.unenrollTooltip'} />
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
