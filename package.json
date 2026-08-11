@@ -34,6 +34,8 @@
   },
   "devDependencies": {
     "@manypkg/cli": "catalog:",
+    "@supabase/ssr": "catalog:",
+    "@supabase/supabase-js": "catalog:",
     "@turbo/gen": "catalog:",
     "cross-env": "catalog:",
     "oxfmt": "catalog:",

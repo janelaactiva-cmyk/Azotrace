@@ -1,0 +1,11 @@
+{
+  "common": {
+    "title": "Azotrace",
+    "logout": "Sair",
+    "dashboard": "Dashboard"
+  },
+  "auth": {
+    "login": "Entrar",
+    "logout": "Sair"
+  }
+}
