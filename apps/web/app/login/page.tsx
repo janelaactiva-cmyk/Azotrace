@@ -3,12 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '~/lib/supabase';
-import { useAuth } from '~/lib/auth-context';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
+  const [isResetPassword, setIsResetPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -20,33 +19,28 @@ export default function LoginPage() {
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  
+  const [resetEmail, setResetEmail] = useState('');
 
-  // Redirecionar se já estiver autenticado
   useEffect(() => {
-    if (!authLoading && user) {
-      router.push('/dashboard');
-    }
-  }, [user, authLoading, router]);
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        router.push('/dashboard');
+      }
+    };
+    checkAuth();
+  }, [router]);
 
   const validatePassword = (password: string) => {
     const errors: string[] = [];
-    
-    if (password.length < 8) {
-      errors.push('🔒 A senha deve ter pelo menos 8 caracteres');
-    }
-    if (!/[A-Z]/.test(password)) {
-      errors.push('🔒 A senha deve ter pelo menos 1 letra maiúscula');
-    }
-    if (!/[a-z]/.test(password)) {
-      errors.push('🔒 A senha deve ter pelo menos 1 letra minúscula');
-    }
-    if (!/[0-9]/.test(password)) {
-      errors.push('🔒 A senha deve ter pelo menos 1 número');
-    }
+    if (password.length < 8) errors.push('🔒 Mínimo 8 caracteres');
+    if (!/[A-Z]/.test(password)) errors.push('🔒 1 letra maiúscula');
+    if (!/[a-z]/.test(password)) errors.push('🔒 1 letra minúscula');
+    if (!/[0-9]/.test(password)) errors.push('🔒 1 número');
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(password)) {
-      errors.push('🔒 A senha deve ter pelo menos 1 caractere especial (!@#$%^&* etc)');
+      errors.push('🔒 1 caractere especial');
     }
-    
     return errors;
   };
 
@@ -81,7 +75,7 @@ export default function LoginPage() {
       if (error) throw error;
 
       if (data?.user) {
-        setSuccess('✅ Conta criada! Verifica o teu email para confirmar.');
+        setSuccess('✅ Conta criada! Verifica o teu email.');
         setRegisterEmail('');
         setRegisterPassword('');
         setRegisterConfirmPassword('');
@@ -109,7 +103,7 @@ export default function LoginPage() {
       if (error) throw error;
 
       if (data?.user) {
-        // O cookie é definido automaticamente pelo Supabase via proxy.ts
+        console.log('✅ Login bem-sucedido:', data.user.email);
         router.push('/dashboard');
         router.refresh();
       }
@@ -134,25 +128,158 @@ export default function LoginPage() {
 
       if (error) throw error;
     } catch (err: any) {
-      setError('❌ ' + (err.message || 'Erro ao fazer login com Google'));
+      setError('❌ ' + (err.message || 'Erro com Google'));
       setLoading(false);
     }
   };
 
-  if (authLoading) {
+  // FUNÇÃO PARA RECUPERAR PALAVRA-PASSE
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      setSuccess('✅ Email enviado! Verifica a tua caixa de correio.');
+      setResetEmail('');
+      setTimeout(() => {
+        setIsResetPassword(false);
+        setIsLogin(true);
+      }, 3000);
+    } catch (err: any) {
+      setError('❌ ' + (err.message || 'Erro ao enviar email'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // PÁGINA DE RESET
+  if (isResetPassword) {
     return (
       <div style={{
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#f3f4f6'
+        background: '#f3f4f6',
+        fontFamily: 'sans-serif',
+        padding: '20px'
       }}>
-        <p>A carregar...</p>
+        <div style={{
+          background: 'white',
+          padding: '40px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+          width: '100%',
+          maxWidth: '440px'
+        }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 'bold', textAlign: 'center', marginBottom: '8px' }}>
+            🔑 Recuperar Senha
+          </h1>
+          <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '24px' }}>
+            Enviaremos um link para redefinir a tua senha.
+          </p>
+
+          {error && (
+            <div style={{
+              background: '#fee2e2',
+              color: '#dc2626',
+              padding: '12px',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              fontSize: '14px'
+            }}>
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div style={{
+              background: '#dcfce7',
+              color: '#16a34a',
+              padding: '12px',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              fontSize: '14px'
+            }}>
+              {success}
+            </div>
+          )}
+
+          <form onSubmit={handleResetPassword}>
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontWeight: '500', marginBottom: '6px', fontSize: '14px' }}>Email</label>
+              <input
+                type="email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '16px'
+                }}
+                placeholder="seu@email.com"
+                autoComplete="email"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: '#2563eb',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                opacity: loading ? 0.7 : 1
+              }}
+            >
+              {loading ? 'A enviar...' : '📧 Enviar link'}
+            </button>
+          </form>
+
+          <button
+            onClick={() => {
+              setIsResetPassword(false);
+              setIsLogin(true);
+              setError('');
+              setSuccess('');
+            }}
+            style={{
+              width: '100%',
+              padding: '12px',
+              marginTop: '12px',
+              background: 'transparent',
+              color: '#6b7280',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+          >
+            ← Voltar ao login
+          </button>
+        </div>
       </div>
     );
   }
 
+  // PÁGINA DE LOGIN/REGISTO
   return (
     <div style={{
       minHeight: '100vh',
@@ -243,7 +370,7 @@ export default function LoginPage() {
               />
             </div>
 
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontWeight: '500', marginBottom: '6px', fontSize: '14px' }}>Senha</label>
               <input
                 type="password"
@@ -260,6 +387,29 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 required
               />
+            </div>
+
+            {/* BOTÃO ESQUECI-ME DA SENHA */}
+            <div style={{ textAlign: 'right', marginBottom: '20px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsResetPassword(true);
+                  setError('');
+                  setSuccess('');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#2563eb',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  textDecoration: 'underline'
+                }}
+              >
+                Esqueci-me da palavra-passe
+              </button>
             </div>
 
             <button
@@ -320,7 +470,7 @@ export default function LoginPage() {
                 required
               />
               <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-                Mínimo 8 caracteres, maiúscula, minúscula, número e caractere especial
+                Mínimo 8 caracteres, maiúscula, minúscula, número e especial
               </p>
             </div>
 

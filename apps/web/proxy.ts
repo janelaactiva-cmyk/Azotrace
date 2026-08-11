@@ -3,7 +3,11 @@ import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 export async function proxy(request: NextRequest) {
-  const res = NextResponse.next();
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,33 +18,32 @@ export async function proxy(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: any) {
-          res.cookies.set({
+          response.cookies.set({
             name,
             value,
             ...options,
+            path: '/',
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7,
           });
         },
         remove(name: string, options: any) {
-          res.cookies.set({
+          response.cookies.set({
             name,
             value: '',
-            ...options,
+            path: '/',
+            maxAge: 0,
           });
         },
       },
     }
   );
 
-  // Refresh session em cada requisição
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  // Se houver user, a sessão está válida em todo o site
-  if (user) {
-    // O cookie já está atualizado pelo createServerClient
-    console.log('🍪 Sessão ativa para:', user.email);
-  }
+  await supabase.auth.getUser();
 
-  return res;
+  return response;
 }
 
 export const config = {

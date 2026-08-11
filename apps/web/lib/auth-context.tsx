@@ -21,6 +21,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      if (user) {
+        console.log('✅ Utilizador autenticado:', user.email);
+      }
     } catch (error) {
       console.error('Erro ao obter utilizador:', error);
       setUser(null);
@@ -32,13 +35,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     getUser();
 
-    // Ouvir mudanças na autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔔 Evento de autenticação:', event);
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setUser(session?.user || null);
+          if (session) {
+            console.log('✅ Sessão ativa:', session.user.email);
+            // Verificar cookies
+            console.log('🍪 Cookies:', document.cookie);
+          }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
+          console.log('👋 Utilizador deslogado');
         }
         setLoading(false);
       }
@@ -52,12 +61,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    // Limpar cookies no cliente
-    document.cookie.split(';').forEach(c => {
-      document.cookie = c
-        .replace(/^ +/, '')
-        .replace(/=.*/, '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/');
-    });
   };
 
   const refreshUser = async () => {
