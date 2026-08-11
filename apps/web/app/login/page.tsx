@@ -27,34 +27,19 @@ export default function LoginPage() {
     setError('');
 
     try {
-      console.log('Tentando login com:', email);
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) {
-        console.error('Erro detalhado:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       if (data?.user) {
-        console.log('Login bem-sucedido:', data.user.email);
         router.push('/dashboard');
         router.refresh();
       }
     } catch (err: any) {
-      console.error('Erro de login:', err);
-      
-      // Mensagens de erro mais amigáveis
-      if (err.message.includes('Invalid login credentials')) {
-        setError('Email ou senha incorretos. Verifique as credenciais.');
-      } else if (err.message.includes('Email not confirmed')) {
-        setError('Email não confirmado. Verifique a sua caixa de correio.');
-      } else {
-        setError(err.message || 'Erro ao fazer login. Tente novamente.');
-      }
+      setError(err.message || 'Erro ao fazer login');
     } finally {
       setLoading(false);
     }
