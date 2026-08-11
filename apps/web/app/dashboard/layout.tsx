@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { supabase } from '~/lib/supabase';
+import { useAuth } from '~/lib/auth-context';
 import Link from 'next/link';
 import { useTheme } from '~/lib/theme-context';
 import { useBusiness } from '~/lib/business-context';
@@ -16,35 +16,17 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
-  const { selectedBusinessType, selectedBusinessName, selectedBusinessId } = useBusiness();
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const { selectedBusinessType, selectedBusinessName } = useBusiness();
+  const { user, loading, signOut } = useAuth();
+  const [pageLoading, setPageLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          router.push('/login');
-          return;
-        }
-        setUser(user);
-      } catch (error) {
-        console.error('Erro:', error);
-        router.push('/login');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, [router]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
+    if (!loading && !user) {
+      router.push('/login');
+    } else if (!loading && user) {
+      setPageLoading(false);
+    }
+  }, [user, loading, router]);
 
   const navItems = [
     { path: '/dashboard', label: '📊 Dashboard' },
@@ -53,7 +35,7 @@ export default function DashboardLayout({
     { path: '/dashboard/analytics', label: '📈 Analytics' },
   ];
 
-  if (loading) {
+  if (loading || pageLoading) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -108,7 +90,7 @@ export default function DashboardLayout({
         transition: 'border-color 0.4s ease, background 0.3s ease, color 0.3s ease',
         borderRight: `4px solid ${sidebarBorderColor}`
       }}>
-        <div style={{ marginBottom: '32px' }}>
+        <div style={{ marginBottom: '24px' }}>
           <h1 style={{ 
             fontSize: '20px', 
             fontWeight: 'bold', 
@@ -143,7 +125,7 @@ export default function DashboardLayout({
           )}
         </div>
 
-        <nav style={{ flex: 1 }}>
+        <nav style={{ marginBottom: '16px' }}>
           {navItems.map((item) => {
             const isActive = pathname === item.path;
             return (
@@ -180,12 +162,6 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        <div style={{ 
-          borderTop: `2px solid ${sidebarBorderColor}`,
-          marginBottom: '16px',
-          opacity: selectedBusinessType ? 1 : 0.5
-        }} />
-
         <div style={{
           display: 'flex',
           flexDirection: 'column',
@@ -220,7 +196,7 @@ export default function DashboardLayout({
           </button>
 
           <button
-            onClick={handleLogout}
+            onClick={signOut}
             style={{
               width: '100%',
               padding: '12px 16px',
@@ -251,19 +227,18 @@ export default function DashboardLayout({
         <div style={{ flex: 1 }} />
       </aside>
 
-      {/* CONTEÚDO PRINCIPAL - COM MAIS ESPAÇAMENTO */}
       <main style={{
         marginLeft: '250px',
         flex: 1,
-        padding: '32px 40px', // Aumentei o padding
+        padding: '32px 40px',
         background: isDark ? '#111827' : '#f3f4f6',
         minHeight: '100vh',
         color: isDark ? '#e5e7eb' : '#111827',
         transition: 'background 0.3s ease, color 0.3s ease'
       }}>
         <div style={{
-          maxWidth: '1400px', // Limita a largura máxima
-          margin: '0 auto' // Centraliza o conteúdo
+          maxWidth: '1400px',
+          margin: '0 auto'
         }}>
           {children}
         </div>

@@ -6,21 +6,28 @@ import { supabase } from '~/lib/supabase';
 import { getBusinessIcon } from '~/lib/business-icons';
 import { useTheme } from '~/lib/theme-context';
 import { useBusiness } from '~/lib/business-context';
+import { useAuth } from '~/lib/auth-context';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { theme } = useTheme();
   const { selectedBusinessId, setSelectedBusiness } = useBusiness();
+  const { user, loading: authLoading } = useAuth();
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadBusinesses();
-  }, []);
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
+    if (user) {
+      loadBusinesses();
+    }
+  }, [user, authLoading]);
 
   const loadBusinesses = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -42,7 +49,7 @@ export default function DashboardPage() {
     setSelectedBusiness(business.id, business.tipo, business.nome);
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
         <p style={{ color: 'var(--text-secondary)' }}>A carregar negócios...</p>

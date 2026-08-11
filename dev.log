@@ -1,0 +1,36 @@
+$ cross-env FORCE_COLOR=1 turbo dev --parallel
+[33;40m WARNING [0m [33;49m--parallel is deprecated and will be removed in a future major version. Instead, define task behavior in your turbo.json task definitions using `persistent` and `with`.[0m
+• turbo 2.10.8
+
+   • Packages in scope: @kit/accounts, @kit/auth, @kit/i18n, @kit/next, @kit/shared, @kit/supabase, @kit/tsconfig, @kit/ui, scripts, web, web-e2e
+   • Running dev in 11 packages
+   • Remote caching disabled
+
+[36mscripts:dev: [0mcache bypass, force executing [2m5a2fc29f49f9dc83[0m
+[35mweb:dev: [0mcache bypass, force executing [2mf8382963013264e4[0m
+[36mscripts:dev: [0m[2m$ node ./src/dev.mjs[22m
+[35mweb:dev: [0m[2m$ pnpm with-env next dev | pino-pretty -c[22m
+[36mscripts:dev: [0m[32mYou are running Node 26.5.0.[0m
+[35mweb:dev: [0m[2m$ dotenv -e ./.env.local -- next dev[22m
+[36mscripts:dev: [0m[32mYou are running pnpm 11.18.0.[0m
+[35mweb:dev: [0m[1m[38;2;173;127;168m▲ Next.js 16.3.0[39m[22m (Turbopack)
+[35mweb:dev: [0m- Local:         http://localhost:3000
+[35mweb:dev: [0m- Network:       http://192.168.23.107:3000
+[35mweb:dev: [0m- Environments: .env.local, .env.development, .env
+[35mweb:dev: [0m[32m[1m✓[22m[39m Ready in 206ms
+[35mweb:dev: [0m[33m[1m⚠[22m[39m `experimental.cacheComponents` has been moved to `cacheComponents`. Please update your next.config.mjs file accordingly.
+[35mweb:dev: [0m[32m[1m✓[22m[39m Running next.config.mjs took 24ms
+[35mweb:dev: [0m[33m[1m⚠[22m[39m The "middleware" file convention is deprecated. Please use "proxy" instead.
+[35mweb:dev: [0m
+[35mweb:dev: [0m  To migrate automatically, run:
+[35mweb:dev: [0m  npx @next/codemod@canary middleware-to-proxy .
+[35mweb:dev: [0m
+[35mweb:dev: [0m  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[35mweb:dev: [0mUnhandled Rejection: Error: Both middleware file "./middleware.ts" and proxy file "./proxy.ts" are detected. Please use "./proxy.ts" only. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[35mweb:dev: [0m    at [3mignore-listed frames[23m
+[35mweb:dev: [0m- Cache Components enabled
+[35mweb:dev: [0m- Experiments (use with caution):
+[35mweb:dev: [0m  [1m✓[22m cacheComponents
+[35mweb:dev: [0m
+[35mweb:dev: [0m[32m[1m✓[22m[39m Compiled in 252ms
+[35mweb:dev: [0m[32m[1m✓[22m[39m Compiled in 49ms
