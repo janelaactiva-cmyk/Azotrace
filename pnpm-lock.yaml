@@ -242,18 +242,57 @@ importers:
       '@kit/auth':
         specifier: workspace:*
         version: link:../../packages/features/auth
+      '@kit/directus':
+        specifier: workspace:*
+        version: link:../../packages/plugins/directus
+      '@kit/feedback':
+        specifier: workspace:*
+        version: link:../../packages/plugins/feedback
+      '@kit/google-analytics':
+        specifier: workspace:*
+        version: link:../../packages/plugins/google-analytics
+      '@kit/honeybadger':
+        specifier: workspace:*
+        version: link:../../packages/plugins/honeybadger
       '@kit/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@kit/meshes-analytics':
+        specifier: workspace:*
+        version: link:../../packages/plugins/meshes-analytics
       '@kit/next':
         specifier: workspace:*
         version: link:../../packages/next
+      '@kit/paddle':
+        specifier: workspace:*
+        version: link:../../packages/plugins/paddle
+      '@kit/posthog':
+        specifier: workspace:*
+        version: link:../../packages/plugins/posthog
+      '@kit/roadmap':
+        specifier: workspace:*
+        version: link:../../packages/plugins/roadmap
+      '@kit/signoz':
+        specifier: workspace:*
+        version: link:../../packages/plugins/signoz
       '@kit/supabase':
         specifier: workspace:*
         version: link:../../packages/supabase
+      '@kit/supabase-cms':
+        specifier: workspace:*
+        version: link:../../packages/plugins/supabase-cms
+      '@kit/testimonial':
+        specifier: workspace:*
+        version: link:../../packages/plugins/testimonial
       '@kit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@kit/umami':
+        specifier: workspace:*
+        version: link:../../packages/plugins/umami
+      '@kit/waitlist':
+        specifier: workspace:*
+        version: link:../../packages/plugins/waitlist
       '@makerkit/data-loader-supabase-core':
         specifier: 'catalog:'
         version: 0.0.10(@supabase/postgrest-js@2.111.0)(@supabase/supabase-js@2.112.2)
@@ -540,6 +579,84 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.4.3
+
+  packages/plugins/directus:
+    dependencies:
+      '@kit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+
+  packages/plugins/feedback:
+    dependencies:
+      '@kit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+
+  packages/plugins/google-analytics:
+    dependencies:
+      '@kit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+
+  packages/plugins/honeybadger:
+    dependencies:
+      '@kit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+
+  packages/plugins/meshes-analytics:
+    dependencies:
+      '@kit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+
+  packages/plugins/paddle:
+    dependencies:
+      '@kit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+
+  packages/plugins/posthog:
+    dependencies:
+      '@kit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+
+  packages/plugins/roadmap:
+    dependencies:
+      '@kit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+
+  packages/plugins/signoz:
+    dependencies:
+      '@kit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+
+  packages/plugins/supabase-cms:
+    dependencies:
+      '@kit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+
+  packages/plugins/testimonial:
+    dependencies:
+      '@kit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+
+  packages/plugins/umami:
+    dependencies:
+      '@kit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+
+  packages/plugins/waitlist:
+    dependencies:
+      '@kit/ui':
+        specifier: workspace:*
+        version: link:../../ui
 
   packages/shared:
     dependencies:
