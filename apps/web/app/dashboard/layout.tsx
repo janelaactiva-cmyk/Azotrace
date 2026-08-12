@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '~/lib/auth-context';
+import { supabase } from '~/lib/supabase';
 import Link from 'next/link';
 import { useTheme } from '~/lib/theme-context';
 import { useBusiness } from '~/lib/business-context';
 import { getBusinessIcon } from '~/lib/business-icons';
+import { useAuth } from '~/lib/auth-context';
+import MegaMenu from './components/MegaMenu';
 
 export default function DashboardLayout({
   children,
@@ -17,16 +19,20 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
   const { selectedBusinessType, selectedBusinessName } = useBusiness();
-  const { user, loading, signOut } = useAuth();
-  const [pageLoading, setPageLoading] = useState(true);
+  const { user, loading: authLoading, signOut } = useAuth();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    } else if (!loading && user) {
-      setPageLoading(false);
+    if (!authLoading && user) {
+      setLoading(false);
     }
-  }, [user, loading, router]);
+  }, [user, authLoading]);
+
+  const handleLogout = useCallback(async () => {
+    await signOut();
+    router.push('/login');
+    router.refresh();
+  }, [signOut, router]);
 
   const navItems = [
     { path: '/dashboard', label: '📊 Dashboard' },
@@ -35,7 +41,7 @@ export default function DashboardLayout({
     { path: '/dashboard/analytics', label: '📈 Analytics' },
   ];
 
-  if (loading || pageLoading) {
+  if (authLoading || loading) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -127,7 +133,17 @@ export default function DashboardLayout({
 
         <nav style={{ marginBottom: '16px' }}>
           {navItems.map((item) => {
-            const isActive = pathname === item.path;
+            const isActive = pathname === item.path || pathname?.startsWith(item.path + '/');
+            
+            // Se for Administração, usa o MegaMenu
+            if (item.label === '⚙️ Administração') {
+              return (
+                <div key={item.path} style={{ marginBottom: '4px' }}>
+                  <MegaMenu />
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={item.path}
@@ -140,20 +156,9 @@ export default function DashboardLayout({
                   background: isActive ? sidebarActive : 'transparent',
                   color: isActive ? sidebarTextColor : sidebarSubtext,
                   textDecoration: 'none',
-                  transition: 'all 0.2s',
-                  fontSize: '15px'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = sidebarHover;
-                    e.currentTarget.style.color = sidebarTextColor;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = sidebarSubtext;
-                  }
+                  transition: 'background 0.15s ease, color 0.15s ease',
+                  fontSize: '15px',
+                  willChange: 'background, color'
                 }}
               >
                 {item.label}
@@ -183,7 +188,7 @@ export default function DashboardLayout({
               gap: '8px',
               fontSize: '14px',
               fontWeight: '500',
-              transition: 'all 0.3s ease'
+              transition: 'background 0.15s ease'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = buttonHover;
@@ -196,7 +201,7 @@ export default function DashboardLayout({
           </button>
 
           <button
-            onClick={signOut}
+            onClick={handleLogout}
             style={{
               width: '100%',
               padding: '12px 16px',
@@ -211,7 +216,7 @@ export default function DashboardLayout({
               gap: '8px',
               fontSize: '14px',
               fontWeight: '600',
-              transition: 'all 0.2s'
+              transition: 'background 0.15s ease'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = '#b91c1c';

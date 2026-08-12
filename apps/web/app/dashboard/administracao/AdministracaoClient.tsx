@@ -1,361 +1,139 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '~/lib/supabase';
-import { BUSINESS_TYPES, getBusinessIcon } from '~/lib/business-icons';
-import { useTheme } from '~/lib/theme-context';
-import { useAuth } from '~/lib/auth-context';
+import { useState } from 'react';
+import MegaMenu from '../components/MegaMenu';
 
 export default function AdministracaoClient() {
-  const router = useRouter();
-  const { theme } = useTheme();
-  const { user, loading: authLoading } = useAuth();
-  const [businesses, setBusinesses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    nome: '',
-    tipo: '',
-    humidade: '',
-    origem: '',
-    temperatura: '',
-    validade: '',
-    quantidade: '',
-    observacoes: ''
-  });
+  const [currentPath, setCurrentPath] = useState<string>('');
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-      return;
-    }
-    if (user) {
-      loadBusinesses();
-    }
-  }, [user, authLoading]);
-
-  const loadBusinesses = async () => {
-    try {
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('negocios')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setBusinesses(data || []);
-    } catch (error) {
-      console.error('Erro:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleMenuClick = (path: string) => {
+    setCurrentPath(path);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-
-    try {
-      if (!user) {
-        alert('Faça login primeiro!');
-        router.push('/login');
-        return;
-      }
-
-      const novoNegocio = {
-        nome: form.nome,
-        tipo: form.tipo,
-        humidade: form.humidade ? parseFloat(form.humidade) : null,
-        origem: form.origem || null,
-        temperatura: form.temperatura ? parseFloat(form.temperatura) : null,
-        validade: form.validade || null,
-        quantidade: form.quantidade ? parseFloat(form.quantidade) : null,
-        observacoes: form.observacoes || null,
-        user_id: user.id,
-      };
-
-      const { error } = await supabase.from('negocios').insert([novoNegocio]);
-      if (error) throw error;
-
-      setForm({
-        nome: '',
-        tipo: '',
-        humidade: '',
-        origem: '',
-        temperatura: '',
-        validade: '',
-        quantidade: '',
-        observacoes: ''
-      });
-      await loadBusinesses();
-      alert('✅ Negócio adicionado com sucesso!');
-    } catch (error: any) {
-      alert('❌ Erro: ' + error.message);
-    } finally {
-      setSaving(false);
-    }
+  const getPageName = (path: string) => {
+    if (!path) return 'Seleciona uma opção';
+    const parts = path.split('/');
+    const lastPart = parts[parts.length - 1];
+    const nameMap: Record<string, string> = {
+      'configuracoes': 'Configurações Gerais',
+      'empresa': 'Dados da Empresa',
+      'categorias': 'Categorias de Produtos',
+      'criar': 'Criar Categoria',
+      'subcategorias': 'Subcategorias',
+      'campos': 'Campos dos Produtos',
+      'negocios': 'Negócios',
+      'utilizadores': 'Listar Utilizadores',
+      'editar': 'Editar Utilizador',
+      'perfis': 'Perfis e Permissões',
+      'politica': 'Política de Privacidade',
+      'consentimentos': 'Consentimentos',
+      'pedidos': 'Pedidos dos Titulares',
+      'novo': 'Novo Pedido',
+      'historico': 'Histórico de Pedidos',
+      '2024': '2024',
+      '2025': '2025',
+      '2026': '2026',
+      'exportacao': 'Exportação de Dados',
+      'apagamento': 'Apagamento / Anonimização',
+      'retencao': 'Retenção de Dados',
+      'subcontratantes': 'Subcontratantes',
+      'atividades': 'Registo de Atividades',
+      'acesso': 'Logs de Acesso',
+      'acoes': 'Logs de Ações',
+      'erros': 'Logs de Erros',
+      'qrcodes': 'QR Codes',
+    };
+    return nameMap[lastPart] || lastPart.charAt(0).toUpperCase() + lastPart.slice(1);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja eliminar este negócio?')) return;
-    try {
-      const { error } = await supabase.from('negocios').delete().eq('id', id);
-      if (error) throw error;
-      await loadBusinesses();
-    } catch (error: any) {
-      alert('❌ Erro: ' + error.message);
-    }
-  };
-
-  const handleChange = (e: any) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  if (authLoading || loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-        <p style={{ color: 'var(--text-secondary)' }}>A carregar...</p>
-      </div>
-    );
-  }
+  const pageName = getPageName(currentPath);
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: 'var(--text-primary)' }}>⚙️ Administração</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>Gerir negócios e configurações</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>Gerir todos os aspetos do sistema</p>
         </div>
-        <button
-          onClick={() => router.push('/dashboard')}
-          style={{
-            padding: '10px 20px',
-            background: '#6b7280',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: '500'
-          }}
-        >
-          ← Voltar
-        </button>
       </div>
 
-      <div className="card" style={{ padding: '28px', marginBottom: '28px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '20px' }}>➕ Adicionar Negócio</h2>
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '6px' }}>Nome *</label>
-              <input
-                type="text"
-                name="nome"
-                value={form.nome}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '15px' }}
-                placeholder="Ex: Carne Premium"
-                required
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '6px' }}>Tipo *</label>
-              <select
-                name="tipo"
-                value={form.tipo}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '15px' }}
-                required
-              >
-                <option value="">Selecione...</option>
-                {BUSINESS_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '6px' }}>🌡️ Humidade (%)</label>
-              <input
-                type="number"
-                name="humidade"
-                value={form.humidade}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '15px' }}
-                step="0.1"
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '6px' }}>🌡️ Temperatura (°C)</label>
-              <input
-                type="number"
-                name="temperatura"
-                value={form.temperatura}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '15px' }}
-                step="0.1"
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '6px' }}>📍 Origem</label>
-              <input
-                type="text"
-                name="origem"
-                value={form.origem}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '15px' }}
-                placeholder="Ex: São Miguel, Açores"
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '6px' }}>📅 Validade</label>
-              <input
-                type="date"
-                name="validade"
-                value={form.validade}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '15px' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '6px' }}>📦 Quantidade (kg)</label>
-              <input
-                type="number"
-                name="quantidade"
-                value={form.quantidade}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '15px' }}
-                step="0.1"
-              />
-            </div>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '6px' }}>📝 Observações</label>
-              <textarea
-                name="observacoes"
-                value={form.observacoes}
-                onChange={handleChange}
-                rows={3}
-                style={{ width: '100%', padding: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '15px', resize: 'none' }}
-                placeholder="Observações sobre o negócio..."
-              />
-            </div>
-          </div>
-          <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
-            <button
-              type="submit"
-              disabled={saving}
-              style={{
-                padding: '12px 28px',
-                background: '#2563eb',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '15px',
-                fontWeight: '500',
-                opacity: saving ? 0.7 : 1,
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                if (!saving) e.currentTarget.style.background = '#1d4ed8';
-              }}
-              onMouseLeave={(e) => {
-                if (!saving) e.currentTarget.style.background = '#2563eb';
-              }}
-            >
-              {saving ? 'A guardar...' : '💾 Guardar'}
-            </button>
-            <button
-              type="reset"
-              onClick={() => setForm({
-                nome: '',
-                tipo: '',
-                humidade: '',
-                origem: '',
-                temperatura: '',
-                validade: '',
-                quantidade: '',
-                observacoes: ''
-              })}
-              style={{
-                padding: '12px 28px',
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '15px'
-              }}
-            >
-              ↩️ Limpar
-            </button>
-          </div>
-        </form>
+      {/* MegaMenu */}
+      <div style={{ 
+        background: 'white', 
+        borderRadius: '8px', 
+        border: '1px solid #e5e7eb',
+        padding: '12px 20px',
+        marginBottom: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        flexWrap: 'wrap'
+      }}>
+        <MegaMenu onItemClick={handleMenuClick} />
+        {currentPath && (
+          <span style={{ 
+            fontSize: '14px', 
+            color: '#6b7280',
+            borderLeft: '1px solid #e5e7eb',
+            paddingLeft: '16px'
+          }}>
+            📍 {pageName}
+          </span>
+        )}
       </div>
 
-      <div className="card" style={{ padding: '28px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '16px' }}>📋 Lista de Negócios ({businesses.length})</h2>
-        {businesses.length === 0 ? (
-          <p style={{ color: 'var(--text-secondary)' }}>Nenhum negócio encontrado</p>
+      {/* Conteúdo */}
+      <div style={{
+        background: 'white',
+        borderRadius: '8px',
+        border: '1px solid #e5e7eb',
+        padding: '24px',
+        minHeight: '300px'
+      }}>
+        {currentPath ? (
+          <div>
+            <h2 style={{ 
+              fontSize: '20px', 
+              fontWeight: '600', 
+              color: 'var(--text-primary)', 
+              marginBottom: '16px',
+              borderBottom: '2px solid #e5e7eb',
+              paddingBottom: '12px'
+            }}>
+              {pageName}
+            </h2>
+            <div style={{
+              padding: '20px',
+              background: '#f9fafb',
+              borderRadius: '8px',
+              border: '1px solid #e5e7eb',
+              minHeight: '200px'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                height: '150px',
+                color: '#6b7280'
+              }}>
+                <span style={{ fontSize: '48px', marginBottom: '16px' }}>📄</span>
+                <p style={{ fontSize: '16px', fontWeight: '500' }}>{pageName}</p>
+                <p style={{ fontSize: '14px', marginTop: '8px' }}>
+                  Conteúdo em desenvolvimento. Brevemente disponível.
+                </p>
+              </div>
+            </div>
+          </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: 'var(--bg-secondary)', borderBottom: '2px solid var(--border-color)' }}>
-                  <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Nome</th>
-                  <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Tipo</th>
-                  <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Humidade</th>
-                  <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Origem</th>
-                  <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {businesses.map((b) => {
-                  const icon = getBusinessIcon(b.tipo);
-                  return (
-                    <tr key={b.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <td style={{ padding: '12px', fontWeight: '500', color: 'var(--text-primary)' }}>{b.nome}</td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{
-                          padding: '4px 12px',
-                          borderRadius: '12px',
-                          fontSize: '13px',
-                          background: `${icon.color}22`,
-                          color: icon.color
-                        }}>
-                          {icon.icon} {icon.label}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px', color: 'var(--text-primary)' }}>{b.humidade || '-'}%</td>
-                      <td style={{ padding: '12px', color: 'var(--text-primary)' }}>{b.origem || '-'}</td>
-                      <td style={{ padding: '12px' }}>
-                        <button
-                          onClick={() => handleDelete(b.id)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#dc2626',
-                            cursor: 'pointer',
-                            fontSize: '20px',
-                            transition: 'color 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = '#b91c1c';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = '#dc2626';
-                          }}
-                        >
-                          🗑️
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>📋</span>
+            <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '8px' }}>
+              Seleciona uma opção do menu
+            </h2>
+            <p style={{ color: 'var(--text-secondary)' }}>
+              Clica em <strong>Administração</strong> e navega pelos submenus.
+            </p>
           </div>
         )}
       </div>
