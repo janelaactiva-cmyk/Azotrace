@@ -186,6 +186,23 @@ export default function MegaMenu({ onItemClick }: { onItemClick?: (path: string)
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const [hoverStack, setHoverStack] = useState<string[]>([]);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Abrir com hover
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setIsOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setIsOpen(false);
+      setHoverStack([]);
+    }, 200);
+  };
 
   // Fechar menu quando clicar fora
   useEffect(() => {
@@ -236,8 +253,13 @@ export default function MegaMenu({ onItemClick }: { onItemClick?: (path: string)
   };
 
   return (
-    <div ref={menuRef} style={{ position: 'relative', display: 'block', width: '100%' }}>
-      {/* Botão Administração - SEM SETA */}
+    <div 
+      ref={menuRef} 
+      style={{ position: 'relative', display: 'block', width: '100%' }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Botão Administração - SEM SETA, abre com hover */}
       <div
         style={{
           display: 'flex',
@@ -251,15 +273,11 @@ export default function MegaMenu({ onItemClick }: { onItemClick?: (path: string)
           transition: 'all 0.2s',
           width: '100%'
         }}
-        onClick={() => {
-          setIsOpen(!isOpen);
-          if (!isOpen) setHoverStack([]);
-        }}
       >
         <span>⚙️ Administração</span>
       </div>
 
-      {/* MegaMenu - Múltiplas Colunas */}
+      {/* MegaMenu - Múltiplas Colunas (abre com hover) */}
       {isOpen && (
         <div
           style={{
@@ -276,7 +294,6 @@ export default function MegaMenu({ onItemClick }: { onItemClick?: (path: string)
           }}
         >
           {menuStack.map((items, index) => {
-            // Determinar qual item está ativo neste nível
             const activeId = index < hoverStack.length ? hoverStack[index] : null;
             
             return (
