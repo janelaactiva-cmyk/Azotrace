@@ -22,7 +22,7 @@ const AppConfigSchema = z
         error: `Please provide the variable NEXT_PUBLIC_SITE_URL`,
       })
       .url({
-        message: `You are deploying a production build but have entered a NEXT_PUBLIC_SITE_URL variable using http instead of https. It is very likely that you have set the incorrect URL. The build will now fail to prevent you from from deploying a faulty configuration. Please provide the variable NEXT_PUBLIC_SITE_URL with a valid URL, such as: 'https://example.com'`,
+        message: `Please provide the variable NEXT_PUBLIC_SITE_URL with a valid URL, such as: 'https://example.com'`,
       }),
     locale: z
       .string({
@@ -33,6 +33,9 @@ const AppConfigSchema = z
     production: z.boolean(),
     themeColor: z.string(),
     themeColorDark: z.string(),
+    
+    // ⬇️ Adiciona o campo do Captcha (opcional se não quiseres tornar obrigatório)
+    captchaSiteKey: z.string().optional(),
   })
   .refine(
     (schema) => {
@@ -68,6 +71,7 @@ const appConfig = AppConfigSchema.parse({
   theme: process.env.NEXT_PUBLIC_DEFAULT_THEME_MODE,
   themeColor: process.env.NEXT_PUBLIC_THEME_COLOR,
   themeColorDark: process.env.NEXT_PUBLIC_THEME_COLOR_DARK,
+  captchaTokenSiteKey: process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY, // 👈 Adicionado aqui
   production,
 });
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '~/lib/supabase';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,6 +22,9 @@ export default function LoginPage() {
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   
   const [resetEmail, setResetEmail] = useState('');
+
+  // ESTADO DO TOKEN DO TURNSTILE
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -69,6 +73,7 @@ export default function LoginPage() {
         password: registerPassword,
         options: {
           emailRedirectTo: `${window.location.origin}/dashboard`,
+          captchaToken: captchaToken ?? undefined, // 👈 INJETADO AQUI
         },
       });
 
@@ -95,9 +100,13 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // ✅ ENVIO DO TOKEN DO CAPTCHA CORRIGIDO
       const { data, error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: loginPassword,
+        options: {
+          captchaToken: captchaToken ?? undefined, // 👈 INJETADO AQUI
+        },
       });
 
       if (error) throw error;
@@ -143,6 +152,7 @@ export default function LoginPage() {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo: `${window.location.origin}/reset-password`,
+        captchaToken: captchaToken ?? undefined, // 👈 INJETADO AQUI
       });
 
       if (error) throw error;
@@ -230,6 +240,15 @@ export default function LoginPage() {
                 placeholder="seu@email.com"
                 autoComplete="email"
                 required
+              />
+            </div>
+
+            {/* WIDGET DO TURNSTILE */}
+            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+              <Turnstile
+                siteKey={process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY || ''}
+                onSuccess={(token) => setCaptchaToken(token)}
+                onExpire={() => setCaptchaToken(null)}
               />
             </div>
 
@@ -390,7 +409,7 @@ export default function LoginPage() {
             </div>
 
             {/* BOTÃO ESQUECI-ME DA SENHA */}
-            <div style={{ textAlign: 'right', marginBottom: '20px' }}>
+            <div style={{ textAlign: 'right', marginBottom: '16px' }}>
               <button
                 type="button"
                 onClick={() => {
@@ -410,6 +429,15 @@ export default function LoginPage() {
               >
                 Esqueci-me da palavra-passe
               </button>
+            </div>
+
+            {/* WIDGET DO TURNSTILE */}
+            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+              <Turnstile
+                siteKey={process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY || ''}
+                onSuccess={(token) => setCaptchaToken(token)}
+                onExpire={() => setCaptchaToken(null)}
+              />
             </div>
 
             <button
@@ -474,7 +502,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontWeight: '500', marginBottom: '6px', fontSize: '14px' }}>Confirmar Senha</label>
               <input
                 type="password"
@@ -490,6 +518,15 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 autoComplete="new-password"
                 required
+              />
+            </div>
+
+            {/* WIDGET DO TURNSTILE */}
+            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+              <Turnstile
+                siteKey={process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY || ''}
+                onSuccess={(token) => setCaptchaToken(token)}
+                onExpire={() => setCaptchaToken(null)}
               />
             </div>
 

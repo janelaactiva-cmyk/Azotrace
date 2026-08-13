@@ -32,11 +32,7 @@ function SignUpPage() {
         </Heading>
       </div>
 
-      <SignUpMethodsContainer
-        providers={authConfig.providers}
-        displayTermsCheckbox={authConfig.displayTermsCheckbox}
-        paths={paths}
-      />
+      
 
       <div className={'flex justify-center'}>
         <Button
