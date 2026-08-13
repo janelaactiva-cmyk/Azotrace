@@ -19,10 +19,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const getUser = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      if (user) {
-        console.log('✅ Utilizador autenticado:', user.email);
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.log('🔴 Erro ao obter utilizador:', error.message);
+        setUser(null);
+        // Limpar cookies se houver erro
+        if (typeof document !== 'undefined') {
+          document.cookie.split(';').forEach(c => {
+            document.cookie = c
+              .replace(/^ +/, '')
+              .replace(/=.*/, '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/');
+          });
+        }
+      } else {
+        setUser(user);
+        if (user) {
+          console.log('👤 Utilizador autenticado:', user.email);
+        }
       }
     } catch (error) {
       console.error('Erro ao obter utilizador:', error);
@@ -35,19 +48,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     getUser();
 
+    // Ouvir mudanças na autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔔 Evento de autenticação:', event);
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setUser(session?.user || null);
-          if (session) {
-            console.log('✅ Sessão ativa:', session.user.email);
-            // Verificar cookies
-            console.log('🍪 Cookies:', document.cookie);
-          }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
-          console.log('👋 Utilizador deslogado');
+          // Limpar cookies no logout
+          if (typeof document !== 'undefined') {
+            document.cookie.split(';').forEach(c => {
+              document.cookie = c
+                .replace(/^ +/, '')
+                .replace(/=.*/, '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/');
+            });
+          }
         }
         setLoading(false);
       }
@@ -61,6 +77,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    // Limpar todos os cookies
+    if (typeof document !== 'undefined') {
+      document.cookie.split(';').forEach(c => {
+        document.cookie = c
+          .replace(/^ +/, '')
+          .replace(/=.*/, '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/');
+      });
+    }
   };
 
   const refreshUser = async () => {

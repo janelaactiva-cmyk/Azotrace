@@ -16,14 +16,25 @@ export function GoogleAnalytics({ measurementId }: { measurementId?: string }) {
 
   useEffect(() => {
     if (!measurementId) return;
-    if (typeof window !== 'undefined') {
-      window.dataLayer = window.dataLayer || [];
-      window.gtag = function() {
-        window.dataLayer.push(arguments);
-      };
-      window.gtag('js', new Date());
-      window.gtag('config', measurementId);
-    }
+    if (typeof window === 'undefined') return;
+
+    // Verificar consentimento
+    const consent = localStorage.getItem('cookie-consent');
+    const analyticsEnabled = consent === 'accepted';
+
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function() {
+      window.dataLayer.push(arguments);
+    };
+
+    window.gtag('consent', 'default', {
+      analytics_storage: analyticsEnabled ? 'granted' : 'denied'
+    });
+
+    window.gtag('js', new Date());
+    window.gtag('config', measurementId);
+
+    console.log(`📊 Google Analytics: ${analyticsEnabled ? '✅ Ativo' : '❌ Desativado'}`);
   }, [measurementId]);
 
   useEffect(() => {
