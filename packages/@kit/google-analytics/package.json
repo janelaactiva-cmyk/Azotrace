@@ -1,0 +1,12 @@
+{
+  "name": "@kit/google-analytics",
+  "version": "1.0.0",
+  "main": "index.tsx",
+  "types": "index.tsx",
+  "peerDependencies": {
+    "next": "^14.0.0"
+  },
+  "devDependencies": {
+    "next": "^14.0.0"
+  }
+}

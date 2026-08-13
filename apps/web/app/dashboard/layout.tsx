@@ -135,7 +135,6 @@ export default function DashboardLayout({
           {navItems.map((item) => {
             const isActive = pathname === item.path || pathname?.startsWith(item.path + '/');
             
-            // Se for Administração, usa o MegaMenu
             if (item.label === '⚙️ Administração') {
               return (
                 <div key={item.path} style={{ marginBottom: '4px' }}>

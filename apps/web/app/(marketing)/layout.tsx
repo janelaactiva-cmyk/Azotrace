@@ -1,5 +1,5 @@
 import { SiteFooter } from '~/(marketing)/_components/site-footer';
-import { SiteHeader } from '~/(marketing)/_components/site-header';
+import { SiteHeader } from '~/app/(marketing)/_components/site-header';
 
 /**
  * Synchronous on purpose. This layout used to await the session so the header

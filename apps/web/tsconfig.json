@@ -2,7 +2,7 @@
   "extends": "@kit/tsconfig/base.json",
   "compilerOptions": {
     "paths": {
-      "~/*": ["./app/*"],
+      "~/*": ["./*"],
       "~/config/*": ["./config/*"],
       "~/components/*": ["./components/*"],
       "~/lib/*": ["./lib/*"]
@@ -22,7 +22,8 @@
     "./config/**/*.ts",
     "components/**/*",
     "lib/**/*.ts",
-    "app"
+    "app",
+    "plugins/**/*"
   ],
   "exclude": ["node_modules", ".next"]
 }

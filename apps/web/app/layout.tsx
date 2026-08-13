@@ -4,12 +4,14 @@ import './globals.css';
 import { ThemeProvider } from '~/lib/theme-context';
 import { BusinessProvider } from '~/lib/business-context';
 import { AuthProvider } from '~/lib/auth-context';
+import { Providers } from './providers';
+import FeedbackButton from '~/components/FeedbackButton';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Azotrace',
-  description: 'Gestão de Negócios',
+  title: 'Azotrace - Gestão de Negócios',
+  description: 'Sistema de gestão de negócios agrícolas',
 };
 
 export default function RootLayout({
@@ -23,7 +25,10 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <BusinessProvider>
-              {children}
+              <Providers>
+                {children}
+                <FeedbackButton />
+              </Providers>
             </BusinessProvider>
           </AuthProvider>
         </ThemeProvider>

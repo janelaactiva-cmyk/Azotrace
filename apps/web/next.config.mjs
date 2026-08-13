@@ -4,6 +4,7 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  devIndicators: false, // <-- Adiciona esta linha aqui!
   experimental: {
     cacheComponents: true,
   },
