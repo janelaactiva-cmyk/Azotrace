@@ -38,13 +38,13 @@ export default function CookiePopup() {
       bottom: '20px',
       right: '20px',
       zIndex: 9999,
-      maxWidth: '380px',
+      maxWidth: '700px',
       width: '100%',
       animation: 'slideUp 0.3s ease-out'
     }}>
       <div style={{
         background: '#1e293b',
-        color: 'white',
+        color: '#ffffff',
         borderRadius: '12px',
         padding: '20px 24px',
         boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
@@ -54,9 +54,11 @@ export default function CookiePopup() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '28px' }}>🍪</span>
             <div>
-              <h4 style={{ fontSize: '15px', fontWeight: '600', margin: 0 }}>Cookies Ativos</h4>
-              <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>
-                Sessão autenticada com sucesso
+              <h4 style={{ fontSize: '15px', fontWeight: '600', margin: 0, color: '#ffffff' }}>
+                Sessão Ativa & Cookies
+              </h4>
+              <p style={{ fontSize: '13px', color: '#ffffff', margin: '4px 0 0 0', fontWeight: '400', opacity: 0.9 }}>
+                Autenticado com sucesso na plataforma
               </p>
             </div>
           </div>
@@ -65,10 +67,11 @@ export default function CookiePopup() {
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: '#ffffff',
               cursor: 'pointer',
               fontSize: '18px',
-              padding: '0 4px'
+              padding: '0 4px',
+              opacity: 0.8
             }}
           >
             ✕
@@ -81,10 +84,11 @@ export default function CookiePopup() {
           background: '#0f172a',
           borderRadius: '6px',
           fontSize: '11px',
-          color: '#94a3b8',
+          color: '#ffffff',
           wordBreak: 'break-all',
           maxHeight: '60px',
-          overflowY: 'auto'
+          overflowY: 'auto',
+          opacity: 0.9
         }}>
           {cookies.substring(0, 100)}...
         </div>
@@ -96,13 +100,14 @@ export default function CookiePopup() {
               alert('🍪 Cookies copiados!');
             }}
             style={{
-              padding: '4px 12px',
+              padding: '6px 14px',
               background: '#3b82f6',
-              color: 'white',
+              color: '#ffffff',
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '12px'
+              fontSize: '12px',
+              fontWeight: '500'
             }}
           >
             📋 Copiar
@@ -110,13 +115,14 @@ export default function CookiePopup() {
           <button
             onClick={handleClose}
             style={{
-              padding: '4px 12px',
+              padding: '6px 14px',
               background: '#334155',
-              color: 'white',
+              color: '#ffffff',
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '12px'
+              fontSize: '12px',
+              fontWeight: '500'
             }}
           >
             Fechar
