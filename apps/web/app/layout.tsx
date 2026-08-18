@@ -5,7 +5,6 @@ import { ThemeProvider } from '~/lib/theme-context';
 import { BusinessProvider } from '~/lib/business-context';
 import { AuthProvider } from '~/lib/auth-context';
 import { Providers } from './providers';
-import FeedbackButton from '~/components/FeedbackButton';
 import CookieConsent from '~/components/CookieConsent';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -29,7 +28,6 @@ export default function RootLayout({
               <Providers>
                 {children}
                 <CookieConsent />
-                <FeedbackButton />
               </Providers>
             </BusinessProvider>
           </AuthProvider>

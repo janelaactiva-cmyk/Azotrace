@@ -11,10 +11,11 @@ import Features from './components/Features';
 import Pricing from './components/Pricing';
 import FAQ from './components/FAQ';
 import Footer from './components/Footer';
+import Chatbot from './components/Chatbot';
 
 export default function LandingPage() {
   useEffect(() => {
-    // Smooth scroll para todos os links com #
+    // Smooth scroll
     document.querySelectorAll('a[href^="#"]').forEach((anchor: any) => {
       anchor.addEventListener('click', function (e: any) {
         const targetId = this.getAttribute('href');
@@ -25,7 +26,6 @@ export default function LandingPage() {
             const headerOffset = 80;
             const elementPosition = targetElement.getBoundingClientRect().top;
             const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
             window.scrollTo({
               top: offsetPosition,
               behavior: 'smooth'
@@ -46,9 +46,9 @@ export default function LandingPage() {
       <Pricing />
       <FAQ />
       <Footer />
+      <Chatbot />
       <a
         href="#home"
-        className="back-to-top"
         style={{
           position: 'fixed',
           bottom: '20px',
