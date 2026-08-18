@@ -1,0 +1,568 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: #fff;
+}
+
+/* Botão Entrar */
+.btn-login {
+    display: inline-block;
+    padding: 10px 24px;
+    border: 2px solid #234D87;
+    border-radius: 8px;
+    background: #FFFFFF;
+    color: #234D87;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all .3s ease;
+}
+
+.btn-login:hover {
+    background: #234D87 !important;
+    color: #FFFFFF !important;
+    cursor: pointer;
+}
+
+/* Cabeçalho Fixo */
+.header {
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.navbar-nav .nav-link {
+    color: #234D87 !important;
+    font-weight: 500;
+    padding: 0.5rem 1rem !important;
+}
+
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link.active {
+    color: #173A63 !important;
+}
+
+/* Hero Section */
+.hero {
+    background: #FFFFFF;
+    padding: 60px 0 60px 0;
+    text-align: center;
+}
+
+.hero-title {
+    color: #234D87;
+    font-size: 2.8rem;
+    font-weight: 700;
+}
+
+.hero-desc {
+    color: #555;
+    font-size: 1.2rem;
+}
+
+.hero-logo {
+    width: 450px;
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 35px;
+}
+
+/* Estilização Geral de Secções */
+section {
+    padding: 80px 0;
+}
+
+.section-title {
+    margin-bottom: 50px;
+}
+
+.section-title span {
+    color: #234D87;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+}
+
+.section-title h2 {
+    margin-top: 10px;
+    font-weight: 700;
+}
+
+/* Cartões Unificados (Features, Team, Pricing) */
+.single-feature,
+.single-team,
+.single-pricing {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    height: 100%;
+    box-shadow: 0 8px 15px rgba(0,0,0,0.12);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.single-feature:hover,
+.single-team:hover,
+.single-pricing:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+}
+
+#feature {
+    padding-top: 120px;
+    margin-top: 40px;
+}
+
+/* Ícones */
+.feature-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 50px;
+}
+
+.feature-desc {
+    color: #666;
+    font-size: 0.95rem;
+    margin-bottom: 0;
+}
+
+.feature-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background: #eef6ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.feature-icon i {
+    font-size: 38px;
+    color: #234D87;
+    transition: .3s;
+}
+
+.single-feature:hover .feature-icon,
+.single-team:hover .feature-icon {
+    background: #234D87;
+    transform: translateY(-5px);
+}
+
+.single-feature:hover .feature-icon i,
+.single-team:hover .feature-icon i {
+    color: #fff;
+}
+
+/* Preçários */
+.single-pricing.active {
+    border: 2px solid #234D87;
+    position: relative;
+}
+
+.popular-tag {
+    position: absolute;
+    top: -13px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ffd700;
+    color: #333;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 15px;
+    border-radius: 20px;
+}
+
+.pricing-header h3 {
+    font-size: 1.1rem;
+    color: #666;
+}
+
+.pricing-header h4 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #234D87;
+    margin: 15px 0;
+}
+
+.pricing-body ul {
+    list-style: none;
+    padding: 0;
+    margin: 25px 0;
+}
+
+.pricing-body li {
+    padding: 10px 0;
+    color: #555;
+    border-bottom: 1px dashed #eee;
+}
+
+/* Botões Customizados */
+.main-btn {
+    display: block;
+    width: 100%;
+    padding: 12px 25px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.border-btn {
+    border: 2px solid #234D87;
+    background: transparent;
+    color: #234D87 !important;
+}
+
+.border-btn:hover {
+    background: #234D87;
+    color: white !important;
+}
+
+.white-btn {
+    background: #234D87;
+    color: white !important;
+}
+
+.white-btn:hover {
+    background: #173A63;
+}
+
+/* VANTAGENS */
+.advantages-section {
+    padding: 100px 0;
+    background: #fff;
+}
+
+.advantages-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 2px 1fr;
+    gap: 60px;
+    align-items: start;
+    margin-top: 70px;
+}
+
+.divider {
+    background: #d9e3ef;
+    width: 2px;
+    min-height: 320px;
+}
+
+.advantages-column h3 {
+    color: #234D87;
+    margin-bottom: 30px;
+    font-size: 30px;
+    font-weight: 700;
+}
+
+.advantages-column ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.advantages-column li {
+    position: relative;
+    padding: 12px 0 12px 35px;
+    font-size: 17px;
+    color: #555;
+}
+
+.advantages-column li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #84C46A;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* Alinhamentos */
+.left {
+    text-align: right;
+}
+
+.left li {
+    padding-right: 35px;
+    padding-left: 0;
+}
+
+.left li::before {
+    left: auto;
+    right: 0;
+}
+
+.right {
+    text-align: left;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .advantages-wrapper {
+        grid-template-columns: 1fr;
+        gap: 50px;
+    }
+    .divider {
+        display: none;
+    }
+    .left,
+    .right {
+        text-align: left;
+    }
+    .left li {
+        padding-left: 35px;
+        padding-right: 0;
+    }
+    .left li::before {
+        left: 0;
+        right: auto;
+    }
+}
+
+/* Rodapé */
+.footer {
+    background: #173A63;
+    color: #fff;
+    padding: 70px 0 20px;
+}
+
+.footer h5 {
+    color: #fff;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.footer p {
+    color: rgba(255, 255, 255, .8);
+}
+
+.footer a {
+    color: rgba(255, 255, 255, .8);
+    text-decoration: none;
+    transition: .3s;
+}
+
+.footer a:hover {
+    color: #84C46A;
+}
+
+.footer ul li {
+    margin-bottom: 10px;
+}
+
+.footer i {
+    color: #84C46A;
+    width: 22px;
+}
+
+/* Responsividade Avançada */
+@media (max-width: 991.98px) {
+    .hero {
+        padding: 120px 0 70px 0;
+    }
+    .hero-title {
+        font-size: 2.2rem;
+    }
+    .navbar-collapse {
+        background: #0052a3;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+}
+
+/* ==========================
+   SOBRE A AZOTRACE
+========================== */
+.about-section {
+    padding: 80px 20px;
+    background: #EEF5FC;
+}
+
+.about-section .container {
+    max-width: 900px;
+    margin: auto;
+}
+
+.section-subtitle {
+    display: inline-block;
+    color: #2563eb;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+}
+
+.about-section h2 {
+    font-size: 2.3rem;
+    color: #1f2937;
+    margin-bottom: 25px;
+}
+
+.about-section p {
+    font-size: 1.05rem;
+    color: #4b5563;
+    line-height: 1.8;
+    max-width: 850px;
+}
+
+.about-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+    margin-top: 45px;
+}
+
+.about-card {
+    background: #fff;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, .08);
+    transition: .3s;
+}
+
+.about-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, .12);
+}
+
+.about-card h3 {
+    color: #2563eb;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+}
+
+.about-card p {
+    font-size: 1rem;
+    color: #6b7280;
+    line-height: 1.7;
+}
+
+.about-section p,
+.about-card p {
+    height: auto;
+    overflow: visible;
+    display: block;
+    white-space: normal;
+}
+
+@media (max-width: 768px) {
+    .about-section {
+        padding: 60px 20px;
+    }
+    .about-section h2 {
+        font-size: 1.9rem;
+    }
+    .about-card {
+        padding: 25px;
+    }
+}
+
+/* FAQ */
+#faq {
+    padding: 100px 0;
+    background: #fff;
+}
+
+.faq-subtitle {
+    max-width: 700px;
+    margin: 15px auto 20px;
+    color: #666;
+    text-align: center;
+}
+
+.faq-accordion .accordion-item {
+    border: none;
+    border-bottom: 1px solid #E5E7EB;
+    border-radius: 0;
+    background: transparent;
+    margin-bottom: 0;
+    box-shadow: none;
+}
+
+.faq-accordion .accordion-button {
+    background: transparent;
+    color: #234D87;
+    font-size: 18px;
+    font-weight: 600;
+    padding: 10px 0;
+    box-shadow: none;
+}
+
+.faq-accordion .accordion-button:not(.collapsed) {
+    background: transparent;
+    color: #234D87;
+}
+
+.faq-accordion .accordion-button:hover {
+    color: #173A63;
+}
+
+.faq-accordion .accordion-button:focus {
+    box-shadow: none;
+}
+
+.faq-accordion .accordion-body {
+    padding: 0 0 20px 0;
+    color: #666;
+    line-height: 1.8;
+    background: transparent;
+}
+
+#faq h4 {
+    color: #234D87;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 25px;
+}
+
+/* Remove o fundo azul do Bootstrap */
+.accordion-button:not(.collapsed)::after {
+    filter: none;
+}
+
+@media (max-width: 991.98px) {
+    #faq .row {
+        --bs-gutter-y: 0;
+    }
+    #faq .col-lg-6 + .col-lg-6 {
+        margin-top: 0;
+        padding-top: 0;
+    }
+    #faq .faq-accordion {
+        margin-top: 0;
+    }
+}
+
+#sobre {
+    background: #EEF5FC;
+}
+
+#vantagens {
+    background: #FFFFFF;
+}
+
+#feature {
+    background: #EEF5FC;
+}
+
+#pricing {
+    background: #FFFFFF;
+}
+
+#faq {
+    background: #EEF5FC;
+}
+
+.footer {
+    background: #173A63;
+    color: #fff;
+}
