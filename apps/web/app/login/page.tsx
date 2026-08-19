@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '~/lib/supabase';
-import { Turnstile } from '@marsidev/react-turnstile';
+import Logo from '~/components/Logo';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
-  const [isResetPassword, setIsResetPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -20,11 +20,6 @@ export default function LoginPage() {
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
-  
-  const [resetEmail, setResetEmail] = useState('');
-
-  // ESTADO DO TOKEN DO TURNSTILE
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -73,7 +68,6 @@ export default function LoginPage() {
         password: registerPassword,
         options: {
           emailRedirectTo: `${window.location.origin}/dashboard`,
-          captchaToken: captchaToken ?? undefined, // 👈 INJETADO AQUI
         },
       });
 
@@ -100,19 +94,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // ✅ ENVIO DO TOKEN DO CAPTCHA CORRIGIDO
       const { data, error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: loginPassword,
-        options: {
-          captchaToken: captchaToken ?? undefined, // 👈 INJETADO AQUI
-        },
       });
 
       if (error) throw error;
 
       if (data?.user) {
-        console.log('✅ Login bem-sucedido:', data.user.email);
         router.push('/dashboard');
         router.refresh();
       }
@@ -142,163 +131,6 @@ export default function LoginPage() {
     }
   };
 
-  // FUNÇÃO PARA RECUPERAR PALAVRA-PASSE
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setLoading(true);
-
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-        captchaToken: captchaToken ?? undefined, // 👈 INJETADO AQUI
-      });
-
-      if (error) throw error;
-
-      setSuccess('✅ Email enviado! Verifica a tua caixa de correio.');
-      setResetEmail('');
-      setTimeout(() => {
-        setIsResetPassword(false);
-        setIsLogin(true);
-      }, 3000);
-    } catch (err: any) {
-      setError('❌ ' + (err.message || 'Erro ao enviar email'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // PÁGINA DE RESET
-  if (isResetPassword) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#f3f4f6',
-        fontFamily: 'sans-serif',
-        padding: '20px'
-      }}>
-        <div style={{
-          background: 'white',
-          padding: '40px',
-          borderRadius: '12px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-          width: '100%',
-          maxWidth: '440px'
-        }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', textAlign: 'center', marginBottom: '8px' }}>
-            🔑 Recuperar Senha
-          </h1>
-          <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '24px' }}>
-            Enviaremos um link para redefinir a tua senha.
-          </p>
-
-          {error && (
-            <div style={{
-              background: '#fee2e2',
-              color: '#dc2626',
-              padding: '12px',
-              borderRadius: '8px',
-              marginBottom: '16px',
-              fontSize: '14px'
-            }}>
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div style={{
-              background: '#dcfce7',
-              color: '#16a34a',
-              padding: '12px',
-              borderRadius: '8px',
-              marginBottom: '16px',
-              fontSize: '14px'
-            }}>
-              {success}
-            </div>
-          )}
-
-          <form onSubmit={handleResetPassword}>
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontWeight: '500', marginBottom: '6px', fontSize: '14px' }}>Email</label>
-              <input
-                type="email"
-                value={resetEmail}
-                onChange={(e) => setResetEmail(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px'
-                }}
-                placeholder="seu@email.com"
-                autoComplete="email"
-                required
-              />
-            </div>
-
-            {/* WIDGET DO TURNSTILE */}
-            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
-              <Turnstile
-                siteKey={process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY || ''}
-                onSuccess={(token) => setCaptchaToken(token)}
-                onExpire={() => setCaptchaToken(null)}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '14px',
-                background: '#2563eb',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                opacity: loading ? 0.7 : 1
-              }}
-            >
-              {loading ? 'A enviar...' : '📧 Enviar link'}
-            </button>
-          </form>
-
-          <button
-            onClick={() => {
-              setIsResetPassword(false);
-              setIsLogin(true);
-              setError('');
-              setSuccess('');
-            }}
-            style={{
-              width: '100%',
-              padding: '12px',
-              marginTop: '12px',
-              background: 'transparent',
-              color: '#6b7280',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            ← Voltar ao login
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // PÁGINA DE LOGIN/REGISTO
   return (
     <div style={{
       minHeight: '100vh',
@@ -317,9 +149,10 @@ export default function LoginPage() {
         width: '100%',
         maxWidth: '440px'
       }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 'bold', textAlign: 'center', marginBottom: '8px' }}>
-          🏢 Azotrace
-        </h1>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <Logo width={180} height={60} />
+        </div>
+       
         <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '24px' }}>
           {isLogin ? 'Acessa a tua conta' : 'Cria a tua conta'}
         </p>
@@ -408,36 +241,18 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* BOTÃO ESQUECI-ME DA SENHA */}
-            <div style={{ textAlign: 'right', marginBottom: '16px' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsResetPassword(true);
-                  setError('');
-                  setSuccess('');
-                }}
+            <div style={{ textAlign: 'right', marginBottom: '20px' }}>
+              <Link
+                href="/recuperar-password"
                 style={{
-                  background: 'none',
-                  border: 'none',
                   color: '#2563eb',
-                  cursor: 'pointer',
+                  textDecoration: 'none',
                   fontSize: '14px',
-                  fontWeight: '500',
-                  textDecoration: 'underline'
+                  fontWeight: '500'
                 }}
               >
-                Esqueci-me da palavra-passe
-              </button>
-            </div>
-
-            {/* WIDGET DO TURNSTILE */}
-            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
-              <Turnstile
-                siteKey={process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY || ''}
-                onSuccess={(token) => setCaptchaToken(token)}
-                onExpire={() => setCaptchaToken(null)}
-              />
+                Esqueci-me da password
+              </Link>
             </div>
 
             <button
@@ -502,7 +317,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '24px' }}>
               <label style={{ display: 'block', fontWeight: '500', marginBottom: '6px', fontSize: '14px' }}>Confirmar Senha</label>
               <input
                 type="password"
@@ -518,15 +333,6 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 autoComplete="new-password"
                 required
-              />
-            </div>
-
-            {/* WIDGET DO TURNSTILE */}
-            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
-              <Turnstile
-                siteKey={process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY || ''}
-                onSuccess={(token) => setCaptchaToken(token)}
-                onExpire={() => setCaptchaToken(null)}
               />
             </div>
 
