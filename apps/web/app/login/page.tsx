@@ -235,7 +235,7 @@ export default function LoginPage() {
                   borderRadius: '8px',
                   fontSize: '16px'
                 }}
-                placeholder="••••••••"
+                placeholder=""
                 autoComplete="current-password"
                 required
               />

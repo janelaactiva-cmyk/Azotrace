@@ -9,6 +9,7 @@ import { useBusiness } from '~/lib/business-context';
 import { getBusinessIcon } from '~/lib/business-icons';
 import { useAuth } from '~/lib/auth-context';
 import MegaMenu from './components/MegaMenu';
+import { AlignCenter } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -29,10 +30,10 @@ export default function DashboardLayout({
   }, [user, authLoading]);
 
   const handleLogout = useCallback(async () => {
-    await signOut();
-    router.push('/login');
-    router.refresh();
-  }, [signOut, router]);
+   await supabase.auth.signOut();
+    // Força o navegador a ir para a raiz ignorando o router cache/middleware
+    window.location.href = '/';
+  }, []);
 
   const navItems = [
     { path: '/dashboard', label: '📊 Dashboard' },
@@ -105,28 +106,42 @@ export default function DashboardLayout({
             alignItems: 'center',
             gap: '8px'
           }}>
-            🏢 Azotrace
-            {selectedBusinessType && (
-              <span style={{ fontSize: '24px', marginLeft: '4px' }}>
-                {businessIcon?.icon}
-              </span>
-            )}
+            
+           
           </h1>
-          <p style={{ fontSize: '12px', color: sidebarSubtext, marginTop: '4px' }}>
-            {user?.email}
-          </p>
+         <div style={{ 
+            width: '100%', 
+            height: '120px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            padding: '4px 0' 
+        }}>
+            <img 
+              src="/assets/images/logo.png" 
+              alt="Azotrace-logo" 
+              style={{
+              maxHeight: '100%',
+              maxWidth: '100%',
+              objectFit: 'contain',
+              display: 'block'
+        }}
+   />
+ </div>
+         
           {selectedBusinessName && (
             <p style={{ 
-              fontSize: '13px', 
+              fontSize: '15px', 
               fontWeight: '600',
               color: businessColor,
               marginTop: '8px',
               padding: '4px 12px',
               background: isDark ? `${businessColor}22` : `${businessColor}11`,
               borderRadius: '12px',
-              display: 'inline-block'
+              display: 'inline-block',
+              
             }}>
-              📌 {selectedBusinessName}
+              {selectedBusinessName}  
             </p>
           )}
         </div>
@@ -204,7 +219,7 @@ export default function DashboardLayout({
             style={{
               width: '100%',
               padding: '12px 16px',
-              background: '#dc2626',
+              background: '#234D87',
               color: '#ffffff',
               border: 'none',
               borderRadius: '8px',
@@ -218,14 +233,18 @@ export default function DashboardLayout({
               transition: 'background 0.15s ease'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#b91c1c';
+              e.currentTarget.style.background = '#234D87';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#dc2626';
+              e.currentTarget.style.background = '#234D87';
             }}
           >
             🚪 Sair
           </button>
+               <p style={{ fontSize: '15px', color: sidebarSubtext, marginTop: '4px' }}>
+           user: {user?.email}
+          </p>
+
         </div>
 
         <div style={{ flex: 1 }} />

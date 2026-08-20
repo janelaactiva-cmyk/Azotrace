@@ -8,6 +8,7 @@ const PathsSchema = z.object({
     callback: z.string().min(1),
     passwordReset: z.string().min(1),
     passwordUpdate: z.string().min(1),
+    signOut: z.string().min(1), // <--- Adicionado aqui
   }),
   app: z.object({
     home: z.string().min(1),
@@ -23,6 +24,7 @@ const pathsConfig = PathsSchema.parse({
     callback: '/auth/callback',
     passwordReset: '/auth/password-reset',
     passwordUpdate: '/update-password',
+    signOut: '/', // <--- A apontar para a Landing Page (raiz)
   },
   app: {
     home: '/home',
