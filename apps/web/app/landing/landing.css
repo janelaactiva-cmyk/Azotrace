@@ -566,3 +566,69 @@ section {
     background: #173A63;
     color: #fff;
 }
+
+/* ==========================
+   MODO ESCURO GLOBAL TOTAL
+========================== */
+html.dark,
+html.dark body {
+    background-color: #111827 !important;
+    color: #f3f4f6 !important;
+}
+
+html.dark .hero,
+html.dark .about-section,
+html.dark .advantages-section,
+html.dark #feature,
+html.dark #pricing,
+html.dark #faq,
+html.dark #sobre,
+html.dark #vantagens,
+html.dark .footer,
+html.dark .header {
+    background-color: #111827 !important;
+    color: #f3f4f6 !important;
+}
+
+html.dark .single-feature,
+html.dark .single-team,
+html.dark .single-pricing,
+html.dark .about-card {
+    background-color: #1f2937 !important;
+    color: #f3f4f6 !important;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.5) !important;
+    border: 1px solid #374151 !important;
+}
+
+html.dark p, 
+html.dark span, 
+html.dark li, 
+html.dark .hero-desc, 
+html.dark .feature-desc, 
+html.dark .faq-subtitle, 
+html.dark .pricing-header h3, 
+html.dark .about-card p,
+html.dark .footer p,
+html.dark .footer a {
+    color: #9ca3af !important;
+}
+
+html.dark h1, 
+html.dark h2, 
+html.dark h3, 
+html.dark h4, 
+html.dark h5, 
+html.dark h6, 
+html.dark .hero-title, 
+html.dark .about-section h2,
+html.dark .footer h5 {
+    color: #ffffff !important;
+}
+
+/* ==========================
+   LINHA DIVISÓRIA FAQ / FOOTER (Modo Escuro)
+========================== */
+html.dark #faq,
+html.dark .footer {
+    border-top: 1px solid #374151 !important; /* Cria a linha de separação */
+}

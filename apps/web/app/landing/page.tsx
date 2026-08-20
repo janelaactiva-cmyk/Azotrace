@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import './landing.css';
 
 import Header from './components/Header';
@@ -14,7 +14,27 @@ import Footer from './components/Footer';
 import Chatbot from './components/Chatbot';
 
 export default function LandingPage() {
+  const [isDark, setIsDark] = useState(false);
+
+  const toggleTheme = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    if (newTheme) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('landing_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('landing_theme', 'light');
+    }
+  };
+
   useEffect(() => {
+    const savedTheme = localStorage.getItem('landing_theme');
+    if (savedTheme === 'dark') {
+      setIsDark(true);
+      document.documentElement.classList.add('dark');
+    }
+
     // Smooth scroll
     document.querySelectorAll('a[href^="#"]').forEach((anchor: any) => {
       anchor.addEventListener('click', function (e: any) {
@@ -37,8 +57,9 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <>
-      <Header />
+    <div style={{ backgroundColor: isDark ? '#111827' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827', minHeight: '100vh', transition: 'background-color 0.3s ease, color 0.3s ease' }}>
+      {/* Passamos o estado e a função para o Header */}
+      <Header isDark={isDark} toggleTheme={toggleTheme} />
       <Hero />
       <About />
       <Vantagens />
@@ -47,29 +68,6 @@ export default function LandingPage() {
       <FAQ />
       <Footer />
       <Chatbot />
-      <a
-        href="#home"
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          display: 'none',
-          zIndex: 999,
-          width: '40px',
-          height: '40px',
-          borderRadius: '50%',
-          background: '#234D87',
-          color: 'white',
-          border: 'none',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textDecoration: 'none',
-          fontSize: '20px'
-        }}
-      >
-        ↑
-      </a>
-    </>
+    </div>
   );
 }
