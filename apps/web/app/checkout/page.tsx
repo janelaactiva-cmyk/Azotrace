@@ -7,8 +7,8 @@ const PLANS = {
   base: {
     id: 'base',
     nome: 'Base',
-    preco: 19.99, // ← Preço por mês
-    preco_anual: 239.88, // ← Preço anual (19.99 × 12)
+    preco: 19.99,
+    preco_anual: 239.88,
     iva: 0.16,
     features: ['1 Utilizador', 'Rastreabilidade Básica de Produtos', 'QR Codes Limitados', 'Actualizações Gratuitas', '1 Mês de Suporte']
   },
@@ -16,7 +16,7 @@ const PLANS = {
     id: 'essential',
     nome: 'Essential',
     preco: 30.99,
-    preco_anual: 371.88, // ← 30.99 × 12
+    preco_anual: 371.88,
     iva: 0.16,
     features: ['5 Utilizadores', 'Todos os Recursos Avançados', 'QR Codes Limitados', 'Actualizações Gratuitas', 'Utilização de um só projeto', '4 Meses de Suporte']
   },
@@ -24,13 +24,12 @@ const PLANS = {
     id: 'pro',
     nome: 'Pro',
     preco: 70.99,
-    preco_anual: 851.88, // ← 70.99 × 12
+    preco_anual: 851.88,
     iva: 0.16,
     features: ['Utilizadores Ilimitados', 'Recursos Premium e Prioritários', 'Lifetime access', 'Actualizações Gratuitas', 'Múltiplos projetos', 'Suporte Prioritário 24/7']
   }
 };
 
-// ✅ Preço do Pacote de Configuração (anual - é um serviço único)
 const CONFIG_PRICE = 100.00;
 
 export default function CheckoutPage() {
@@ -39,9 +38,11 @@ export default function CheckoutPage() {
   const [isCommercial, setIsCommercial] = useState(false);
   const [includeSetup, setIncludeSetup] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>('essential');
+  const [emailError, setEmailError] = useState<string>('');
   const [form, setForm] = useState({
     nome: '',
     email: '',
+    confirmEmail: '',
     telefone: '',
     nif: '',
     nomeEmpresa: '',
@@ -56,16 +57,25 @@ export default function CheckoutPage() {
     }
   }, []);
 
+  // ✅ Validar emails
+  useEffect(() => {
+    if (form.confirmEmail && form.email !== form.confirmEmail) {
+      setEmailError('Os emails não coincidem');
+    } else if (form.confirmEmail && form.email === form.confirmEmail) {
+      setEmailError('');
+    } else if (!form.confirmEmail) {
+      setEmailError('');
+    }
+  }, [form.email, form.confirmEmail]);
+
   const calcularPreco = () => {
     const plano = PLANS[selectedPlan as keyof typeof PLANS];
     if (!plano) return { total: 0, iva: 0, base: 0, setupTotal: 0, setupIva: 0 };
     
-    // ✅ Usar o preço ANUAL (preco_anual)
     const base = plano.preco_anual;
     const iva = base * 0.16;
     let total = base + iva;
 
-    // ✅ Se incluir configuração, adicionar com IVA
     let setupTotal = 0;
     let setupIva = 0;
     if (includeSetup) {
@@ -86,6 +96,12 @@ export default function CheckoutPage() {
     try {
       if (!form.nome || !form.email || !form.telefone) {
         alert('❌ Preencha todos os campos obrigatórios');
+        setLoading(false);
+        return;
+      }
+
+      if (form.email !== form.confirmEmail) {
+        alert('❌ Os emails não coincidem');
         setLoading(false);
         return;
       }
@@ -148,6 +164,14 @@ export default function CheckoutPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
+    
+    if (name === 'email' && form.confirmEmail) {
+      if (value !== form.confirmEmail) {
+        setEmailError('Os emails não coincidem');
+      } else {
+        setEmailError('');
+      }
+    }
   };
 
   const styles = {
@@ -202,6 +226,19 @@ export default function CheckoutPage() {
       borderRadius: '6px',
       fontSize: '14px'
     },
+    inputError: {
+      width: '100%',
+      padding: '10px',
+      border: '2px solid #dc2626',
+      borderRadius: '6px',
+      fontSize: '14px',
+      background: '#fef2f2'
+    },
+    errorText: {
+      color: '#dc2626',
+      fontSize: '12px',
+      marginTop: '4px'
+    },
     checkbox: {
       display: 'flex',
       alignItems: 'center',
@@ -251,6 +288,7 @@ export default function CheckoutPage() {
             <form onSubmit={handleSubmit}>
               <h2 style={styles.cardTitle}>👤 Dados Pessoais</h2>
 
+              {/* Nome */}
               <div style={styles.formGroup}>
                 <label style={styles.label}>Nome Completo *</label>
                 <input
@@ -264,6 +302,7 @@ export default function CheckoutPage() {
                 />
               </div>
 
+              {/* ✅ Email */}
               <div style={styles.formGroup}>
                 <label style={styles.label}>Email *</label>
                 <input
@@ -271,12 +310,31 @@ export default function CheckoutPage() {
                   name="email"
                   value={form.email}
                   onChange={handleChange}
-                  style={styles.input}
+                  style={emailError ? styles.inputError : styles.input}
                   placeholder="joao@email.com"
                   required
                 />
               </div>
 
+              {/* ✅ Confirmar Email */}
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Confirmar email *</label>
+                <input
+                  type="email"
+                  name="confirmEmail"
+                  value={form.confirmEmail}
+                  onChange={handleChange}
+                  style={emailError ? styles.inputError : styles.input}
+                  placeholder="joao@email.com"
+                  required
+                  disabled={!form.email}
+                />
+                {emailError && (
+                  <p style={styles.errorText}>⚠️ {emailError}</p>
+                )}
+              </div>
+
+              {/* Telefone */}
               <div style={styles.formGroup}>
                 <label style={styles.label}>Telefone/Telemóvel *</label>
                 <input
@@ -290,6 +348,7 @@ export default function CheckoutPage() {
                 />
               </div>
 
+              {/* Checkbox Comercial */}
               <div style={{ ...styles.formGroup, marginTop: '8px' }}>
                 <label style={styles.checkbox}>
                   <input
@@ -298,10 +357,11 @@ export default function CheckoutPage() {
                     onChange={(e) => setIsCommercial(e.target.checked)}
                     style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                   />
-                  <span style={styles.checkboxLabel}>🏢 É comercial</span>
+                  <span style={styles.checkboxLabel}> É comercial?</span>
                 </label>
               </div>
 
+              {/* Campos Empresa */}
               {isCommercial && (
                 <div style={styles.companyFields}>
                   <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>
@@ -346,7 +406,7 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* ✅ CROSS-SELL: Pacote de Configuração */}
+              {/* ✅ CROSS-SELL */}
               <div style={{ ...styles.formGroup, marginTop: '16px', borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
                 <label style={styles.checkbox}>
                   <input
@@ -360,25 +420,36 @@ export default function CheckoutPage() {
                       Formação e apoio na configuração
                     </span>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
-                      +€{(CONFIG_PRICE * 1.16).toFixed(2)} 
+                      +€{(CONFIG_PRICE * 1.16).toFixed(2)}
                     </p>
                   </div>
                 </label>
               </div>
 
+              {/* Botão */}
               <button
                 type="submit"
-                disabled={loading}
-                style={styles.button}
+                disabled={loading || !!emailError}
+                style={{
+                  ...styles.button,
+                  opacity: loading || !!emailError ? 0.5 : 1,
+                  cursor: loading || !!emailError ? 'not-allowed' : 'pointer'
+                }}
               >
                 {loading ? '🔄 A processar...' : '💳 Pagar Agora'}
               </button>
+              {emailError && (
+                <p style={{ ...styles.errorText, marginTop: '8px', textAlign: 'center' }}>
+                  ⚠️ Corrige o erro antes de continuar
+                </p>
+              )}
             </form>
           </div>
 
+          {/* Resumo */}
           <div>
             <div style={{ ...styles.card, ...styles.sticky }}>
-              <h2 style={styles.cardTitle}>📋 Resumo do Plano</h2>
+              <h2 style={styles.cardTitle}>📋 Resumo do Plano e Extras</h2>
 
               <div style={{
                 background: '#f0f7ff',
@@ -423,7 +494,6 @@ export default function CheckoutPage() {
                   <span>{iva.toFixed(2)}€</span>
                 </div>
 
-                {/* ✅ Resumo do cross-sell */}
                 {includeSetup && (
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#2563eb' }}>
