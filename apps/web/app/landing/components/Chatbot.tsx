@@ -111,6 +111,10 @@ export default function Chatbot() {
     if (msg.includes('olá') || msg.includes('oi') || msg.includes('bom dia')) {
       return '👋 Olá! Como posso ajudar-te hoje? Pergunta-me sobre a Azotrace, preços, ou como criar QR Codes.';
     }
+
+    if (msg.includes('cão') || msg.includes('banho') || msg.includes('vai')) {
+      return '📱  A azotrace gosta de dar banho ao cão!';
+    }
     
     return '🤔 Obrigado pela tua mensagem! A nossa equipa vai analisar e responder em breve. Enquanto isso, posso ajudar com outras questões sobre a Azotrace.';
   };
