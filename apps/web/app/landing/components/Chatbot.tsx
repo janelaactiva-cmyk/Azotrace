@@ -9,25 +9,51 @@ interface Message {
   timestamp: Date;
 }
 
-const suggestions = [
-  'Como funciona a Azotrace?',
-  'Quais os preços?',
-  'Como criar QR Codes?',
-  'Preciso de ajuda técnica',
-];
+interface Question {
+  id: number;
+  question: string;
+  answer: string;
+  category: string;
+  is_active: boolean;
+}
 
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
-  
-  // 1. Inicializa o estado vazio para evitar conflitos de SSR no Next.js
   const [messages, setMessages] = useState<Message[]>([]);
-  
   const [isTyping, setIsTyping] = useState(false);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([
+    'Como funciona a Azotrace?',
+    'Quais os preços?',
+    'Como criar QR Codes?',
+    'Preciso de ajuda técnica',
+  ]);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // 2. Insere a mensagem de boas-vindas com data real apenas no cliente
+  // ✅ Buscar perguntas da API
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const response = await fetch('/api/chatbot?active=true');
+        const data = await response.json();
+        setQuestions(data);
+        
+        // ✅ Atualizar sugestões com as perguntas da BD
+        if (data.length > 0) {
+          const questionTexts = data.map((q: Question) => q.question);
+          setSuggestions(questionTexts.slice(0, 4));
+        }
+      } catch (error) {
+        console.error('Erro ao buscar perguntas:', error);
+      }
+    };
+    fetchQuestions();
+  }, []);
+
+  // Mensagem de boas-vindas
   useEffect(() => {
     setMessages([
       {
@@ -53,35 +79,32 @@ export default function Chatbot() {
     }
   }, [isOpen]);
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim()) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: message.trim(),
-      sender: 'user',
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setMessage('');
-    setIsTyping(true);
-
-    // Simular resposta do bot
-    setTimeout(() => {
-      const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        text: getBotResponse(userMessage.text),
-        sender: 'bot',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, botResponse]);
-      setIsTyping(false);
-    }, 600 + Math.random() * 400);
+  // ✅ Função para encontrar resposta na BD
+  const findAnswerInDB = (userMessage: string): string | null => {
+    const msg = userMessage.toLowerCase().trim();
+    
+    for (const q of questions) {
+      if (msg.includes(q.question.toLowerCase())) {
+        return q.answer;
+      }
+    }
+    
+    // Verificar por palavras-chave
+    const keywords = ['como', 'funciona', 'preço', 'suporte', 'ajuda', 'qr code', 'preços'];
+    for (const keyword of keywords) {
+      if (msg.includes(keyword)) {
+        const match = questions.find(q => 
+          q.question.toLowerCase().includes(keyword)
+        );
+        if (match) return match.answer;
+      }
+    }
+    
+    return null;
   };
 
-  const getBotResponse = (userMessage: string): string => {
+  // ✅ Respostas padrão (fallback)
+  const getFallbackResponse = (userMessage: string): string => {
     const msg = userMessage.toLowerCase();
     
     if (msg.includes('preço') || msg.includes('custo') || msg.includes('valor') || msg.includes('€')) {
@@ -111,12 +134,55 @@ export default function Chatbot() {
     if (msg.includes('olá') || msg.includes('oi') || msg.includes('bom dia')) {
       return '👋 Olá! Como posso ajudar-te hoje? Pergunta-me sobre a Azotrace, preços, ou como criar QR Codes.';
     }
-
-    if (msg.includes('cão') || msg.includes('banho') || msg.includes('vai')) {
-      return '📱  A azotrace gosta de dar banho ao cão!';
+    
+    // ✅ Sugerir perguntas da BD quando não encontra resposta
+    if (questions.length > 0) {
+      const suggestions = questions
+        .slice(0, 3)
+        .map(q => `• ${q.question}`)
+        .join('\n');
+      return `🤔 Ainda não tenho uma resposta para essa pergunta específica.\n\nPodes perguntar-me sobre:\n${suggestions}`;
     }
     
     return '🤔 Obrigado pela tua mensagem! A nossa equipa vai analisar e responder em breve. Enquanto isso, posso ajudar com outras questões sobre a Azotrace.';
+  };
+
+  // ✅ Função principal de resposta
+  const getBotResponse = (userMessage: string): string => {
+    // 1. Tentar encontrar na base de dados
+    const dbAnswer = findAnswerInDB(userMessage);
+    if (dbAnswer) return dbAnswer;
+    
+    // 2. Fallback para respostas padrão
+    return getFallbackResponse(userMessage);
+  };
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      text: message.trim(),
+      sender: 'user',
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setMessage('');
+    setIsTyping(true);
+
+    // Simular resposta do bot
+    setTimeout(() => {
+      const botResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        text: getBotResponse(userMessage.text),
+        sender: 'bot',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, botResponse]);
+      setIsTyping(false);
+    }, 600 + Math.random() * 400);
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -313,7 +379,7 @@ export default function Chatbot() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Sugestões */}
+          {/* Sugestões - vêm da BD */}
           <div style={{
             padding: '8px 16px',
             display: 'flex',
@@ -337,7 +403,7 @@ export default function Chatbot() {
                   whiteSpace: 'nowrap'
                 }}
               >
-                {suggestion}
+                {suggestion.length > 30 ? suggestion.substring(0, 30) + '...' : suggestion}
               </button>
             ))}
           </div>

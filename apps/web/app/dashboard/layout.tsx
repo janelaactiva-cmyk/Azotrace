@@ -40,6 +40,7 @@ export default function DashboardLayout({
     { path: '/dashboard/administracao', label: '⚙️ Administração' },
     { path: '/dashboard/blockchain', label: '⛓️ Blockchain' },
     { path: '/dashboard/analytics', label: '📈 Analytics' },
+    { path: '/dashboard/chatbot', label: '💬 Chatbot' }, // ✅ ADICIONAR AQUI
   ];
 
   if (authLoading || loading) {
