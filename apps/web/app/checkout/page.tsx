@@ -297,7 +297,7 @@ export default function CheckoutPage() {
                   value={form.nome}
                   onChange={handleChange}
                   style={styles.input}
-                  placeholder="João Silva"
+                  placeholder=""
                   required
                 />
               </div>
@@ -311,7 +311,7 @@ export default function CheckoutPage() {
                   value={form.email}
                   onChange={handleChange}
                   style={emailError ? styles.inputError : styles.input}
-                  placeholder="joao@email.com"
+                  placeholder=""
                   required
                 />
               </div>
@@ -325,7 +325,7 @@ export default function CheckoutPage() {
                   value={form.confirmEmail}
                   onChange={handleChange}
                   style={emailError ? styles.inputError : styles.input}
-                  placeholder="joao@email.com"
+                  placeholder=""
                   required
                   disabled={!form.email}
                 />
@@ -343,7 +343,7 @@ export default function CheckoutPage() {
                   value={form.telefone}
                   onChange={handleChange}
                   style={styles.input}
-                  placeholder="+351 912 345 678"
+                  placeholder=""
                   required
                 />
               </div>
@@ -375,7 +375,7 @@ export default function CheckoutPage() {
                       value={form.nomeEmpresa}
                       onChange={handleChange}
                       style={styles.input}
-                      placeholder="Empresa XYZ, Lda."
+                      placeholder=""
                       required={isCommercial}
                     />
                   </div>
@@ -387,7 +387,7 @@ export default function CheckoutPage() {
                       value={form.nifEmpresa}
                       onChange={handleChange}
                       style={styles.input}
-                      placeholder="123456789"
+                      placeholder=""
                       required={isCommercial}
                     />
                   </div>
@@ -399,7 +399,7 @@ export default function CheckoutPage() {
                       value={form.morada}
                       onChange={handleChange}
                       style={styles.input}
-                      placeholder="Rua Exemplo, 123, Lisboa"
+                      placeholder=""
                       required={isCommercial}
                     />
                   </div>
