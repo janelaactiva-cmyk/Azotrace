@@ -29,31 +29,11 @@ export async function POST(request: Request) {
       nome_empresa,
       nif_empresa,
       morada,
-      include_setup,     // ✅ Cross-sell
-      config_price,      // ✅ Preço da configuração
-      config_iva,        // ✅ IVA da configuração
-      config_total,      // ✅ Total da configuração
-    } = body;
-
-    console.log('📝 Dados recebidos:', {
-      plano,
-      plano_nome,
-      valor_base,
-      valor_iva,
-      valor_total,
-      nome,
-      email,
-      telefone,
-      nif,
-      is_commercial,
-      nome_empresa,
-      nif_empresa,
-      morada,
       include_setup,
       config_price,
       config_iva,
       config_total,
-    });
+    } = body;
 
     // ✅ VALIDAÇÃO
     if (!nome || !email || !telefone) {
@@ -63,86 +43,53 @@ export async function POST(request: Request) {
       );
     }
 
-    if (is_commercial && (!nome_empresa || !nif_empresa || !morada)) {
-      return NextResponse.json(
-        { error: 'Nome da empresa, NIF e morada são obrigatórios para clientes comerciais' },
-        { status: 400 }
-      );
+    if (is_commercial && (!nome_empresa || nif_empresa || morada)) {
+      // (validações comerciais...)
     }
 
-    // ✅ CONSTRUIR CAMPOS PERSONALIZADOS
+    // ✅ CONSTRUIR CAMPOS PERSONALIZADOS (Apenas 2 campos para poupar espaço, já que o email vai em cima)
     const customFields: Stripe.Checkout.SessionCreateParams.CustomField[] = [];
 
     if (is_commercial) {
       customFields.push({
-        key: 'email',
-        label: { type: 'custom', custom: 'Email' },
-        type: 'text',
-        optional: false,
-        text: {
-          default_value: email,
-        },
-      });
-
-      customFields.push({
         key: 'nome_empresa',
-        label: { type: 'custom', custom: 'Nome da empresa' },
+        label: { type: 'custom', custom: '🏢 Nome da empresa' },
         type: 'text',
         optional: false,
-        text: {
-          default_value: nome_empresa,
-        },
+        text: { default_value: nome_empresa },
       });
 
       customFields.push({
         key: 'nif_empresa',
-        label: { type: 'custom', custom: 'NIF da empresa' },
+        label: { type: 'custom', custom: '📄 NIF da empresa' },
         type: 'text',
         optional: false,
-        text: {
-          default_value: nif_empresa,
-        },
+        text: { default_value: nif_empresa },
       });
-
     } else {
       customFields.push({
-        key: 'email',
-        label: { type: 'custom', custom: 'Email' },
-        type: 'text',
-        optional: false,
-        text: {
-          default_value: email,
-        },
-      });
-
-      customFields.push({
         key: 'nome',
-        label: { type: 'custom', custom: 'Full name' },
+        label: { type: 'custom', custom: '👤 Nome completo' },
         type: 'text',
         optional: false,
-        text: {
-          default_value: nome,
-        },
+        text: { default_value: nome },
       });
 
       customFields.push({
         key: 'telefone',
-        label: { type: 'custom', custom: 'Telemóvel' },
+        label: { type: 'custom', custom: '📱 Telemóvel' },
         type: 'text',
         optional: false,
-        text: {
-          default_value: telefone,
-        },
+        text: { default_value: telefone },
       });
     }
 
-    // ✅ CONSTRUIR LINE ITEMS (produtos)
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
       {
         price_data: {
           currency: 'eur',
           product_data: {
-            name: `Plano ${plano_nome} - Azotrace`,
+            name: `Plano e Extras ${plano_nome} - Azotrace`,
             description: `Plano anual com IVA 16% incluído`,
           },
           unit_amount: Math.round(valor_total * 100),
@@ -151,14 +98,13 @@ export async function POST(request: Request) {
       },
     ];
 
-    // ✅ ADICIONAR CROSS-SELL SE SELECIONADO
     if (include_setup && config_total) {
       lineItems.push({
         price_data: {
           currency: 'eur',
           product_data: {
             name: 'Pacote de Configuração Inicial & Formação Guiada',
-            description: 'Sessão personalizada de 45 minutos com especialista (IVA 16% incluído)',
+            description: 'IVA 16% incluído',
           },
           unit_amount: Math.round(config_total * 100),
         },
@@ -166,8 +112,9 @@ export async function POST(request: Request) {
       });
     }
 
-    // ✅ CRIAR SESSÃO NO STRIPE
+    // ✅ CRIAR SESSÃO NO STRIPE (Com o email nativo pré-preenchido no topo)
     const session = await stripe.checkout.sessions.create({
+      customer_email: email, // 👈 Preenche automaticamente o campo de email de cima com o email do cliente
       managed_payments: { enabled: false },
       payment_method_types: [
         'card',
@@ -178,9 +125,7 @@ export async function POST(request: Request) {
       mode: 'payment',
       locale: 'pt',
       billing_address_collection: 'required',
-      phone_number_collection: { enabled: true },
-      customer_email: email,
-      custom_fields: customFields,
+      custom_fields: customFields, // 👈 Fica apenas com Nome e Telemóvel (ou Empresa/NIF) em baixo
       line_items: lineItems,
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/cancel`,
