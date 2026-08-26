@@ -120,7 +120,7 @@ export default function Header({ isDark, toggleTheme }) {
               fontWeight: '600',
               textAlign: 'center'
             }}>
-              Entrar
+              Login
             </Link>
           </div>
         )}

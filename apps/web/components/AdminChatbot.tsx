@@ -67,6 +67,7 @@ export default function AdminChatbot() {
       });
       if (response.ok) {
         setEditingId(null);
+        setFormData({ question: '', answer: '', category: 'Geral', is_active: true });
         fetchQuestions();
         alert('✅ Pergunta atualizada com sucesso!');
       }
@@ -112,139 +113,155 @@ export default function AdminChatbot() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div style={{ minHeight: '100vh', backgroundColor: '#f4f5f7', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ width: '32px', height: '32px', border: '3px solid #e5e7eb', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">💬 Gestão do Chatbot</h1>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f4f5f7', padding: '40px 16px', fontFamily: 'sans-serif', color: '#1f2937' }}>
+      <div style={{ maxWidth: '700px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        
+        {/* Cabeçalho */}
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 4px 0' }}>
+            💬 Gestão do Chatbot
+          </h1>
+          <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+            Configura e gere as perguntas e respostas automáticas do teu assistente.
+          </p>
+        </div>
 
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 className="text-lg font-semibold text-gray-700 mb-4">
-          {editingId ? '✏️ Editar Pergunta' : '➕ Nova Pergunta'}
-        </h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (editingId) {
-              handleEdit(editingId);
-            } else {
-              handleCreate(e);
-            }
-          }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
-        >
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Pergunta *</label>
-            <input
-              type="text"
-              value={formData.question}
-              onChange={(e) => setFormData({ ...formData, question: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="Ex: Como funciona o rastreamento?"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
-            <select
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="Geral">Geral</option>
-              <option value="Suporte">Suporte</option>
-              <option value="Faturação">Faturação</option>
-              <option value="Técnico">Técnico</option>
-              <option value="Produto">Produto</option>
-              <option value="Outro">Outro</option>
-            </select>
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Resposta *</label>
-            <textarea
-              value={formData.answer}
-              onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-              rows={3}
-              placeholder="Escreve a resposta aqui..."
-              required
-            />
-          </div>
-          <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
+        {/* Cartão do Formulário */}
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '16px', padding: '32px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 20px 0', paddingBottom: '12px', borderBottom: '1px solid #f3f4f6' }}>
+            {editingId ? 'Editar Pergunta' : 'Nova Pergunta'}
+          </h2>
+          
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (editingId) {
+                handleEdit(editingId);
+              } else {
+                handleCreate(e);
+              }
+            }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+          >
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>
+                Pergunta *
+              </label>
               <input
-                type="checkbox"
-                checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="w-4 h-4 text-blue-600 rounded"
+                type="text"
+                value={formData.question}
+                onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+                style={{ width: '100%', padding: '10px 14px', backgroundColor: '#ffffff', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                placeholder="Ex: Como funciona o envio?"
+                required
               />
-              <span className="text-sm text-gray-700">Ativo</span>
-            </label>
-            {editingId && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingId(null);
-                  setFormData({ question: '', answer: '', category: 'Geral', is_active: true });
-                }}
-                className="text-sm text-gray-500 hover:text-gray-700 underline"
-              >
-                Cancelar edição
-              </button>
-            )}
-          </div>
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
-            >
-              {editingId ? '💾 Atualizar' : '➕ Adicionar Pergunta'}
-            </button>
-          </div>
-        </form>
-      </div>
+            </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {questions.length === 0 ? (
-          <div className="text-center py-12">
-            <span className="text-4xl block mb-4">🤖</span>
-            <p className="text-gray-500 text-lg">Nenhuma pergunta criada ainda.</p>
-            <p className="text-gray-400 text-sm">Adiciona a tua primeira pergunta acima.</p>
-          </div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pergunta</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {questions.map((q, index) => (
-                <tr key={q.id} className={`${!q.is_active ? 'opacity-60' : ''}`}>
-                  <td className="px-6 py-4 text-sm text-gray-500">{index + 1}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{q.question}</td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">{q.category || 'Geral'}</span>
-                  </td>
-                  <td className="px-6 py-4">
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>
+                Categoria
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                style={{ width: '100%', padding: '10px 14px', backgroundColor: '#ffffff', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+              >
+                <option value="Geral">Geral</option>
+                <option value="Suporte">Suporte</option>
+                <option value="Faturação">Faturação</option>
+                <option value="Técnico">Técnico</option>
+                <option value="Produto">Produto</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>
+                Resposta *
+              </label>
+              <textarea
+                value={formData.answer}
+                onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
+                style={{ width: '100%', padding: '10px 14px', backgroundColor: '#ffffff', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', outline: 'none', resize: 'vertical', minHeight: '80px', boxSizing: 'border-box' }}
+                placeholder="Escreve a resposta detalhada aqui..."
+                required
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                Ativo no Chatbot
+              </label>
+            </div>
+
+            <div style={{ paddingTop: '16px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: '12px', alignItems: 'center' }}>
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingId(null);
+                    setFormData({ question: '', answer: '', category: 'Geral', is_active: true });
+                  }}
+                  style={{ padding: '10px 16px', fontSize: '14px', fontWeight: '500', color: '#4b5563', backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
+                >
+                  Cancelar
+                </button>
+              )}
+              <button
+                type="submit"
+                style={{ padding: '12px 24px', backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '14px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+              >
+                {editingId ? '💾 Atualizar Pergunta' : '➕ Adicionar Pergunta'}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Cartão da Listagem */}
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '16px', padding: '32px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 16px 0', color: '#1f2937' }}>
+            Perguntas Registadas ({questions.length})
+          </h3>
+
+          {questions.length === 0 ? (
+            <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '24px 0', margin: 0 }}>Ainda não existem perguntas cadastradas.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {questions.map((q) => (
+                <div 
+                  key={q.id} 
+                  style={{ padding: '16px', border: '1px solid #e5e7eb', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', opacity: q.is_active ? 1 : 0.6, backgroundColor: q.is_active ? '#ffffff' : '#f9fafb' }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '11px', padding: '2px 8px', backgroundColor: '#f3f4f6', fontWeight: '600', color: '#4b5563', borderRadius: '4px' }}>
+                        {q.category || 'Geral'}
+                      </span>
+                      <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{q.question}</h4>
+                    </div>
+                    <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{q.answer}</p>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     <button
                       onClick={() => toggleActive(q.id, q.is_active)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        q.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}
+                      style={{ fontSize: '12px', padding: '6px 10px', borderRadius: '6px', fontWeight: '500', cursor: 'pointer', border: '1px solid', backgroundColor: q.is_active ? '#ecfdf5' : '#fff1f2', color: q.is_active ? '#047857' : '#be123c', borderColor: q.is_active ? '#a7f3d0' : '#fecdd3' }}
                     >
-                      {q.is_active ? '✅ Ativo' : '❌ Inativo'}
+                      {q.is_active ? 'Ativo' : 'Inativo'}
                     </button>
-                  </td>
-                  <td className="px-6 py-4 text-sm">
                     <button
                       onClick={() => {
                         setEditingId(q.id);
@@ -254,20 +271,25 @@ export default function AdminChatbot() {
                           category: q.category || 'Geral',
                           is_active: q.is_active,
                         });
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
-                      className="text-blue-600 hover:text-blue-800 mr-2"
+                      style={{ padding: '6px 10px', fontSize: '12px', fontWeight: '500', backgroundColor: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', borderRadius: '6px', cursor: 'pointer' }}
                     >
-                      ✏️
+                      ✏️ Editar
                     </button>
-                    <button onClick={() => handleDelete(q.id)} className="text-red-600 hover:text-red-800">
+                    <button
+                      onClick={() => handleDelete(q.id)}
+                      style={{ padding: '6px 10px', fontSize: '12px', fontWeight: '500', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '6px', cursor: 'pointer' }}
+                    >
                       🗑️
                     </button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        )}
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );
