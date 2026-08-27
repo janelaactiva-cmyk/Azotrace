@@ -43,5 +43,8 @@
     "turbo": "catalog:",
     "typescript": "catalog:"
   },
-  "packageManager": "pnpm@11.18.0"
+  "packageManager": "pnpm@11.18.0",
+  "dependencies": {
+    "resend": "^6.22.1"
+  }
 }

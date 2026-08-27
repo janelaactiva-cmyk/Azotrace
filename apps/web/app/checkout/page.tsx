@@ -7,8 +7,8 @@ const PLANS = {
   base: {
     id: 'base',
     nome: 'Base',
-    preco: 19.99,
-    preco_anual: 239.88,
+    preco: 0.43,
+    preco_anual: 0.43,
     iva: 0.16,
     features: ['1 Utilizador', 'Rastreabilidade Básica de Produtos', 'QR Codes Limitados', 'Actualizações Gratuitas', '1 Mês de Suporte']
   },
@@ -420,7 +420,7 @@ export default function CheckoutPage() {
                       Formação e apoio na configuração
                     </span>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
-                      +€{(CONFIG_PRICE * 1.16).toFixed(2)}
+                      +€{(CONFIG_PRICE * 1.16).toFixed(2) } (Valor com IVA incluído)
                     </p>
                   </div>
                 </label>

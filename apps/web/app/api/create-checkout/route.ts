@@ -92,7 +92,7 @@ export async function POST(request: Request) {
             name: `Plano e Extras ${plano_nome} - Azotrace`,
             description: `Plano anual com IVA 16% incluído`,
           },
-          unit_amount: Math.round(valor_total * 100),
+           unit_amount: 50,                                // unit_amount: Math.round(valor_total * 100),
         },
         quantity: 1,
       },
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
             name: 'Pacote de Configuração Inicial & Formação Guiada',
             description: 'IVA 16% incluído',
           },
-          unit_amount: Math.round(config_total * 100),
+             unit_amount: 50,                                            // unit_amount: Math.round(config_total * 100),
         },
         quantity: 1,
       });
