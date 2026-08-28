@@ -1,6 +1,6 @@
 'use client';
 
-export function PaddlePluginComponent() {
+export function PaddleComponent() {
   return (
     <div>
       <h3>📦 Paddle</h3>
