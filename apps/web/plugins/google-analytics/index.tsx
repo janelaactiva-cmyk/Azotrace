@@ -1,10 +1,10 @@
 'use client';
 
-export function ${plugin^}Component() {
+export function GoogleAnalyticsPluginComponent() {
   return (
     <div>
-      <h3>📦 ${plugin}</h3>
-      <p>Plugin ${plugin} em desenvolvimento.</p>
+      <h3>📦 Google Analytics}</h3>
+      <p>Plugin Analytics em desenvolvimento.</p>
     </div>
   );
 }

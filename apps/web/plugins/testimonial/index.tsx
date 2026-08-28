@@ -1,10 +1,10 @@
 'use client';
 
-export function ${plugin^}Component() {
+export function TestimonialPluginComponent() {
   return (
     <div>
-      <h3>📦 ${plugin}</h3>
-      <p>Plugin ${plugin} em desenvolvimento.</p>
+      <h3>📦 Testimonial</h3>
+      <p>Plugin Testimonial em desenvolvimento.</p>
     </div>
   );
 }
