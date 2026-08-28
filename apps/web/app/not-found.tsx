@@ -7,7 +7,7 @@ import { Button } from '@kit/ui/button';
 import { Heading } from '@kit/ui/heading';
 import { Trans } from '@kit/ui/trans';
 
-import { SiteHeader } from '~/app/(marketing)/_components/site-header';
+
 
 export const generateMetadata = async () => {
   const t = await getTranslations();
@@ -25,7 +25,7 @@ const NotFoundPage = async () => {
   return (
     <NextIntlClientProvider messages={messages}>
       <div className={'flex h-screen flex-1 flex-col'}>
-        <SiteHeader />
+        
 
         <div
           className={

@@ -39,8 +39,9 @@ export default function DashboardLayout({
     { path: '/dashboard', label: '📊 Dashboard' },
     { path: '/dashboard/administracao', label: '⚙️ Administração' },
     { path: '/dashboard/blockchain', label: '⛓️ Blockchain' },
-    { path: '/dashboard/analytics', label: '📈 Analytics' },
+    { path: '/dashboard/analytics', label: '📈 Análises/Estatísticas' },
     { path: '/dashboard/chatbot', label: '💬 Chatbot' }, // ✅ ADICIONAR AQUI
+    { path: '/dashboard/subscricoes', label: '💳 Subscrições' }, // 👈 Adicionado aqui!
   ];
 
   if (authLoading || loading) {

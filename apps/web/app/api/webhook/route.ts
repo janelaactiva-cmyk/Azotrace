@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { createClient } from '@supabase/supabase-js'; // Importação recomendada para o client admin
+import { createClient } from '@supabase/supabase-js'; 
 import { enviarEmailComChave } from '~/lib/email'; 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: '2025-02-28.acacia' as any,
 });
 
-// IMPORTANTE: Usa o cliente Admin (Service Role) para operações seguras no backend
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
   process.env.SUPABASE_SERVICE_ROLE_KEY as string
@@ -41,45 +40,52 @@ export async function POST(request: Request) {
     }
 
     try {
-      // 1. Verificar se já existe uma chave para esta sessão (Idempotência)
-      const { data: existingKey, error: fetchError } = await supabaseAdmin
-        .from('product_keys')
-        .select('product_key')
+      // 1. Verificar se já existe uma subscrição para esta sessão (Idempotência na tabela subscriptions)
+      const { data: existingSub, error: fetchError } = await supabaseAdmin
+        .from('subscriptions')
+        .select('id')
         .eq('stripe_session_id', sessionId)
         .single();
 
-      if (existingKey) {
-        console.log(`ℹ️ A chave para a sessão ${sessionId} já tinha sido gerada anteriormente.`);
+      if (existingSub) {
+        console.log(`ℹ️ A subscrição para a sessão ${sessionId} já tinha sido gerada anteriormente.`);
         return NextResponse.json({ received: true });
       }
 
-      // 2. Gerar a chave aleatória de forma segura
+      // 2. Gerar a chave aleatória de forma segura (podes continuar a usar a chave como ID/referência ou como parte do plano)
       const parte1 = Math.random().toString(36).substring(2, 8).toUpperCase();
       const parte2 = Math.random().toString(36).substring(2, 8).toUpperCase();
       const productKey = `AZO-${parte1}-${parte2}`;
 
-      // 3. Guardar na base de dados usando o supabaseAdmin
+      // 3. Calcular a data de expiração para daqui a exato 1 ano
+      const expiresAt = new Date();
+      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
+      // 4. Guardar na nova tabela 'subscriptions' usando o supabaseAdmin
       const { error: insertError } = await supabaseAdmin
-        .from('product_keys')
+        .from('subscriptions')
         .insert({
           email: customerEmail,
-          product_key: productKey,
+          plan_name: 'Plano Anual',
+          status: 'active',
+          product_key: productKey, // Certifica-te de que adicionaste esta coluna na tabela subscriptions se quiseres guardar a chave lá
           stripe_session_id: sessionId,
-          used: false,
+          started_at: new Date().toISOString(),
+          expires_at: expiresAt.toISOString(),
+          reminder_sent: false,
         });
 
       if (insertError) {
-        console.error('❌ Erro ao guardar a chave na base de dados:', insertError);
+        console.error('❌ Erro ao guardar a subscrição na base de dados:', insertError);
         return NextResponse.json({ error: 'Erro interno ao guardar dados' }, { status: 500 });
       }
 
-      // 4. Enviar o e-mail para o cliente com a chave gerada
+      // 5. Enviar o e-mail para o cliente com a chave gerada
       try {
         await enviarEmailComChave(customerEmail, productKey);
-        console.log(`✅ Chave gerada e enviada com sucesso para ${customerEmail}: ${productKey}`);
+        console.log(`✅ Subscrição criada e e-mail enviado com sucesso para ${customerEmail}: ${productKey}`);
       } catch (emailError) {
-        console.error(`⚠️ Chave gerada na BD, mas erro ao enviar e-mail para ${customerEmail}:`, emailError);
-        // Nota: O webhook retorna 200 ao Stripe para não entrar em loop, mas deves monitorizar este log
+        console.error(`⚠️ Subscrição criada na BD, mas erro ao enviar e-mail para ${customerEmail}:`, emailError);
       }
 
     } catch (err: any) {

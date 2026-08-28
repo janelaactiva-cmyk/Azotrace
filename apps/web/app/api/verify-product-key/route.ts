@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '~/lib/supabase'; // ou supabaseAdmin se precisares de privilégios totais
+import { createClient } from '@supabase/supabase-js';
+
+// Usar privilégios totais para contornar o RLS ao atualizar a tabela
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+  process.env.SUPABASE_SERVICE_ROLE_KEY as string
+);
 
 export async function POST(request: Request) {
   try {
@@ -9,11 +15,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Chave em falta.' }, { status: 400 });
     }
 
-    // 1. Procurar a chave na base de dados
-    const { data: record, error } = await supabase
+    // 1. Procurar a chave na base de dados com privilégios de admin
+    const { data: record, error } = await supabaseAdmin
       .from('product_keys')
       .select('*')
-      .eq('product_key', productKey)
+      .eq('product_key', productKey.trim())
       .single();
 
     if (error || !record) {
@@ -24,12 +30,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: '⚠️ Esta chave já foi utilizada.' }, { status: 400 });
     }
 
-    // 2. Marcar a chave como usada para não poder ser repetida
-    await supabase
+    // 2. Marcar a chave como usada com privilégios de admin
+    const { error: updateError } = await supabaseAdmin
       .from('product_keys')
       .update({ used: true })
       .eq('id', record.id);
 
+    if (updateError) {
+      return NextResponse.json({ message: 'Erro ao atualizar o estado da chave.' }, { status: 500 });
+    }
+
+    // Devolvemos o sucesso e o email associado para preencher a página de registo
     return NextResponse.json({ success: true, email: record.email });
 
   } catch (err: any) {

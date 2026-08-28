@@ -28,11 +28,19 @@ export async function GET() {
       });
 
     if (insertError) {
-      return NextResponse.json({ success: false, error: insertError });
+      return NextResponse.json({ success: false, error: 'Erro no Supabase: ' + JSON.stringify(insertError) }, { status: 500 });
     }
 
-    // 3. Enviar o e-mail com a chave
-    await enviarEmailComChave(customerEmail, productKey);
+    // 3. Enviar o e-mail com a chave (agora protegido para apanhar o erro do Resend)
+    try {
+      await enviarEmailComChave(customerEmail, productKey);
+    } catch (emailErr: any) {
+      console.error('❌ ERRO CAPTURADO NA ROTA:', emailErr);
+      return NextResponse.json({ 
+        success: false, 
+        error: 'O Resend falhou: ' + (emailErr.message || JSON.stringify(emailErr)) 
+      }, { status: 500 });
+    }
 
     return NextResponse.json({ 
       success: true, 
@@ -40,6 +48,6 @@ export async function GET() {
     });
 
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message });
+    return NextResponse.json({ success: false, error: 'Erro geral: ' + err.message }, { status: 500 });
   }
 }

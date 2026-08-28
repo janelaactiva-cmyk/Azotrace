@@ -4,8 +4,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function enviarEmailComChave(email: string, productKey: string) {
   try {
-    await resend.emails.send({
-      from: 'Azotrace <geral@azotrace.com>', // Podes mudar para o teu domínio mais tarde
+    const data = await resend.emails.send({
+      from: 'Azotrace <no-reply@azotrace.com>', 
       to: email,
       subject: 'A tua Chave de Produto - Acesso à Dashboard',
       html: `
@@ -13,7 +13,7 @@ export async function enviarEmailComChave(email: string, productKey: string) {
           <h2> Obrigado pela tua compra! </h2>
           <p>O teu pagamento foi confirmado com sucesso. Aqui tens a tua chave de produto exclusiva para acederes à plataforma:</p>
           
-          <div style="background: #f4f4f5; padding: 15px; border-radius: 8px; font-size: 20px; font-weight: bold; letter-spacing: 2px; display: inline-block; margin: 15px 0; color: #111;">
+          <div style="background: #f4f4f5; padding: 15px; border-raduis: 8px; font-size: 20px; font-weight: bold; letter-spacing: 2px; display: inline-block; margin: 15px 0; color: #111;">
             ${productKey}
           </div>
 
@@ -23,8 +23,11 @@ export async function enviarEmailComChave(email: string, productKey: string) {
         </div>
       `,
     });
-    console.log('📧 Email enviado com sucesso para:', email);
+    
+    console.log('📧 Resposta do Resend:', data);
+    return data;
   } catch (error) {
-    console.error('Erro ao enviar email:', error);
+    console.error('❌ ERRO DETALHADO DO RESEND:', error);
+    throw error; // Lança o erro para cima para sabermos o que falhou
   }
 }

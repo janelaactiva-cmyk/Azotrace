@@ -22,7 +22,7 @@ export default function VerifyProductKeyPage() {
     setLoading(true);
 
     try {
-      // Pedido à API para validar a chave gerada pela Stripe
+      // Pedido à API para validar a chave gerada
       const response = await fetch('/api/verify-product-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -35,8 +35,13 @@ export default function VerifyProductKeyPage() {
         throw new Error(data.message || 'Chave inválida ou já utilizada.');
       }
 
-      // Se a chave for válida, redireciona para a dashboard
-      router.push('/dashboard');
+      // 1. Guardar o email retornado pela API no sessionStorage
+      if (data.email) {
+        sessionStorage.setItem('validated_email', data.email);
+      }
+
+      // 2. Redirecionar para a página de criar conta (SuccessPage) em vez do dashboard
+      router.push('/success'); // Ajusta '/success' se a rota da tua página de criar conta for diferente
 
     } catch (err: any) {
       setError(err.message || 'Erro ao verificar a chave.');
