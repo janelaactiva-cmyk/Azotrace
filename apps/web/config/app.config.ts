@@ -71,7 +71,7 @@ const appConfig = AppConfigSchema.parse({
   theme: process.env.NEXT_PUBLIC_DEFAULT_THEME_MODE,
   themeColor: process.env.NEXT_PUBLIC_THEME_COLOR,
   themeColorDark: process.env.NEXT_PUBLIC_THEME_COLOR_DARK,
-  captchaTokenSiteKey: process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY, // 👈 Adicionado aqui
+  captchaSiteKey: process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY, // 👈 Corrigido de captchaTokenSiteKey para captchaSiteKey
   production,
 });
 
