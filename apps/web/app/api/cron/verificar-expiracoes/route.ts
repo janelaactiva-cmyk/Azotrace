@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { enviarEmailComChave } from '~/lib/email'; // Podes adaptar para uma função de email de aviso
+import { enviarEmailComChave } from '~/lib/email'; 
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -9,37 +9,58 @@ const supabaseAdmin = createClient(
 
 export async function GET(request: Request) {
   try {
-    // Calcular a data daqui a exatos 15 dias (procurar o intervalo do dia)
-    const hoje = new Date();
-    const daquiA15Dias = new Date();
-    daquiA15Dias.setDate(hoje.getDate() + 15);
+    // Marcos de dias em que queremos notificar
+    const marcos = [15, 10, 5];
+    let totalAvisosEnviados = 0;
 
-    const inicioDoDia = new Date(daquiA15Dias.setHours(0, 0, 0, 0)).toISOString();
-    const fimDoDia = new Date(daquiA15Dias.setHours(23, 59, 59, 999)).toISOString();
+    for (const dias of marcos) {
+      // 1. Criamos sempre uma nova instância de data atual para cada iteração
+      const dataAlvo = new Date();
+      dataAlvo.setDate(dataAlvo.getDate() + dias);
 
-    // Buscar utilizadores que expiram daqui a 15 dias e ainda não receberam aviso
-    const { data: subscricoes, error } = await supabaseAdmin
-      .from('subscriptions')
-      .select('*')
-      .eq('reminder_sent', false)
-      .gte('expires_at', inicioDoDia)
-      .lte('expires_at', fimDoDia);
+      // 2. Definimos o início e o fim do dia alvo com segurança
+      const inicioDoDia = new Date(dataAlvo);
+      inicioDoDia.setHours(0, 0, 0, 0);
 
-    if (error) throw error;
+      const fimDoDia = new Date(dataAlvo);
+      fimDoDia.setHours(23, 59, 59, 999);
 
-    for (const sub of subscricoes || []) {
-      // Enviar o e-mail de renovação (podes criar uma função específica de aviso)
-      // await enviarEmailRenovacao(sub.email);
-
-      // Marcar que o lembrete foi enviado para não repetir
-      await supabaseAdmin
+      // 3. Procurar utilizadores que expiram exatamente neste dia específico 
+      // e cujo último lembrete enviado ainda não seja este
+      const { data: subscricoes, error } = await supabaseAdmin
         .from('subscriptions')
-        .update({ reminder_sent: true })
-        .eq('id', sub.id);
+        .select('*')
+        .eq('status', 'active')
+        .neq('last_reminder_days', dias) 
+        .gte('expires_at', inicioDoDia.toISOString())
+        .lte('expires_at', fimDoDia.toISOString());
+
+      if (error) {
+        console.error(`Erro ao buscar subscrições para ${dias} dias:`, error);
+        continue;
+      }
+
+      for (const sub of subscricoes || []) {
+        // Enviar o e-mail ao cliente a avisar
+        await enviarEmailComChave(sub.email, sub.product_key);
+
+        // Atualizar na base de dados qual foi o último lembrete enviado
+        await supabaseAdmin
+          .from('subscriptions')
+          .update({ last_reminder_days: dias })
+          .eq('id', sub.id);
+
+        totalAvisosEnviados++;
+      }
     }
 
-    return NextResponse.json({ success: true, avisosEnviados: subscricoes?.length || 0 });
+    return NextResponse.json({ 
+      success: true, 
+      message: `Verificação concluída. ${totalAvisosEnviados} avisos enviados.` 
+    });
+
   } catch (err: any) {
+    console.error('Erro na cron de expirações:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

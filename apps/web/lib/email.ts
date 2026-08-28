@@ -19,7 +19,7 @@ export async function enviarEmailComChave(email: string, productKey: string) {
 
           <p>Copia esta chave e cola-a na página de verificação do site para entrares na tua dashboard.</p>
           <br/>
-          <p style="color: #666; font-size: 12px;">Se tiveres alguma dúvida, responde a este email.</p>
+          <p style="color: #666; font-size: 12px;">Se tiveres alguma dúvida, contacte para 965042695.</p>
         </div>
       `,
     });
