@@ -9,6 +9,8 @@ import { Trans } from '@kit/ui/trans';
 
 import pathsConfig from '~/config/paths.config';
 
+export const dynamic = 'force-dynamic'; // 👈 Adicione esta linha para forçar o comportamento dinâmico no build
+
 export const generateMetadata = async () => {
   const t = await getTranslations();
 
