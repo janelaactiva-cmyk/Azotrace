@@ -1,10 +1,10 @@
 'use client';
 
-export function ${plugin^}Component() {
+export function RoadmapPluginComponent() {
   return (
     <div>
-      <h3>📦 ${plugin}</h3>
-      <p>Plugin ${plugin} em desenvolvimento.</p>
+      <h3>📦 Roadmap</h3>
+      <p>Plugin Roadmap em desenvolvimento.</p>
     </div>
   );
 }

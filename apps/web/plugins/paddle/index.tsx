@@ -1,10 +1,10 @@
 'use client';
 
-export function ${plugin^}Component() {
+export function PaddlePluginComponent() {
   return (
     <div>
-      <h3>📦 ${plugin}</h3>
-      <p>Plugin ${plugin} em desenvolvimento.</p>
+      <h3>📦 Paddle</h3>
+      <p>Plugin Paddle em desenvolvimento.</p>
     </div>
   );
 }
