@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { connection } from 'next/server'; // 👈 1. Importe o connection
+import { connection } from 'next/server';
 import { getTranslations } from 'next-intl/server';
 
 import { PasswordResetRequestContainer } from '@kit/auth/password-reset';
@@ -9,13 +9,11 @@ import { Trans } from '@kit/ui/trans';
 
 import pathsConfig from '~/config/paths.config';
 
-
-
 export const generateMetadata = async () => {
-  const t = await getTranslations();
+  const t = await getTranslations('auth'); // 👈 Alterado aqui
 
   return {
-    title: t('auth.passwordResetLabel'),
+    title: t('passwordResetLabel'), // 👈 Alterado aqui
   };
 };
 
