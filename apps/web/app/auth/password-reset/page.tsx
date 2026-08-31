@@ -10,11 +10,10 @@ import { Trans } from '@kit/ui/trans';
 import pathsConfig from '~/config/paths.config';
 
 export async function generateMetadata() {
-  // Usamos getTranslations() global sem parâmetros e chamamos a chave com o caminho completo
   const t = await getTranslations('auth');
 
   return {
-    title: t('auth.passwordResetLabel'),
+    title: t('passwordResetLabel'),
   };
 }
 
