@@ -6,6 +6,8 @@
   },
   "auth": {
     "login": "Entrar",
-    "logout": "Sair"
+    "logout": "Sair",
+    "signUpHeading": "Criar uma conta",
+    "alreadyHaveAnAccount": "Já tem uma conta?"
   }
 }
