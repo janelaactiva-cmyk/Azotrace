@@ -13,6 +13,10 @@
     "passwordResetSubheading": "Introduza o seu email para receber as instruções de recuperação"
   },
   "account": {
-    "settingsTab": "Definições"
+    "settingsTab": "Definições",
+    "profileTab": "Perfil",
+    "securityTab": "Segurança",
+    "billingTab": "Faturação",
+    "membersTab": "Membros"
   }
 }
