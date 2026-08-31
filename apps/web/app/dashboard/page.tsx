@@ -1,4 +1,4 @@
-export const instant = false;
+export const dynamic = 'force-dynamic';
 
 import { connection } from 'next/server'; // 👈 1. Importe o connection
 
