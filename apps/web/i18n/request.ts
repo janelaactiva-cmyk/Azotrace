@@ -3,16 +3,19 @@ import { getRequestConfig } from 'next-intl/server';
 export default getRequestConfig(async () => {
   const locale = 'pt';
   
-  // Carrega as mensagens em português
-  const messages = (await import(`../messages/${locale}.json`)).default;
-  
-  // Opcional: carrega também o inglês como fallback
-  // const englishMessages = (await import(`../messages/en.json`)).default;
-  // const mergedMessages = { ...englishMessages, ...messages };
+  // Carrega os vários namespaces em separado para evitar chaves em falta
+  const auth = (await import(`../messages/${locale}/auth.json`)).default;
+  const account = (await import(`../messages/${locale}/account.json`)).default;
+  const common = (await import(`../messages/${locale}/common.json`)).default; // se existir
+  const teams = (await import(`../messages/${locale}/teams.json`)).default; // se existir
 
   return {
     locale,
-    messages,
-    // Se quiseres fallback para inglês, usa mergedMessages
+    messages: {
+      auth,
+      account,
+      common,
+      teams,
+    },
   };
 });
