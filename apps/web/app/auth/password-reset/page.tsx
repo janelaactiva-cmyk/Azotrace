@@ -17,7 +17,7 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
   });
 
   return {
-    title: t('passwordResetLabel'),
+    title: t('Repor Palavra-passe'),
   };
 }
 
