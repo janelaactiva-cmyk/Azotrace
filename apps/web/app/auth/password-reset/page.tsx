@@ -9,8 +9,12 @@ import { Trans } from '@kit/ui/trans';
 
 import pathsConfig from '~/config/paths.config';
 
-export async function generateMetadata() {
-  const t = await getTranslations('auth');
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
+  const params = await props.params;
+  const t = await getTranslations({
+    locale: params.locale,
+    namespace: 'auth',
+  });
 
   return {
     title: t('passwordResetLabel'),
