@@ -1,11 +1,10 @@
-export const dynamic = 'force-dynamic';
+export const instant = false;
 
-import { connection } from 'next/server'; // 👈 1. Importe o connection
-
+import { connection } from 'next/server';
 import { DashboardContent } from './_components/dashboard-content';
 
 export default async function DashboardPage() {
-  await connection(); // 👈 2. Adicione isto para torná-la dinâmica
+  await connection();
 
   return <DashboardContent />;
 }
