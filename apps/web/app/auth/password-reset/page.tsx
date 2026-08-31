@@ -9,13 +9,15 @@ import { Trans } from '@kit/ui/trans';
 
 import pathsConfig from '~/config/paths.config';
 
-export const generateMetadata = async () => {
-  const t = await getTranslations('auth'); // 👈 Alterado aqui
+export async function generateMetadata() {
+  const t = await getTranslations({
+    namespace: 'auth',
+  });
 
   return {
-    title: t('passwordResetLabel'), // 👈 Alterado aqui
+    title: t('passwordResetLabel'),
   };
-};
+}
 
 const { callback, passwordUpdate, signIn } = pathsConfig.auth;
 const redirectPath = `${callback}?next=${passwordUpdate}`;
