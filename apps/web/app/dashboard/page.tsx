@@ -1,5 +1,3 @@
-export const instant = false;
-
 import { connection } from 'next/server';
 import { DashboardContent } from './_components/dashboard-content';
 

@@ -190,10 +190,6 @@ catalogs:
 importers:
 
   .:
-    dependencies:
-      resend:
-        specifier: ^6.22.1
-        version: 6.22.1
     devDependencies:
       '@manypkg/cli':
         specifier: 'catalog:'
@@ -216,6 +212,9 @@ importers:
       oxlint:
         specifier: 'catalog:'
         version: 1.76.0
+      resend:
+        specifier: ^6.22.1
+        version: 6.22.1
       turbo:
         specifier: 'catalog:'
         version: 2.10.8

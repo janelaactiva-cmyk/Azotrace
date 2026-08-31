@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import { Suspense } from 'react';
 import './globals.css';
 import { ThemeProvider } from '~/lib/theme-context';
 import { BusinessProvider } from '~/lib/business-context';
@@ -22,16 +23,18 @@ export default function RootLayout({
   return (
     <html lang="pt">
       <body className={inter.className}>
-        <ThemeProvider>
-          <AuthProvider>
-            <BusinessProvider>
-              <Providers>
-                {children}
-                <CookieConsent />
-              </Providers>
-            </BusinessProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <Suspense fallback={null}>
+          <ThemeProvider>
+            <AuthProvider>
+              <BusinessProvider>
+                <Providers>
+                  {children}
+                  <CookieConsent />
+                </Providers>
+              </BusinessProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </Suspense>
       </body>
     </html>
   );
