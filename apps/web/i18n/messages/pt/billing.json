@@ -1,0 +1,118 @@
+{
+  "subscriptionTabSubheading": "Gerir a sua Subscrição e Faturação",
+  "planCardTitle": "O seu Plano",
+  "planCardDescription": "Abaixo encontram-se os detalhes do seu plano atual. Pode alterar o seu plano ou cancelar a sua subscrição a qualquer momento.",
+  "planRenewal": "Renova a cada {interval} por {price}",
+  "planDetails": "Detalhes do Plano",
+  "checkout": "Avançar para Pagamento",
+  "trialEndsOn": "O seu período experimental termina em",
+  "billingPortalCardButton": "Visitar Portal de Faturação",
+  "billingPortalCardTitle": "Gerir os seus Dados de Faturação",
+  "billingPortalCardDescription": "Visite o seu Portal de Faturação para gerir a sua subscrição e pagamentos. Pode atualizar ou cancelar o seu plano, ou descarregar faturas.",
+  "cancelAtPeriodEndDescription": "A sua subscrição está agendada para ser cancelada em {endDate}.",
+  "renewAtPeriodEndDescription": "A sua subscrição está agendada para ser renovada em {endDate}",
+  "noPermissionsAlertHeading": "Não tem permissões para alterar as definições de faturação",
+  "noPermissionsAlertBody": "Por favor, contacte o proprietário da sua conta para alterar as definições de faturação.",
+  "checkoutSuccessTitle": "Feito! Está tudo pronto.",
+  "checkoutSuccessDescription": "Obrigado por subscrever, processámos a sua subscrição com sucesso! Um email de confirmação será enviado para {customerEmail}.",
+  "checkoutSuccessBackButton": "Ir para a Aplicação",
+  "cannotManageBillingAlertTitle": "Não pode gerir a faturação",
+  "cannotManageBillingAlertDescription": "Não tem permissões para gerir a faturação. Por favor, contacte o proprietário da conta.",
+  "manageTeamPlan": "Gerir o Plano da Equipa",
+  "manageTeamPlanDescription": "Escolha um plano que se adapte às necessidades da sua equipa. Pode fazer upgrade ou downgrade a qualquer momento.",
+  "basePlan": "Plano Base",
+  "billingInterval": {
+    "label": "Escolha o intervalo de faturação",
+    "month": "Faturado mensalmente",
+    "year": "Faturado anualmente"
+  },
+  "perMonth": "por mês",
+  "custom": "Plano Personalizado",
+  "lifetime": "Vitalício",
+  "trialPeriod": "Avaliação de {period} dias",
+  "perPeriod": "por {period}",
+  "redirectingToPayment": "A redirecionar para o pagamento. Por favor, aguarde...",
+  "proceedToPayment": "Avançar para Pagamento",
+  "startTrial": "Iniciar Período Experimental",
+  "perTeamMember": "Por membro da equipa",
+  "perUnit": "Por utilização de {unit}",
+  "teamMembers": "Membros da Equipa",
+  "includedUpTo": "Até {unit} {upTo} incluídos no plano",
+  "fromPreviousTierUpTo": "para cada {unit} para os próximos {upTo} {unit}",
+  "andAbove": "acima de {previousTier} {unit}",
+  "forEveryUnit": "para cada {unit}",
+  "setupFee": "mais uma taxa de configuração de {setupFee}",
+  "perUnitIncluded": "({included} incluídos)",
+  "featuresLabel": "Funcionalidades",
+  "detailsLabel": "Detalhes",
+  "planPickerLabel": "Escolha o seu plano preferido",
+  "planCardLabel": "Gerir o seu Plano",
+  "planPickerAlertErrorTitle": "Erro ao solicitar pagamento",
+  "planPickerAlertErrorDescription": "Ocorreu um erro ao solicitar o pagamento. Por favor, tente novamente mais tarde.",
+  "subscriptionCancelled": "Subscrição Cancelada",
+  "cancelSubscriptionDate": "A sua subscrição será cancelada no fim do período",
+  "noPlanChosen": "Por favor, escolha um plano",
+  "noIntervalPlanChosen": "Por favor, escolha um intervalo de faturação",
+  "status": {
+    "free": {
+      "badge": "Plano Gratuito",
+      "heading": "Encontra-se atualmente no Plano Gratuito",
+      "description": "Está num plano gratuito. Pode atualizar para um plano pago a qualquer momento."
+    },
+    "active": {
+      "badge": "Ativo",
+      "heading": "A sua subscrição está ativa",
+      "description": "A sua subscrição está ativa. Pode geri-la no Portal do Cliente."
+    },
+    "trialing": {
+      "badge": "Avaliação",
+      "heading": "Encontra-se em período experimental",
+      "description": "Pode desfrutar dos benefícios do plano até o período experimental terminar"
+    },
+    "past_due": {
+      "badge": "Em Atraso",
+      "heading": "A sua fatura está em atraso",
+      "description": "A sua fatura está em atraso. Por favor, atualize o seu método de pagamento."
+    },
+    "canceled": {
+      "badge": "Cancelado",
+      "heading": "A sua subscrição está cancelada",
+      "description": "A sua subscrição está cancelada e terminará no fim do período de faturação."
+    },
+    "unpaid": {
+      "badge": "Por Pagar",
+      "heading": "A sua fatura está por pagar",
+      "description": "A sua fatura está por pagar. Por favor, atualize o seu método de pagamento."
+    },
+    "incomplete": {
+      "badge": "Incompleto",
+      "heading": "À espera do seu pagamento",
+      "description": "Estamos à espera que o seu pagamento seja processado."
+    },
+    "incomplete_expired": {
+      "badge": "Expirado",
+      "heading": "O seu pagamento expirou",
+      "description": "O seu pagamento expirou. Por favor, atualize o seu método de pagamento."
+    },
+    "paused": {
+      "badge": "Em Pausa",
+      "heading": "A sua subscrição está em pausa",
+      "description": "A sua subscrição está em pausa. Pode retomá-la a qualquer momento."
+    },
+    "succeeded": {
+      "badge": "Bem-sucedido",
+      "heading": "O seu pagamento foi bem-sucedido",
+      "description": "O seu pagamento foi bem-sucedido. Obrigado por subscrever!"
+    },
+    "pending": {
+      "badge": "Pendente",
+      "heading": "O seu pagamento está pendente",
+      "description": "O seu pagamento está pendente. Por favor, aguarde."
+    },
+    "failed": {
+      "badge": "Falhou",
+      "heading": "O seu pagamento falhou",
+      "description": "O seu pagamento falhou. Por favor, atualize o seu método de pagamento."
+    }
+  }
+}
