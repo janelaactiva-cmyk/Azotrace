@@ -8,6 +8,8 @@
     "login": "Entrar",
     "logout": "Sair",
     "signUpHeading": "Criar uma conta",
-    "alreadyHaveAnAccount": "Já tem uma conta?"
+    "alreadyHaveAnAccount": "Já tem uma conta?",
+    "passwordResetLabel": "Recuperar palavra-passe",
+    "passwordResetSubheading": "Introduza o seu email para receber as instruções de recuperação"
   }
 }
