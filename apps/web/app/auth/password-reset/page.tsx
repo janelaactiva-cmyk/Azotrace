@@ -1,5 +1,5 @@
 import Link from 'next/link';
-
+import { connection } from 'next/server'; // 👈 1. Importe o connection
 import { getTranslations } from 'next-intl/server';
 
 import { PasswordResetRequestContainer } from '@kit/auth/password-reset';
@@ -22,7 +22,9 @@ export const generateMetadata = async () => {
 const { callback, passwordUpdate, signIn } = pathsConfig.auth;
 const redirectPath = `${callback}?next=${passwordUpdate}`;
 
-function PasswordResetPage() {
+async function PasswordResetPage() {
+  await connection();
+  
   return (
     <>
       <div className={'flex flex-col items-center gap-1'}>
