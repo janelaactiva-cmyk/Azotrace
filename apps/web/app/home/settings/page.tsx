@@ -23,8 +23,8 @@ const paths = {
 };
 
 export const generateMetadata = async () => {
-  const t = await getTranslations();
-  const title = t('account.settingsTab');
+  const t = await getTranslations('account');
+  const title = t('settingsTab');
 
   return {
     title,
