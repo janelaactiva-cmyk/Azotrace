@@ -66,7 +66,7 @@ const appConfig = AppConfigSchema.parse({
   name: process.env.NEXT_PUBLIC_PRODUCT_NAME,
   title: process.env.NEXT_PUBLIC_SITE_TITLE,
   description: process.env.NEXT_PUBLIC_SITE_DESCRIPTION,
-  url: process.env.NEXT_PUBLIC_SITE_URL,
+  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://azotrace.com',
   locale: process.env.NEXT_PUBLIC_DEFAULT_LOCALE,
   theme: process.env.NEXT_PUBLIC_DEFAULT_THEME_MODE,
   themeColor: process.env.NEXT_PUBLIC_THEME_COLOR,

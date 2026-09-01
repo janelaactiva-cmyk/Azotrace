@@ -41,7 +41,7 @@ export default function VerifyProductKeyPage() {
       }
 
       // 2. Redirecionar para a página de criar conta (SuccessPage) em vez do dashboard
-      router.push('/success'); // Ajusta '/success' se a rota da tua página de criar conta for diferente
+      router.push('/checkout/create-account'); // Ajusta '/success' se a rota da tua página de criar conta for diferente
 
     } catch (err: any) {
       setError(err.message || 'Erro ao verificar a chave.');
