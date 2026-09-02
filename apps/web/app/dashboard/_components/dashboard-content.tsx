@@ -8,53 +8,57 @@ import { useTheme } from '~/lib/theme-context';
 import { useBusiness } from '~/lib/business-context';
 import { useAuth } from '~/lib/auth-context';
 
-export function DashboardContent() {
+interface DashboardContentProps {
+  negocios?: any[];
+  userEmail?: string;
+}
+
+export function DashboardContent({ negocios: initialNegocios, userEmail }: DashboardContentProps) {
   const router = useRouter();
   const { theme } = useTheme();
   const { selectedBusinessId, setSelectedBusiness } = useBusiness();
   const { user, loading: authLoading } = useAuth();
-  const [businesses, setBusinesses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [businesses, setBusinesses] = useState<any[]>(initialNegocios || []);
+  const [loading, setLoading] = useState(!initialNegocios);
 
-  // 1. Atualiza o useEffect para garantir que só carrega dados se existir uma sessão ativa:
-useEffect(() => {
-  if (authLoading) return; // Aguarda o fim do carregamento do AuthContext
+  useEffect(() => {
+    if (authLoading) return; 
 
-  if (!user) {
-    router.push('/login'); // Redireciona se não houver utilizador
-    return;
-  }
-
-  loadBusinesses();
-}, [user, authLoading, router]);
-
-// 2. Protege a função loadBusinesses contra chamadas sem sessão:
-const loadBusinesses = async () => {
-  try {
-    setLoading(true);
-
-    // Verifica primeiro se a sessão existe antes de fazer a query
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      console.warn('Nenhuma sessão ativa encontrada.');
+    if (!user) {
+      router.push('/login'); 
       return;
     }
 
-    const { data, error } = await supabase
-      .from('negocios')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false });
+    if (!initialNegocios) {
+      loadBusinesses();
+    }
+  }, [user, authLoading, router, initialNegocios]);
 
-    if (error) throw error;
-    setBusinesses(data || []);
-  } catch (error) {
-    console.error('Erro ao carregar negócios:', error);
-  } finally {
-    setLoading(false);
-  }
-};
+  const loadBusinesses = async () => {
+    try {
+      setLoading(true);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.warn('Nenhuma sessão ativa encontrada.');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('negocios')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBusinesses(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar negócios:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSelectBusiness = (business: any) => {
     setSelectedBusiness(business.id, business.tipo, business.nome);
@@ -77,7 +81,7 @@ const loadBusinesses = async () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: 'var(--text-primary)' }}>📊 Dashboard</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>Visão geral dos teus negócios</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>Visão geral dos teus negócios {userEmail && `(${userEmail})`}</p>
         </div>
         <button
           onClick={() => router.push('/dashboard/administracao')}
