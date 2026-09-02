@@ -20,37 +20,45 @@ export default function SuccessPage() {
 
   useEffect(() => {
     const initPage = async () => {
+      // 1. Tentar ler primeiro do sessionStorage garantindo que é string
+      const savedEmail = sessionStorage.getItem('validated_email') || '';
+      if (savedEmail) {
+        console.log('📦 Email encontrado no sessionStorage:', savedEmail);
+        setForm((prev) => ({ ...prev, email: savedEmail }));
+      }
+
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('session_id');
       console.log('🔍 Session ID detetado:', sessionId);
 
-      // 1. Verificar se já existe uma sessão ativa no Supabase
+      // 2. Verificar se já existe uma sessão ativa no Supabase
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUser(user);
+        if (user.email && !savedEmail) {
+          setForm((prev) => ({ ...prev, email: user.email || '' }));
+        }
         if (sessionId) {
           await associateCheckout(sessionId, user.id);
         }
         return;
       }
 
-      // 2. Buscar o email associado à sessão do Stripe
-      if (sessionId) {
+      // 3. Se não houver email no sessionStorage, tentar buscar à API do Stripe via session_id
+      if (!savedEmail && sessionId) {
         try {
           const res = await fetch(`/api/get-checkout-info?session_id=${sessionId}`);
           const data = await res.json();
           console.log('📦 Resposta da API get-checkout-info:', data);
 
           if (res.ok && data.email) {
-            setForm((prev) => ({ ...prev, email: data.email }));
+            setForm((prev) => ({ ...prev, email: data.email || '' }));
           } else {
             console.warn('⚠️ A API não encontrou email para esta sessão.');
           }
         } catch (err) {
           console.error('❌ Erro ao carregar dados do email da compra:', err);
         }
-      } else {
-        console.warn('⚠️ Nenhum session_id encontrado no URL. Vieste diretamente do Stripe?');
       }
     };
 

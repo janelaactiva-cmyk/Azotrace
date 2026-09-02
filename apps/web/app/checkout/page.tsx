@@ -7,8 +7,8 @@ const PLANS = {
   base: {
     id: 'base',
     nome: 'Base',
-    preco: 0.43,
-    preco_anual: 0.43,
+    preco: 19.99,
+    preco_anual: 239.88,
     iva: 0.16,
     features: ['1 Utilizador', 'Rastreabilidade Básica de Produtos', 'QR Codes Limitados', 'Actualizações Gratuitas', '1 Mês de Suporte']
   },

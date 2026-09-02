@@ -95,7 +95,7 @@ export async function POST(request: Request) {
       const expiresAt = new Date();
       expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
-      // 5. Guardar na tabela 'subscriptions'
+     // 5. Guardar na tabela 'subscriptions'
       const { error: insertError } = await supabaseAdmin
         .from('subscriptions')
         .insert({
@@ -114,6 +114,20 @@ export async function POST(request: Request) {
       if (insertError) {
         console.error('❌ Erro ao guardar a subscrição na base de dados:', insertError);
         return NextResponse.json({ error: 'Erro interno ao guardar dados' }, { status: 500 });
+      }
+
+      // 5.1 🔑 Guardar TAMBÉM na tabela dedicada 'product_keys'
+      const { error: keyInsertError } = await supabaseAdmin
+        .from('product_keys')
+        .insert({
+          product_key: productKey,
+          email: customerEmail,
+          stripe_session_id: sessionId,
+          used: false,
+        });
+
+      if (keyInsertError) {
+        console.error('❌ Erro ao guardar a product key na base de dados:', keyInsertError);
       }
 
       // 6. Enviar o e-mail para o cliente com a chave gerada
