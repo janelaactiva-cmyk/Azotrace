@@ -11,8 +11,11 @@ import CookieConsent from '~/components/CookieConsent';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Azotrace - Gestão de Negócios',
+  title: 'Azotrace',
   description: 'Sistema de gestão de negócios agrícolas',
+  icons: {
+    icon: '/assets/images//favicon.png', // Podes alterar para o caminho do teu ícone se estiver na pasta public
+  },
 };
 
 export default function RootLayout({
