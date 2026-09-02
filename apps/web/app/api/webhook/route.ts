@@ -12,6 +12,8 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY as string
 );
 
+const KEYINVOICE_API_KEY = process.env.KEYINVOICE_API_KEY as string;
+
 export async function POST(request: Request) {
   const body = await request.text();
   const sig = request.headers.get('stripe-signature') as string;
@@ -40,8 +42,8 @@ export async function POST(request: Request) {
     }
 
     try {
-      // 1. Verificar se já existe uma subscrição para esta sessão (Idempotência na tabela subscriptions)
-      const { data: existingSub, error: fetchError } = await supabaseAdmin
+      // 1. Verificar idempotência
+      const { data: existingSub } = await supabaseAdmin
         .from('subscriptions')
         .select('id')
         .eq('stripe_session_id', sessionId)
@@ -52,27 +54,61 @@ export async function POST(request: Request) {
         return NextResponse.json({ received: true });
       }
 
-      // 2. Gerar a chave aleatória de forma segura (podes continuar a usar a chave como ID/referência ou como parte do plano)
+      // 🔍 2. Obter dinamicamente o nome correto do plano
+      let planName = 'Plano Azotrace';
+      
+      try {
+        if (session.metadata && session.metadata.plano_nome) {
+          planName = session.metadata.plano_nome;
+        } else {
+          const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, {
+            limit: 1,
+            expand: ['data.price.product'],
+          });
+          
+          const firstItem = lineItems?.data?.[0];
+          if (firstItem && firstItem.price && firstItem.price.product) {
+            const productObj = firstItem.price.product;
+            
+            if (typeof productObj === 'object' && productObj !== null && 'name' in productObj) {
+              planName = (productObj as Stripe.Product).name;
+            } else if (typeof productObj === 'string') {
+              const productDetails = await stripe.products.retrieve(productObj);
+              if (productDetails && productDetails.name) {
+                planName = productDetails.name;
+              }
+            } else if (firstItem.description) {
+              planName = firstItem.description;
+            }
+          }
+        }
+      } catch (itemErr) {
+        console.warn('⚠️ Não foi possível obter o nome exato do plano no Stripe, a usar predefinição.', itemErr);
+      }
+
+      // 3. Gerar a chave aleatória de forma segura
       const parte1 = Math.random().toString(36).substring(2, 8).toUpperCase();
       const parte2 = Math.random().toString(36).substring(2, 8).toUpperCase();
       const productKey = `AZO-${parte1}-${parte2}`;
 
-      // 3. Calcular a data de expiração para daqui a exato 1 ano
+      // 4. Calcular a data de expiração (1 ano)
       const expiresAt = new Date();
       expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
-      // 4. Guardar na nova tabela 'subscriptions' usando o supabaseAdmin
+      // 5. Guardar na tabela 'subscriptions'
       const { error: insertError } = await supabaseAdmin
         .from('subscriptions')
         .insert({
           email: customerEmail,
-          plan_name: 'Plano Anual',
+          plan_name: planName,
           status: 'active',
-          product_key: productKey, // Certifica-te de que adicionaste esta coluna na tabela subscriptions se quiseres guardar a chave lá
+          product_key: productKey,
           stripe_session_id: sessionId,
           started_at: new Date().toISOString(),
           expires_at: expiresAt.toISOString(),
-          reminder_sent: false,
+          reminder_15_sent: false,
+          reminder_10_sent: false,
+          reminder_5_sent: false,
         });
 
       if (insertError) {
@@ -80,12 +116,91 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Erro interno ao guardar dados' }, { status: 500 });
       }
 
-      // 5. Enviar o e-mail para o cliente com a chave gerada
+      // 6. Enviar o e-mail para o cliente com a chave gerada
       try {
         await enviarEmailComChave(customerEmail, productKey);
-        console.log(`✅ Subscrição criada e e-mail enviado com sucesso para ${customerEmail}: ${productKey}`);
+        console.log(`✅ Subscrição (${planName}) criada e e-mail enviado com sucesso para ${customerEmail}: ${productKey}`);
       } catch (emailError) {
         console.error(`⚠️ Subscrição criada na BD, mas erro ao enviar e-mail para ${customerEmail}:`, emailError);
+      }
+
+      // 7. 🧾 Obter Sessão Dinâmica (Authenticate) e Emitir Fatura no Keyinvoice
+      let dynamicSid: string | null = null;
+
+      try {
+        const cleanApiKey = KEYINVOICE_API_KEY ? KEYINVOICE_API_KEY.trim() : '';
+
+        if (!cleanApiKey) {
+          throw new Error('KEYINVOICE_API_KEY não está definida nas variáveis de ambiente.');
+        }
+
+        // Passo 7.1: Autenticar para obter o Sid dinâmico válido
+        const authResponse = await fetch('https://login.keyinvoice.com/API5.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Apikey': cleanApiKey,
+          },
+          body: JSON.stringify({ 
+            method: 'authenticate'
+          }),
+        });
+
+        const authText = await authResponse.text();
+        const authData = JSON.parse(authText);
+
+        if (authData.Status !== 1 || !authData.Sid) {
+          throw new Error(`Falha na autenticação Keyinvoice: ${authData.ErrorMessage || 'Sid não retornado'}`);
+        }
+
+        dynamicSid = authData.Sid;
+        console.log('🔑 Sessão Keyinvoice obtida com sucesso:', dynamicSid);
+
+       // Passo 7.2: Inserir documento com DocType 'FT' e Série '71'
+        const documentPayload = {
+          method: 'insertDocument',
+          DocType: 'FT', // <--- Testar com 'FT' (Fatura) mantendo a série configurada
+          Series: '71',
+          Name: session.customer_details?.name || 'Cliente Azotrace',
+          Nif: '999999990',
+          Reference: sessionId,
+          DocLines: [
+            {
+              Reference: 'SUB-AZO',
+              Designation: planName,
+              Quantity: 1,
+              Price: session.amount_total ? session.amount_total / 100 : 0,
+            }
+          ]
+        };
+
+        const keyinvoiceResponse = await fetch('https://login.keyinvoice.com/API5.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Sid': dynamicSid as string,
+          },
+          body: JSON.stringify(documentPayload),
+        });
+
+        const responseText = await keyinvoiceResponse.text();
+        console.log(`🔍 Keyinvoice HTTP Status: ${keyinvoiceResponse.status}`);
+        console.log('🔍 Keyinvoice Resposta Bruta Completa:', responseText);
+
+        try {
+          const data = JSON.parse(responseText);
+          console.log('🔍 Objeto JSON parseado do Keyinvoice:', JSON.stringify(data, null, 2));
+          if (data.Status === 1) {
+            console.log('🧾 Fatura emitida com sucesso no Keyinvoice!', data.Data);
+          } else {
+            console.error('⚠️ Erro retornado pelo Keyinvoice:', data.ErrorMessage);
+          }
+        } catch (e) {
+          console.error('⚠️ A resposta não é um JSON válido:', responseText);
+        }
+
+      } catch (invoiceErr: any) {
+        console.error('❌ Erro inesperado ao emitir fatura no Keyinvoice:', invoiceErr.message || invoiceErr);
       }
 
     } catch (err: any) {

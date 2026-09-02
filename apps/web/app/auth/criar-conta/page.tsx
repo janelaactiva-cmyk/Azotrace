@@ -18,56 +18,62 @@ export default function SuccessPage() {
   });
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
 
-  useEffect(() => {
-    const initPage = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const sessionId = urlParams.get('session_id');
-      console.log('🔍 Session ID detetado:', sessionId);
+  // Função auxiliar para associar o checkout ao utilizador
+  const associateCheckout = async (userId: string, sessionId: string) => {
+    if (!sessionId) return;
+    try {
+      const response = await fetch('/api/associate-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: sessionId,
+          userId: userId,
+        }),
+      });
 
-      // 1. Verificar se já existe uma sessão ativa no Supabase
+      if (response.ok) {
+        localStorage.removeItem('pending_checkout_session_id');
+      } else {
+        console.error('Erro ao associar checkout');
+      }
+    } catch (error) {
+      console.error('Erro:', error);
+    }
+  };
+
+  useEffect(() => {
+    // 1. Obter e guardar o session_id do URL imediatamente no localStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session_id') || localStorage.getItem('pending_checkout_session_id');
+
+    if (sessionId) {
+      localStorage.setItem('pending_checkout_session_id', sessionId);
+      console.log('✅ Pagamento confirmado e guardado:', sessionId);
+
+      // 🔍 Buscar o email associado à sessão do Stripe automaticamente
+      fetch(`/api/get-session-email?session_id=${sessionId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.email) {
+            setForm((prev) => ({ ...prev, email: data.email }));
+          }
+        })
+        .catch((err) => console.error('Erro ao obter email da sessão:', err));
+    }
+
+    // 2. Verificar se já está logado
+    const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUser(user);
-        if (sessionId) {
-          await associateCheckout(sessionId, user.id);
+        const storedSessionId = localStorage.getItem('pending_checkout_session_id');
+        if (storedSessionId) {
+          await associateCheckout(user.id, storedSessionId);
         }
-        return;
-      }
-
-      // 2. Buscar o email associado à sessão do Stripe
-      if (sessionId) {
-        try {
-          const res = await fetch(`/api/get-checkout-info?session_id=${sessionId}`);
-          const data = await res.json();
-          console.log('📦 Resposta da API get-checkout-info:', data);
-
-          if (res.ok && data.email) {
-            setForm((prev) => ({ ...prev, email: data.email }));
-          } else {
-            console.warn('⚠️ A API não encontrou email para esta sessão.');
-          }
-        } catch (err) {
-          console.error('❌ Erro ao carregar dados do email da compra:', err);
-        }
-      } else {
-        console.warn('⚠️ Nenhum session_id encontrado no URL. Vieste diretamente do Stripe?');
       }
     };
-
-    initPage();
+    checkUser();
   }, []);
-
-  const associateCheckout = async (sessionId: string, userId: string) => {
-    try {
-      await fetch('/api/associate-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, userId }),
-      });
-    } catch (err) {
-      console.error('Erro de rede ao associar checkout:', err);
-    }
-  };
 
   const validatePassword = (password: string) => {
     const errors: string[] = [];
@@ -93,14 +99,15 @@ export default function SuccessPage() {
     }
 
     if (form.password !== form.confirmPassword) {
-      setError('As senhas não coincidem');
+      setError('❌ As senhas não coincidem');
       return;
     }
 
     setLoading(true);
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      // Criar conta
+      const { data, error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
         options: {
@@ -108,28 +115,27 @@ export default function SuccessPage() {
         },
       });
 
-      if (signUpError) throw signUpError;
+      if (error) throw error;
 
       if (data?.user) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const sessionId = urlParams.get('session_id');
-
-        if (sessionId) {
-          await associateCheckout(sessionId, data.user.id);
+        const storedSessionId = localStorage.getItem('pending_checkout_session_id');
+        if (storedSessionId) {
+          await associateCheckout(data.user.id, storedSessionId);
         }
-
+        
         setUser(data.user);
         setTimeout(() => {
           router.push('/dashboard');
         }, 2000);
       }
     } catch (err: any) {
-      setError(err.message || 'Erro ao criar conta');
+      setError('❌ ' + (err.message || 'Erro ao criar conta'));
     } finally {
       setLoading(false);
     }
   };
 
+  // Se já estiver logado
   if (user) {
     return (
       <div style={{
@@ -148,13 +154,11 @@ export default function SuccessPage() {
           textAlign: 'center',
           maxWidth: '500px'
         }}>
-          <div style={{ fontSize: '64px', marginBottom: '16px' }}>✅</div>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '8px' }}>
-            Pagamento Confirmado!
+            Bem-vindo de volta!
           </h1>
           <p style={{ color: '#6b7280', marginBottom: '24px' }}>
-            O teu pagamento foi processado com sucesso.
-            {user && ` A conta ${user.email} foi associada.`}
+            {user && `A conta ${user.email} foi associada com sucesso.`}
           </p>
           <Link
             href="/dashboard"
@@ -175,6 +179,7 @@ export default function SuccessPage() {
     );
   }
 
+  // Formulário de criação de conta
   return (
     <div style={{
       minHeight: '100vh',
@@ -198,12 +203,11 @@ export default function SuccessPage() {
         </div>
 
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '8px' }}>✅</div>
           <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
-            Pagamento Confirmado!
+            Criar Conta
           </h1>
           <p style={{ color: '#6b7280', fontSize: '14px' }}>
-            Define a tua palavra-passe para concluir o acesso
+            O teu email já foi carregado. Só precisas de definir a password.
           </p>
         </div>
 
@@ -216,7 +220,7 @@ export default function SuccessPage() {
             marginBottom: '16px',
             fontSize: '14px'
           }}>
-            ❌ {error}
+            {error}
           </div>
         )}
 
@@ -246,21 +250,19 @@ export default function SuccessPage() {
             <input
               type="email"
               value={form.email}
-              disabled
+              disabled // 👈 Bloqueado para garantir que usa exatamente o email do pagamento
               style={{
                 width: '100%',
                 padding: '12px',
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
                 fontSize: '16px',
-                background: '#f9fafb',
-                color: '#6b7280',
+                background: '#f3f4f6',
+                color: '#4b5563',
                 cursor: 'not-allowed'
               }}
+              required
             />
-            <span style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', display: 'block' }}>
-              Email associado automaticamente à tua compra.
-            </span>
           </div>
 
           <div style={{ marginBottom: '16px' }}>
@@ -278,6 +280,7 @@ export default function SuccessPage() {
                 borderRadius: '8px',
                 fontSize: '16px'
               }}
+              placeholder=""
               required
             />
           </div>
@@ -289,7 +292,7 @@ export default function SuccessPage() {
             <input
               type="password"
               value={form.confirmPassword}
-              onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} // ✅ Corrigido para confirmPassword
+              onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
               style={{
                 width: '100%',
                 padding: '12px',
@@ -297,6 +300,7 @@ export default function SuccessPage() {
                 borderRadius: '8px',
                 fontSize: '16px'
               }}
+              placeholder=""
               required
             />
           </div>
@@ -317,9 +321,29 @@ export default function SuccessPage() {
               opacity: loading ? 0.7 : 1
             }}
           >
-            {loading ? 'A criar...' : 'Criar Conta e Entrar'}
+            {loading ? 'A criar...' : 'Criar Conta'}
           </button>
         </form>
+
+        <div style={{ marginTop: '16px', textAlign: 'center' }}>
+          <p style={{ fontSize: '14px', color: '#6b7280' }}>
+            Já tens conta?
+            <button
+              onClick={() => router.push('/login?from=checkout')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#2563eb',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                marginLeft: '4px'
+              }}
+            >
+              Fazer login
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );

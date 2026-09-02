@@ -58,6 +58,27 @@ function LoginForm() {
     }
   };
 
+  // Função para autenticação com o Google
+  const handleGoogleLogin = async () => {
+    try {
+      setError('');
+      const redirectToUrl = fromCheckout 
+        ? `${window.location.origin}/checkout/success` 
+        : `${window.location.origin}/dashboard`;
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectToUrl,
+        },
+      });
+
+      if (error) throw error;
+    } catch (err: any) {
+      setError('❌ ' + (err.message || 'Erro ao entrar com o Google'));
+    }
+  };
+
   return (
     <div style={{
       background: 'white',
@@ -104,6 +125,43 @@ function LoginForm() {
         </div>
       )}
 
+      {/* Botão de Login com o Google */}
+      <button
+        type="button"
+        onClick={handleGoogleLogin}
+        style={{
+          width: '100%',
+          padding: '12px',
+          background: 'white',
+          color: '#374151',
+          border: '1px solid #d1d5db',
+          borderRadius: '8px',
+          fontSize: '15px',
+          fontWeight: '500',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px',
+          marginBottom: '20px',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+        }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.18v3.14C3.16 21.32 7.24 24 12 24z"/>
+          <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.62H1.18C.43 8.14 0 9.87 0 12s.43 3.86 1.18 5.38l4.09-3.14z"/>
+          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.24 0 3.16 2.68 1.18 6.62l4.09 3.14c.95-2.85 3.6-4.96 6.73-4.96z"/>
+        </svg>
+        Entrar com o Google
+      </button>
+
+      <div style={{ display: 'flex', alignItems: 'center', textAlign: 'center', color: '#9ca3af', marginBottom: '20px' }}>
+        <div style={{ flex: 1, borderBottom: '1px solid #e5e7eb' }}></div>
+        <span style={{ padding: '0 10px', fontSize: '13px' }}>ou com email</span>
+        <div style={{ flex: 1, borderBottom: '1px solid #e5e7eb' }}></div>
+      </div>
+
       <form onSubmit={handleLogin}>
         <div style={{ marginBottom: '16px' }}>
           <label style={{ display: 'block', fontWeight: '500', marginBottom: '6px', fontSize: '14px' }}>Email</label>
@@ -118,7 +176,7 @@ function LoginForm() {
               borderRadius: '8px',
               fontSize: '16px'
             }}
-            placeholder="seu@email.com"
+            placeholder=""
             required
           />
         </div>
@@ -136,7 +194,7 @@ function LoginForm() {
               borderRadius: '8px',
               fontSize: '16px'
             }}
-            placeholder="••••••••"
+            placeholder=""
             required
           />
         </div>
@@ -157,7 +215,7 @@ function LoginForm() {
             opacity: loading ? 0.7 : 1
           }}
         >
-          {loading ? 'A entrar...' : '🔐 Entrar'}
+          {loading ? 'A entrar...' : 'Entrar'}
         </button>
       </form>
 
@@ -175,7 +233,7 @@ function LoginForm() {
         </Link>
         <span style={{ color: '#d1d5db', margin: '0 8px' }}>|</span>
         <Link
-          href="/criar-conta"
+          href="auth/criar-conta"
           style={{
             color: '#2563eb',
             textDecoration: 'none',

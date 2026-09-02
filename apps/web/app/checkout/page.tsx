@@ -106,8 +106,29 @@ export default function CheckoutPage() {
         return;
       }
 
+      // 🔒 Validação rigorosa de 9 dígitos para o Telemóvel
+      if (form.telefone.length !== 9) {
+        alert('❌ O número de telemóvel tem de ter obrigatoriamente 9 dígitos');
+        setLoading(false);
+        return;
+      }
+
+      // 🔒 Validação de 9 dígitos para o NIF Pessoal (caso seja preenchido)
+      if (form.nif && form.nif.length !== 9) {
+        alert('❌ O NIF pessoal tem de ter obrigatoriamente 9 dígitos');
+        setLoading(false);
+        return;
+      }
+
       if (isCommercial && (!form.nomeEmpresa || !form.nifEmpresa || !form.morada)) {
         alert('❌ Preencha o Nome da Empresa, NIF e Morada');
+        setLoading(false);
+        return;
+      }
+
+      // 🔒 Validação de 9 dígitos para o NIF da Empresa
+      if (isCommercial && form.nifEmpresa.length !== 9) {
+        alert('❌ O NIF da empresa tem de ter obrigatoriamente 9 dígitos');
         setLoading(false);
         return;
       }
@@ -163,10 +184,17 @@ export default function CheckoutPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+    
+    let newValue = value;
+    if (name === 'telefone' || name === 'nif' || name === 'nifEmpresa') {
+      // Remove carateres não numéricos e limita estritamente a 9 dígitos
+      newValue = value.replace(/\D/g, '').slice(0, 9);
+    }
+
+    setForm({ ...form, [name]: newValue });
     
     if (name === 'email' && form.confirmEmail) {
-      if (value !== form.confirmEmail) {
+      if (newValue !== form.confirmEmail) {
         setEmailError('Os emails não coincidem');
       } else {
         setEmailError('');
@@ -272,7 +300,7 @@ export default function CheckoutPage() {
     sticky: {
       position: 'sticky',
       top: '24px'
-    }
+    } as const
   };
 
   return (
@@ -288,7 +316,6 @@ export default function CheckoutPage() {
             <form onSubmit={handleSubmit}>
               <h2 style={styles.cardTitle}>👤 Dados Pessoais</h2>
 
-              {/* Nome */}
               <div style={styles.formGroup}>
                 <label style={styles.label}>Nome Completo *</label>
                 <input
@@ -302,7 +329,6 @@ export default function CheckoutPage() {
                 />
               </div>
 
-              {/* ✅ Email */}
               <div style={styles.formGroup}>
                 <label style={styles.label}>Email *</label>
                 <input
@@ -316,7 +342,6 @@ export default function CheckoutPage() {
                 />
               </div>
 
-              {/* ✅ Confirmar Email */}
               <div style={styles.formGroup}>
                 <label style={styles.label}>Confirmar email *</label>
                 <input
@@ -334,12 +359,13 @@ export default function CheckoutPage() {
                 )}
               </div>
 
-              {/* Telefone */}
               <div style={styles.formGroup}>
-                <label style={styles.label}>Telefone/Telemóvel *</label>
+                <label style={styles.label}>Telefone/Telemóvel*</label>
                 <input
-                  type="tel"
+                  type="text"
+                  inputMode="numeric"
                   name="telefone"
+                  maxLength={9}
                   value={form.telefone}
                   onChange={handleChange}
                   style={styles.input}
@@ -348,7 +374,20 @@ export default function CheckoutPage() {
                 />
               </div>
 
-              {/* Checkbox Comercial */}
+              <div style={styles.formGroup}>
+                <label style={styles.label}>NIF (Opcional)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  name="nif"
+                  maxLength={9}
+                  value={form.nif}
+                  onChange={handleChange}
+                  style={styles.input}
+                  placeholder=""
+                />
+              </div>
+
               <div style={{ ...styles.formGroup, marginTop: '8px' }}>
                 <label style={styles.checkbox}>
                   <input
@@ -361,7 +400,6 @@ export default function CheckoutPage() {
                 </label>
               </div>
 
-              {/* Campos Empresa */}
               {isCommercial && (
                 <div style={styles.companyFields}>
                   <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>
@@ -380,10 +418,12 @@ export default function CheckoutPage() {
                     />
                   </div>
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>NIF da Empresa *</label>
+                    <label style={styles.label}>NIF da Empresa*</label>
                     <input
                       type="text"
+                      inputMode="numeric"
                       name="nifEmpresa"
+                      maxLength={9}
                       value={form.nifEmpresa}
                       onChange={handleChange}
                       style={styles.input}
@@ -406,7 +446,6 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* ✅ CROSS-SELL */}
               <div style={{ ...styles.formGroup, marginTop: '16px', borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
                 <label style={styles.checkbox}>
                   <input
@@ -426,7 +465,6 @@ export default function CheckoutPage() {
                 </label>
               </div>
 
-              {/* Botão */}
               <button
                 type="submit"
                 disabled={loading || !!emailError}
@@ -446,7 +484,6 @@ export default function CheckoutPage() {
             </form>
           </div>
 
-          {/* Resumo */}
           <div>
             <div style={{ ...styles.card, ...styles.sticky }}>
               <h2 style={styles.cardTitle}>📋 Resumo do Plano e Extras</h2>

@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia',
+  apiVersion: '2025-02-24.acacia' as any,
 });
 
 const supabase = createClient(
@@ -43,11 +43,14 @@ export async function POST(request: Request) {
       );
     }
 
-    if (is_commercial && (!nome_empresa || nif_empresa || morada)) {
-      // (validações comerciais...)
+    if (is_commercial && (!nome_empresa || !nif_empresa || !morada)) {
+      return NextResponse.json(
+        { error: 'Nome da empresa, NIF e morada são obrigatórios para clientes comerciais' },
+        { status: 400 }
+      );
     }
 
-    // ✅ CONSTRUIR CAMPOS PERSONALIZADOS (Apenas 2 campos para poupar espaço, já que o email vai em cima)
+   // ✅ CONSTRUIR CAMPOS PERSONALIZADOS COM TIPO CORRETO
     const customFields: Stripe.Checkout.SessionCreateParams.CustomField[] = [];
 
     if (is_commercial) {
@@ -62,9 +65,9 @@ export async function POST(request: Request) {
       customFields.push({
         key: 'nif_empresa',
         label: { type: 'custom', custom: '📄 NIF da empresa' },
-        type: 'text',
+        type: 'numeric', // 👈 'numeric' para aceitar apenas números
         optional: false,
-        text: { default_value: nif_empresa },
+        numeric: { default_value: nif_empresa }, // 👈 Nota: para type 'numeric', usa-se a propriedade 'numeric' com default_value
       });
     } else {
       customFields.push({
@@ -78,9 +81,9 @@ export async function POST(request: Request) {
       customFields.push({
         key: 'telefone',
         label: { type: 'custom', custom: '📱 Telemóvel' },
-        type: 'text',
+        type: 'numeric', // 👈 'numeric' para o telemóvel
         optional: false,
-        text: { default_value: telefone },
+        numeric: { default_value: telefone }, // 👈 'numeric' usa o objeto numeric.default_value
       });
     }
 
@@ -88,11 +91,13 @@ export async function POST(request: Request) {
       {
         price_data: {
           currency: 'eur',
+          tax_behavior: 'inclusive', // 👈 Informa o Stripe que o valor já inclui IVA
           product_data: {
-            name: `Plano e Extras ${plano_nome} - Azotrace`,
+            name: `Plano ${plano_nome} - Azotrace`,
             description: `Plano anual com IVA 16% incluído`,
+            tax_code: 'txcd_10000000', // 👈 Código fiscal obrigatório para Managed Payments
           },
-           unit_amount: 50,                                // unit_amount: Math.round(valor_total * 100),
+          unit_amount: Math.round(valor_total * 100), // 👈 Usa o valor total correto enviado pelo frontend
         },
         quantity: 1,
       },
@@ -102,20 +107,22 @@ export async function POST(request: Request) {
       lineItems.push({
         price_data: {
           currency: 'eur',
+          tax_behavior: 'inclusive', // 👈 Informa o Stripe que o setup também já inclui IVA
           product_data: {
             name: 'Pacote de Configuração Inicial & Formação Guiada',
             description: 'IVA 16% incluído',
+            tax_code: 'txcd_10000000',
           },
-             unit_amount: 50,                                            // unit_amount: Math.round(config_total * 100),
+          unit_amount: Math.round(config_total * 100), // 👈 Usa o valor total do setup correto
         },
         quantity: 1,
       });
     }
 
-    // ✅ CRIAR SESSÃO NO STRIPE (Com o email nativo pré-preenchido no topo)
+    // ✅ CRIAR SESSÃO NO STRIPE
     const session = await stripe.checkout.sessions.create({
-      customer_email: email, // 👈 Preenche automaticamente o campo de email de cima com o email do cliente
-      managed_payments: { enabled: false },
+      customer_email: email, // Pré-preenche o email no topo do checkout
+      managed_payments: { enabled: false }, // Evita bloqueios de códigos de impostos complexos
       payment_method_types: [
         'card',
         'paypal',
@@ -125,7 +132,7 @@ export async function POST(request: Request) {
       mode: 'payment',
       locale: 'pt',
       billing_address_collection: 'required',
-      custom_fields: customFields, // 👈 Fica apenas com Nome e Telemóvel (ou Empresa/NIF) em baixo
+      custom_fields: customFields,
       line_items: lineItems,
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/cancel`,
