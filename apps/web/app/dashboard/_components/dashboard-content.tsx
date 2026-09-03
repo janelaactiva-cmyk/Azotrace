@@ -1,76 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '~/lib/supabase';
 import { getBusinessIcon } from '~/lib/business-icons';
 import { useTheme } from '~/lib/theme-context';
 import { useBusiness } from '~/lib/business-context';
-import { useAuth } from '~/lib/auth-context';
 
 interface DashboardContentProps {
   negocios?: any[];
   userEmail?: string;
 }
 
-export function DashboardContent({ negocios: initialNegocios, userEmail }: DashboardContentProps) {
+export function DashboardContent({ negocios = [], userEmail }: DashboardContentProps) {
   const router = useRouter();
   const { theme } = useTheme();
   const { selectedBusinessId, setSelectedBusiness } = useBusiness();
-  const { user, loading: authLoading } = useAuth();
-  const [businesses, setBusinesses] = useState<any[]>(initialNegocios || []);
-  const [loading, setLoading] = useState(!initialNegocios);
-
-  useEffect(() => {
-    if (authLoading) return; 
-
-    if (!user) {
-      router.push('/login'); 
-      return;
-    }
-
-    if (!initialNegocios) {
-      loadBusinesses();
-    }
-  }, [user, authLoading, router, initialNegocios]);
-
-  const loadBusinesses = async () => {
-    try {
-      setLoading(true);
-
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        console.warn('Nenhuma sessão ativa encontrada.');
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('negocios')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setBusinesses(data || []);
-    } catch (error) {
-      console.error('Erro ao carregar negócios:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [businesses] = useState<any[]>(negocios);
 
   const handleSelectBusiness = (business: any) => {
     setSelectedBusiness(business.id, business.tipo, business.nome);
   };
-
-  if (authLoading || loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-        <p style={{ color: 'var(--text-secondary)' }}>A carregar negócios...</p>
-      </div>
-    );
-  }
 
   const total = businesses.length;
   const tipos = new Set(businesses.map(b => b.tipo)).size;
@@ -95,12 +44,6 @@ export function DashboardContent({ negocios: initialNegocios, userEmail }: Dashb
             fontWeight: '600',
             fontSize: '15px',
             transition: 'background 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#1d4ed8';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#2563eb';
           }}
         >
           ➕ Adicionar Negócio
@@ -157,12 +100,6 @@ export function DashboardContent({ negocios: initialNegocios, userEmail }: Dashb
                   transition: 'all 0.2s',
                   background: isSelected ? `${icon.color}11` : 'var(--bg-card)'
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.02)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                   <span style={{ fontSize: '28px' }}>{icon.icon}</span>
@@ -179,33 +116,6 @@ export function DashboardContent({ negocios: initialNegocios, userEmail }: Dashb
                 {b.validade && (
                   <p style={{ color: 'var(--text-primary)' }}>📅 {new Date(b.validade).toLocaleDateString('pt-PT')}</p>
                 )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelectBusiness(b);
-                  }}
-                  style={{
-                    marginTop: '16px',
-                    padding: '8px 20px',
-                    background: isSelected ? '#22c55e' : '#2563eb',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    width: '100%',
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = isSelected ? '#16a34a' : '#1d4ed8';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = isSelected ? '#22c55e' : '#2563eb';
-                  }}
-                >
-                  {isSelected ? '✅ Selecionado' : '🔍 Selecionar'}
-                </button>
               </div>
             );
           })}

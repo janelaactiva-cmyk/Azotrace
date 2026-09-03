@@ -35,7 +35,6 @@ export default function DashboardLayout({
       if (isSuperAdmin) {
         loadAppUsers();
         
-        // Ler a cookie de impersonação guardada no browser
         const match = document.cookie.match(new RegExp('(^| )impersonate_user_email=([^;]+)'));
         if (match) {
           setSelectedUserEmail(decodeURIComponent(match[2]));
@@ -44,7 +43,6 @@ export default function DashboardLayout({
     }
   }, [user, authLoading, isSuperAdmin]);
 
-  // Carregar diretamente os utilizadores reais da tabela profiles do Supabase
   const loadAppUsers = async () => {
     try {
       const { data, error } = await supabase
@@ -52,9 +50,13 @@ export default function DashboardLayout({
         .select('*');
 
       if (error) {
-        console.error('Erro ao carregar perfis:', error);
+        console.error('Erro ao carregar perfis:', error.message);
       } else if (data) {
-        setAppUsers(data);
+        const formattedUsers = data.map(u => ({
+          ...u,
+          email: u.email || u.mail || u.username || `Utilizador ${u.id?.slice(0, 6)}`
+        }));
+        setAppUsers(formattedUsers);
       }
     } catch (err) {
       console.error('Erro ao ligar ao Supabase:', err);
@@ -72,7 +74,6 @@ export default function DashboardLayout({
   }, []);
 
   const handleLogout = useCallback(async () => {
-    // Limpar cookies e sessão
     document.cookie = 'impersonate_user_id=; path=/; max-age=0';
     document.cookie = 'impersonate_user_email=; path=/; max-age=0';
     await supabase.auth.signOut();
@@ -116,6 +117,11 @@ export default function DashboardLayout({
   const buttonHover = isDark ? '#4b5563' : '#e5e7eb';
   const buttonText = isDark ? '#ffffff' : '#111827';
 
+  const currentActiveEmail = selectedUserEmail;
+  
+  // Filtramos para remover o próprio admin da lista de contas selecionáveis
+  const filteredAppUsers = appUsers.filter(dbUser => dbUser.email !== 'admin@azotrace.com');
+
   return (
     <div style={{
       display: 'flex',
@@ -124,11 +130,11 @@ export default function DashboardLayout({
       background: isDark ? '#111827' : '#f3f4f6',
       color: isDark ? '#e5e7eb' : '#111827'
     }}>
-      <aside style={{
+      <aside ref={menuRef} style={{
         width: '250px',
         background: sidebarBg,
         color: sidebarTextColor,
-        padding: '24px 16px',
+        padding: '24px 16px 16px 16px',
         display: 'flex',
         flexDirection: 'column',
         position: 'fixed',
@@ -140,135 +146,132 @@ export default function DashboardLayout({
         transition: 'border-color 0.4s ease, background 0.3s ease, color 0.3s ease',
         borderRight: `4px solid ${sidebarBorderColor}`
       }}>
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ 
-            width: '100%', 
-            height: '120px', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            padding: '4px 0' 
-          }}>
-            <img 
-              src="/assets/images/logo.png" 
-              alt="Azotrace-logo" 
-              style={{
-                maxHeight: '100%',
-                maxWidth: '100%',
-                objectFit: 'contain',
-                display: 'block'
-              }}
-            />
-          </div>
-         
-          {selectedBusinessName && (
-            <p style={{ 
-              fontSize: '15px', 
-              fontWeight: '600',
-              color: businessColor,
-              marginTop: '8px',
-              padding: '4px 12px',
-              background: isDark ? `${businessColor}22` : `${businessColor}11`,
-              borderRadius: '12px',
-              display: 'inline-block',
+        {/* TOPO: Logo e Menu */}
+        <div style={{ marginBottom: '220px' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ 
+              width: '218px', 
+              height: '80px',  
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              margin: '0 auto', 
+              flexShrink: 0
             }}>
-              {selectedBusinessName}  
-            </p>
-          )}
-
-          {selectedUserEmail && (
-            <div style={{
-              marginTop: '6px',
-              padding: '6px 10px',
-              background: '#2563eb22',
-              color: '#2563eb',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: 'bold',
-              textAlign: 'center',
-              wordBreak: 'break-all'
-            }}>
-              Conta Ativa: {selectedUserEmail}
+              <img 
+                src="/assets/images/logo.png" 
+                alt="Azotrace-logo" 
+                style={{
+                  width: '120px',  
+                  height: '120px',  
+                  objectFit: 'contain',
+                  display: 'block',
+                  flexShrink: 0
+                }}
+              />
             </div>
-          )}
+           
+            {/* Bloco de Informação do Negócio / Conta Ativa */}
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '6px', 
+              marginTop: '16px', 
+              justifyContent: 'flex-start'
+            }}>
+              {selectedBusinessName && (
+                <div style={{ 
+                  fontSize: '15px', 
+                  fontWeight: '600',
+                  color: businessColor,
+                  padding: '4px 12px',
+                  background: isDark ? `${businessColor}22` : `${businessColor}11`,
+                  borderRadius: '12px',
+                  display: 'inline-block',
+                  width: 'fit-content'
+                }}>
+                  {selectedBusinessName}  
+                </div>
+              )}
+
+              {currentActiveEmail && (
+                <div style={{
+                  padding: '6px 10px',
+                  background: '#2563eb22',
+                  color: '#2563eb',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  wordBreak: 'break-all'
+                }}>
+                  Conta Ativa: {currentActiveEmail}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <nav style={{ marginBottom: '16px' }}>
+            {navItems.map((item) => {
+              const isActive = pathname === item.path;
+              
+              if (item.label === '⚙️ Administração') {
+                return (
+                  <div key={item.path} style={{ marginBottom: '4px' }}>
+                    <MegaMenu />
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  style={{
+                    display: 'block',
+                    padding: '10px 16px',
+                    marginBottom: '4px',
+                    borderRadius: '8px',
+                    background: isActive ? sidebarActive : 'transparent',
+                    color: isActive ? sidebarTextColor : sidebarSubtext,
+                    textDecoration: 'none',
+                    transition: 'background 0.15s ease, color 0.15s ease',
+                    fontSize: '15px'
+                  }}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
 
-        <nav style={{ marginBottom: '16px' }}>
-          {navItems.map((item) => {
-            // CORRIGIDO: Apenas fica ativo se a rota corresponder exatamente ao link
-            const isActive = pathname === item.path;
-            
-            if (item.label === '⚙️ Administração') {
-              return (
-                <div key={item.path} style={{ marginBottom: '4px' }}>
-                  <MegaMenu />
-                </div>
-              );
-            }
-
-            return (
-              <Link
-                key={item.path}
-                href={item.path}
-                style={{
-                  display: 'block',
-                  padding: '10px 16px',
-                  marginBottom: '4px',
-                  borderRadius: '8px',
-                  background: isActive ? sidebarActive : 'transparent',
-                  color: isActive ? sidebarTextColor : sidebarSubtext,
-                  textDecoration: 'none',
-                  transition: 'background 0.15s ease, color 0.15s ease',
-                  fontSize: '15px'
-                }}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div style={{ flex: 1 }} />
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }} ref={menuRef}>
+        {/* FUNDO: Fixado de forma absoluta na base da barra lateral */}
+        <div style={{ 
+          position: 'absolute', 
+          bottom: '0', 
+          left: '16px', 
+          right: '16px', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '8px', 
+          paddingBottom: '16px', 
+          background: sidebarBg
+        }}>
           
-          <button
-            onClick={toggleTheme}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              background: buttonBg,
-              color: buttonText,
-              border: `1px solid ${sidebarBorderColor}`,
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'background 0.15s ease'
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = buttonHover; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = buttonBg; }}
-          >
-            {isDark ? '☀️ Modo Claro' : '🌙 Modo Escuro'}
-          </button>
-
+          {/* Menu Flutuante do Perfil */}
           {profileMenuOpen && (
             <div style={{
               position: 'absolute',
-              bottom: '100%',
+              bottom: 'calc(100% + 8px)',
               left: '0',
-              width: '100%',
-              marginBottom: '8px',
+              right: '0',
               background: isDark ? '#374151' : '#ffffff',
               border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
               borderRadius: '10px',
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
               overflow: 'hidden',
-              zIndex: 1100,
+              zIndex: 9999,
               maxHeight: '320px',
               display: 'flex',
               flexDirection: 'column'
@@ -284,8 +287,8 @@ export default function DashboardLayout({
 
               {isSuperAdmin && (
                 <div style={{ overflowY: 'auto', maxHeight: '160px' }}>
-                  {appUsers.length > 0 ? (
-                    appUsers.map((dbUser, index) => {
+                  {filteredAppUsers.length > 0 ? (
+                    filteredAppUsers.map((dbUser, index) => {
                       const userEmail = dbUser.email || `ID: ${dbUser.id?.slice(0, 8)}`;
                       const isSelected = selectedUserEmail === userEmail;
 
@@ -349,38 +352,14 @@ export default function DashboardLayout({
                     fontWeight: 'bold'
                   }}
                 >
-                  🔄 Voltar à Minha Conta (Admin)
+                  Voltar à Minha Conta (Admin)
                 </button>
               )}
 
-              <button
-                onClick={() => {
-                  setProfileMenuOpen(false);
-                  handleLogout();
-                }}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderTop: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
-                  textAlign: 'left',
-                  color: '#ef4444',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? '#4b5563' : '#f3f4f6'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-              >
-                🚪 Terminar Sessão
-              </button>
             </div>
           )}
 
+          {/* 1. Botão de Perfil */}
           <div
             onClick={() => setProfileMenuOpen(!profileMenuOpen)}
             style={{
@@ -430,6 +409,57 @@ export default function DashboardLayout({
               {profileMenuOpen ? '▼' : '▲'}
             </span>
           </div>
+
+          {/* 2. Botão de Modo Escuro/Claro */}
+          <button
+            onClick={toggleTheme}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              background: buttonBg,
+              color: buttonText,
+              border: `1px solid ${sidebarBorderColor}`,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'background 0.15s ease'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = buttonHover; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = buttonBg; }}
+          >
+            {isDark ? '☀️ Modo Claro' : '🌙 Modo Escuro'}
+          </button>
+
+          {/* 3. Botão de Terminar Sessão */}
+          <button
+            onClick={handleLogout}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              background: buttonBg,
+              border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+              borderRadius: '8px',
+              textAlign: 'center',
+              color: '#ef4444',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'background 0.15s ease'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? '#4b5563' : '#f3f4f6'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = buttonBg; }}
+          >
+            Terminar Sessão
+          </button>
 
         </div>
       </aside>

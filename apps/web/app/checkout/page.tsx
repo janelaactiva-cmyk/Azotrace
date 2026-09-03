@@ -474,7 +474,7 @@ export default function CheckoutPage() {
                   cursor: loading || !!emailError ? 'not-allowed' : 'pointer'
                 }}
               >
-                {loading ? '🔄 A processar...' : '💳 Pagar Agora'}
+                {loading ? '🔄 A processar...' : 'Pagar Agora'}
               </button>
               {emailError && (
                 <p style={{ ...styles.errorText, marginTop: '8px', textAlign: 'center' }}>
@@ -561,7 +561,7 @@ export default function CheckoutPage() {
                 border: '1px solid #bbf7d0'
               }}>
                 <p style={{ fontSize: '14px', color: '#16a34a', margin: 0, textAlign: 'center' }}>
-                  🔒 Pagamento seguro via Stripe
+                   Pagamento seguro via Stripe
                 </p>
               </div>
 

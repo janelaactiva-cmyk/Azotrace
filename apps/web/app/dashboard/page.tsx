@@ -1,54 +1,56 @@
-import { connection } from 'next/server';
-import { createServerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
+import { unstable_noStore as noStore } from 'next/cache';
 import { DashboardContent } from './_components/dashboard-content';
 
-export default async function DashboardPage() {
-  await connection();
+// 🔥 Informa o Next.js para ignorar a validação estática de instant navigation nesta rota
+export const instant = false;
 
-  // 1. Obter as cookies de forma assíncrona
+export default async function DashboardPage() {
+  // Desativa a cache estática para garantir dados frescos a cada navegação / refresh
+  noStore();
+
   const cookieStore = await cookies();
 
-  // 2. Inicializar o cliente do Supabase com createServerClient
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {}
         },
       },
     }
   );
 
-  // 3. Obter o utilizador atual (Sessão)
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user;
-
-  // 4. Verificar se o Super Admin está a impersonar outro utilizador através das cookies
+  const { data: { user } } = await supabase.auth.getUser();
   const impersonatedUserId = cookieStore.get('impersonate_user_id')?.value;
+  const impersonatedEmail = cookieStore.get('impersonate_user_email')?.value;
   const isSuperAdmin = user?.email === 'admin@azotrace.com';
 
-  // Se for super admin e houver um ID guardado na cookie, usamos esse ID. Caso contrário, usamos o do próprio utilizador logado.
-  const targetUserId = (isSuperAdmin && impersonatedUserId) ? impersonatedUserId : user?.id;
+  const activeDisplayEmail = (isSuperAdmin && impersonatedEmail) ? impersonatedEmail : (user?.email || 'Convidado');
 
-  // 5. Buscar os negócios filtrando explicitamente pelo targetUserId correto
   let query = supabase.from('negocios').select('*');
 
-  if (targetUserId) {
-    query = query.eq('user_id', targetUserId);
+  if (isSuperAdmin && impersonatedUserId) {
+    query = query.eq('user_id', impersonatedUserId);
+  } else if (isSuperAdmin) {
+    // Admin puro vê tudo
+  } else if (user?.id) {
+    query = query.eq('user_id', user.id);
+  } else {
+    query = query.eq('user_id', '00000000-0000-0000-0000-000000000000');
   }
 
-  const { data: negocios, error } = await query;
-
-  if (error) {
-    console.error('Erro ao carregar dados do dashboard:', error);
-  }
-
-  // Obter o email ativo para exibir (se estiver a impersonar, mostra o email da conta selecionada)
-  const impersonatedEmail = cookieStore.get('impersonate_user_email')?.value;
-  const activeDisplayEmail = (isSuperAdmin && impersonatedEmail) ? impersonatedEmail : user?.email;
+  const { data: negocios } = await query;
 
   return <DashboardContent negocios={negocios || []} userEmail={activeDisplayEmail} />;
 }
