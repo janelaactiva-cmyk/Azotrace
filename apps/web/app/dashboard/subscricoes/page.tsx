@@ -19,6 +19,7 @@ export default async function SubscricoesPage() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">E-mail</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plano</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Início</th>
@@ -32,6 +33,9 @@ export default async function SubscricoesPage() {
               
               return (
                 <tr key={sub.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {sub.nome || 'N/D'}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sub.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sub.plan_name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

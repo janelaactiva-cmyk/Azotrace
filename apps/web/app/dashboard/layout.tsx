@@ -110,7 +110,7 @@ export default function DashboardLayout({
   const sidebarTextColor = isDark ? '#ffffff' : '#111827';
   const sidebarSubtext = isDark ? '#9ca3af' : '#6b7280';
   const sidebarActive = isDark ? '#374151' : '#e5e7eb';
-  const sidebarBorderColor = selectedBusinessType ? businessColor : (isDark ? '#374151' : '#e5e7eb');
+  const sidebarBorderColor = selectedBusinessType ? businessColor : (isDark ? '#4151' : '#e5e7eb');
   
   const buttonBg = isDark ? '#374151' : '#f3f4f6';
   const buttonHover = isDark ? '#4b5563' : '#e5e7eb';
@@ -195,7 +195,8 @@ export default function DashboardLayout({
 
         <nav style={{ marginBottom: '16px' }}>
           {navItems.map((item) => {
-            const isActive = pathname === item.path || pathname?.startsWith(item.path + '/');
+            // CORRIGIDO: Apenas fica ativo se a rota corresponder exatamente ao link
+            const isActive = pathname === item.path;
             
             if (item.label === '⚙️ Administração') {
               return (
@@ -293,7 +294,6 @@ export default function DashboardLayout({
                           key={index}
                           onClick={() => {
                             setSelectedUserEmail(userEmail);
-                            // GRAVAR NAS COOKIES PARA O SERVER COMPONENT LER
                             document.cookie = `impersonate_user_id=${dbUser.id}; path=/; max-age=86400`;
                             document.cookie = `impersonate_user_email=${encodeURIComponent(userEmail)}; path=/; max-age=86400`;
                             setProfileMenuOpen(false);
@@ -331,7 +331,6 @@ export default function DashboardLayout({
                 <button
                   onClick={() => {
                     setSelectedUserEmail(null);
-                    // LIMPAR AS COOKIES
                     document.cookie = 'impersonate_user_id=; path=/; max-age=0';
                     document.cookie = 'impersonate_user_email=; path=/; max-age=0';
                     setProfileMenuOpen(false);

@@ -100,6 +100,7 @@ export async function POST(request: Request) {
         .from('subscriptions')
         .insert({
           email: customerEmail,
+          nome: session.metadata?.nome || 'Cliente Azotrace',
           plan_name: planName,
           status: 'active',
           product_key: productKey,
