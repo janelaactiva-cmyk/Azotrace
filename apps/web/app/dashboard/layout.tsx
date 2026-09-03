@@ -25,6 +25,10 @@ export default function DashboardLayout({
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [appUsers, setAppUsers] = useState<any[]>([]);
   const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null);
+  
+  // 🔍 Estado para a barra de pesquisa
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isSuperAdmin = user?.email === 'admin@azotrace.com';
@@ -54,7 +58,8 @@ export default function DashboardLayout({
       } else if (data) {
         const formattedUsers = data.map(u => ({
           ...u,
-          email: u.email || u.mail || u.username || `Utilizador ${u.id?.slice(0, 6)}`
+          email: u.email || u.mail || u.username || `Utilizador ${u.id?.slice(0, 6)}`,
+          name: u.name || u.full_name || u.nome || ''
         }));
         setAppUsers(formattedUsers);
       }
@@ -67,6 +72,7 @@ export default function DashboardLayout({
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setProfileMenuOpen(false);
+        setSearchQuery('');
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -119,8 +125,15 @@ export default function DashboardLayout({
 
   const currentActiveEmail = selectedUserEmail;
   
-  // Filtramos para remover o próprio admin da lista de contas selecionáveis
-  const filteredAppUsers = appUsers.filter(dbUser => dbUser.email !== 'admin@azotrace.com');
+  // Só filtra e mostra utilizadores se houver texto escrito na pesquisa
+  const filteredAppUsers = searchQuery.trim() === '' ? [] : appUsers
+    .filter(dbUser => dbUser.email !== 'admin@azotrace.com')
+    .filter(dbUser => {
+      const query = searchQuery.toLowerCase();
+      const emailMatch = dbUser.email?.toLowerCase().includes(query);
+      const nameMatch = dbUser.name?.toLowerCase().includes(query);
+      return emailMatch || nameMatch;
+    });
 
   return (
     <div style={{
@@ -272,7 +285,6 @@ export default function DashboardLayout({
               boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
               overflow: 'hidden',
               zIndex: 9999,
-              maxHeight: '320px',
               display: 'flex',
               flexDirection: 'column'
             }}>
@@ -286,48 +298,80 @@ export default function DashboardLayout({
               </div>
 
               {isSuperAdmin && (
-                <div style={{ overflowY: 'auto', maxHeight: '160px' }}>
-                  {filteredAppUsers.length > 0 ? (
-                    filteredAppUsers.map((dbUser, index) => {
-                      const userEmail = dbUser.email || `ID: ${dbUser.id?.slice(0, 8)}`;
-                      const isSelected = selectedUserEmail === userEmail;
+                <>
+                  {/* Barra de Pesquisa */}
+                  <div style={{ padding: '8px 10px', borderBottom: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}` }}>
+                    <input 
+                      type="text"
+                      placeholder="🔍 Pesquisar nome ou email..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '6px 10px',
+                        fontSize: '12px',
+                        borderRadius: '6px',
+                        border: `1px solid ${isDark ? '#4b5563' : '#d1d5db'}`,
+                        background: isDark ? '#1f2937' : '#f9fafb',
+                        color: sidebarTextColor,
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
 
-                      return (
-                        <div 
-                          key={index}
-                          onClick={() => {
-                            setSelectedUserEmail(userEmail);
-                            document.cookie = `impersonate_user_id=${dbUser.id}; path=/; max-age=86400`;
-                            document.cookie = `impersonate_user_email=${encodeURIComponent(userEmail)}; path=/; max-age=86400`;
-                            setProfileMenuOpen(false);
-                            window.location.reload(); 
-                          }}
-                          style={{
-                            padding: '10px 14px',
-                            fontSize: '13px',
-                            borderBottom: `1px solid ${isDark ? '#4b5563' : '#f3f4f6'}`,
-                            cursor: 'pointer',
-                            color: isSelected ? '#2563eb' : sidebarTextColor,
-                            background: isSelected ? (isDark ? '#4b5563' : '#e5e7eb') : 'transparent',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            fontWeight: isSelected ? 'bold' : 'normal'
-                          }}
-                          onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = isDark ? '#4b5563' : '#f3f4f6'; }}
-                          onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
-                        >
-                          <span>👤</span>
-                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {userEmail}
-                          </span>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <p style={{ padding: '10px', fontSize: '12px', color: sidebarSubtext, textAlign: 'center', margin: 0 }}>Nenhum utilizador encontrado.</p>
+                  {/* Lista de Resultados (Aparece apenas quando se escreve algo) */}
+                  {searchQuery.trim() !== '' && (
+                    <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                      {filteredAppUsers.length > 0 ? (
+                        filteredAppUsers.map((dbUser, index) => {
+                          const userEmail = dbUser.email;
+                          const userName = dbUser.name;
+                          const isSelected = selectedUserEmail === userEmail;
+
+                          return (
+                            <div 
+                              key={index}
+                              onClick={() => {
+                                setSelectedUserEmail(userEmail);
+                                document.cookie = `impersonate_user_id=${dbUser.id}; path=/; max-age=86400`;
+                                document.cookie = `impersonate_user_email=${encodeURIComponent(userEmail)}; path=/; max-age=86400`;
+                                setProfileMenuOpen(false);
+                                setSearchQuery('');
+                                window.location.reload(); 
+                              }}
+                              style={{
+                                padding: '8px 14px',
+                                fontSize: '12px',
+                                borderBottom: `1px solid ${isDark ? '#4b5563' : '#f3f4f6'}`,
+                                cursor: 'pointer',
+                                color: isSelected ? '#2563eb' : sidebarTextColor,
+                                background: isSelected ? (isDark ? '#4b5563' : '#e5e7eb') : 'transparent',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '2px',
+                                fontWeight: isSelected ? 'bold' : 'normal'
+                              }}
+                              onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = isDark ? '#4b5563' : '#f3f4f6'; }}
+                              onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>👤</span>
+                                <span style={{ fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {userName ? userName : 'Utilizador sem nome'}
+                                </span>
+                              </div>
+                              <span style={{ fontSize: '11px', color: sidebarSubtext, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingLeft: '20px' }}>
+                                {userEmail}
+                              </span>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <p style={{ padding: '12px', fontSize: '12px', color: sidebarSubtext, textAlign: 'center', margin: 0 }}>Nenhum utilizador encontrado.</p>
+                      )}
+                    </div>
                   )}
-                </div>
+                </>
               )}
 
               {selectedUserEmail && isSuperAdmin && (
@@ -337,6 +381,7 @@ export default function DashboardLayout({
                     document.cookie = 'impersonate_user_id=; path=/; max-age=0';
                     document.cookie = 'impersonate_user_email=; path=/; max-age=0';
                     setProfileMenuOpen(false);
+                    setSearchQuery('');
                     window.location.reload();
                   }}
                   style={{
@@ -344,7 +389,7 @@ export default function DashboardLayout({
                     padding: '8px 14px',
                     background: 'transparent',
                     border: 'none',
-                    borderBottom: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
+                    borderTop: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
                     textAlign: 'center',
                     color: '#eab308',
                     cursor: 'pointer',
