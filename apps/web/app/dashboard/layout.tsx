@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { useTheme } from '~/lib/theme-context';
 import { useBusiness } from '~/lib/business-context';
 import { getBusinessIcon } from '~/lib/business-icons';
-import { useAuth } from '~/lib/auth-context';
 import MegaMenu from './components/MegaMenu';
 
 export default function DashboardLayout({
@@ -19,33 +18,40 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
   const { selectedBusinessType, selectedBusinessName } = useBusiness();
-  const { user, loading: authLoading } = useAuth();
-  const [loading, setLoading] = useState(true);
   
+  const [mounted, setMounted] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [appUsers, setAppUsers] = useState<any[]>([]);
+  
   const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null);
-  
-  // 🔍 Estado para a barra de pesquisa
+  const [selectedUserName, setSelectedUserName] = useState<string | null>(null);
+  const [directEmail, setDirectEmail] = useState<string>('admin@azotrace.com');
+
   const [searchQuery, setSearchQuery] = useState('');
-  
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const isSuperAdmin = user?.email === 'admin@azotrace.com';
-
+  // Carrega do localStorage apenas no cliente para evitar Hydration Mismatch
   useEffect(() => {
-    if (!authLoading && user) {
-      setLoading(false);
-      if (isSuperAdmin) {
-        loadAppUsers();
-        
-        const match = document.cookie.match(new RegExp('(^| )impersonate_user_email=([^;]+)'));
-        if (match) {
-          setSelectedUserEmail(decodeURIComponent(match[2]));
+    setMounted(true);
+    setSelectedUserEmail(localStorage.getItem('impersonate_user_email'));
+    setSelectedUserName(localStorage.getItem('impersonate_user_name'));
+    setDirectEmail(localStorage.getItem('user_email') || 'admin@azotrace.com');
+
+    loadAppUsers();
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user?.email) {
+        const email = data.session.user.email;
+        setDirectEmail(email);
+        localStorage.setItem('user_email', email);
+        if (email === 'admin@azotrace.com') {
+          localStorage.setItem('is_super_admin', 'true');
         }
       }
-    }
-  }, [user, authLoading, isSuperAdmin]);
+    });
+  }, []);
+
+  const isSuperAdmin = directEmail === 'admin@azotrace.com' || (typeof window !== 'undefined' && localStorage.getItem('is_super_admin') === 'true');
 
   const loadAppUsers = async () => {
     try {
@@ -53,9 +59,7 @@ export default function DashboardLayout({
         .from('profiles')
         .select('*');
 
-      if (error) {
-        console.error('Erro ao carregar perfis:', error.message);
-      } else if (data) {
+      if (!error && data) {
         const formattedUsers = data.map(u => ({
           ...u,
           email: u.email || u.mail || u.username || `Utilizador ${u.id?.slice(0, 6)}`,
@@ -80,6 +84,10 @@ export default function DashboardLayout({
   }, []);
 
   const handleLogout = useCallback(async () => {
+    localStorage.removeItem('is_super_admin');
+    localStorage.removeItem('user_email');
+    localStorage.removeItem('impersonate_user_email');
+    localStorage.removeItem('impersonate_user_name');
     document.cookie = 'impersonate_user_id=; path=/; max-age=0';
     document.cookie = 'impersonate_user_email=; path=/; max-age=0';
     await supabase.auth.signOut();
@@ -95,20 +103,6 @@ export default function DashboardLayout({
     { path: '/dashboard/subscricoes', label: '💳 Subscrições' },
   ];
 
-  if (authLoading || loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: theme === 'dark' ? '#111827' : '#f3f4f6'
-      }}>
-        <p style={{ color: theme === 'dark' ? '#9ca3af' : '#374151' }}>A carregar...</p>
-      </div>
-    );
-  }
-
   const isDark = theme === 'dark';
   const businessIcon = selectedBusinessType ? getBusinessIcon(selectedBusinessType) : null;
   const businessColor = businessIcon?.color || '#6B7280';
@@ -123,9 +117,6 @@ export default function DashboardLayout({
   const buttonHover = isDark ? '#4b5563' : '#e5e7eb';
   const buttonText = isDark ? '#ffffff' : '#111827';
 
-  const currentActiveEmail = selectedUserEmail;
-  
-  // Só filtra e mostra utilizadores se houver texto escrito na pesquisa
   const filteredAppUsers = searchQuery.trim() === '' ? [] : appUsers
     .filter(dbUser => dbUser.email !== 'admin@azotrace.com')
     .filter(dbUser => {
@@ -159,7 +150,6 @@ export default function DashboardLayout({
         transition: 'border-color 0.4s ease, background 0.3s ease, color 0.3s ease',
         borderRight: `4px solid ${sidebarBorderColor}`
       }}>
-        {/* TOPO: Logo e Menu */}
         <div style={{ marginBottom: '220px' }}>
           <div style={{ marginBottom: '16px' }}>
             <div style={{ 
@@ -184,43 +174,49 @@ export default function DashboardLayout({
               />
             </div>
            
-            {/* Bloco de Informação do Negócio / Conta Ativa */}
+            {/* Contentor com altura fixa estrita (115px) para bloquear qualquer alteração de layout */}
             <div style={{ 
               display: 'flex', 
               flexDirection: 'column', 
               gap: '6px', 
               marginTop: '16px', 
-              justifyContent: 'flex-start'
+              height: '115px',
+              justifyContent: 'flex-start',
+              overflow: 'hidden',
+              boxSizing: 'border-box'
             }}>
-              {selectedBusinessName && (
-                <div style={{ 
-                  fontSize: '15px', 
-                  fontWeight: '600',
-                  color: businessColor,
-                  padding: '4px 12px',
-                  background: isDark ? `${businessColor}22` : `${businessColor}11`,
-                  borderRadius: '12px',
-                  display: 'inline-block',
-                  width: 'fit-content'
-                }}>
-                  {selectedBusinessName}  
-                </div>
-              )}
+              <div style={{ height: '32px', display: 'flex', alignItems: 'center' }}>
+                {selectedBusinessName ? (
+                  <div style={{ 
+                    fontSize: '15px', 
+                    fontWeight: '600',
+                    color: businessColor,
+                    padding: '4px 12px',
+                    background: isDark ? `${businessColor}22` : `${businessColor}11`,
+                    borderRadius: '12px',
+                    display: 'inline-block',
+                    width: 'fit-content'
+                  }}>
+                    {selectedBusinessName}  
+                  </div>
+                ) : null}
+              </div>
 
-              {currentActiveEmail && (
-                <div style={{
-                  padding: '6px 10px',
-                  background: '#2563eb22',
-                  color: '#2563eb',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  textAlign: 'center',
-                  wordBreak: 'break-all'
-                }}>
-                  Conta Ativa: {currentActiveEmail}
-                </div>
-              )}
+              <div style={{
+                padding: '6px 10px',
+                background: mounted && selectedUserEmail ? '#2563eb22' : 'transparent',
+                color: '#2563eb',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                wordBreak: 'break-all',
+                height: '34px',
+                visibility: mounted && selectedUserEmail ? 'visible' : 'hidden',
+                boxSizing: 'border-box'
+              }}>
+                {mounted && selectedUserEmail ? `Conta Ativa: ${selectedUserEmail}` : ''}
+              </div>
             </div>
           </div>
 
@@ -259,7 +255,6 @@ export default function DashboardLayout({
           </nav>
         </div>
 
-        {/* FUNDO: Fixado de forma absoluta na base da barra lateral */}
         <div style={{ 
           position: 'absolute', 
           bottom: '0', 
@@ -272,7 +267,6 @@ export default function DashboardLayout({
           background: sidebarBg
         }}>
           
-          {/* Menu Flutuante do Perfil */}
           {profileMenuOpen && (
             <div style={{
               position: 'absolute',
@@ -293,13 +287,12 @@ export default function DashboardLayout({
                   {isSuperAdmin ? 'GERIR CONTAS (SUPABASE)' : 'SESSÃO'}
                 </p>
                 <p style={{ fontSize: '12px', color: sidebarTextColor, margin: '2px 0 0 0', wordBreak: 'break-all' }}>
-                  {user?.email}
+                  {selectedUserEmail ? selectedUserEmail : (directEmail || 'admin@azotrace.com')}
                 </p>
               </div>
 
               {isSuperAdmin && (
                 <>
-                  {/* Barra de Pesquisa */}
                   <div style={{ padding: '8px 10px', borderBottom: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}` }}>
                     <input 
                       type="text"
@@ -319,7 +312,6 @@ export default function DashboardLayout({
                     />
                   </div>
 
-                  {/* Lista de Resultados (Aparece apenas quando se escreve algo) */}
                   {searchQuery.trim() !== '' && (
                     <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
                       {filteredAppUsers.length > 0 ? (
@@ -332,9 +324,12 @@ export default function DashboardLayout({
                             <div 
                               key={index}
                               onClick={() => {
-                                setSelectedUserEmail(userEmail);
+                                localStorage.setItem('impersonate_user_email', userEmail);
+                                localStorage.setItem('impersonate_user_name', userName || '');
                                 document.cookie = `impersonate_user_id=${dbUser.id}; path=/; max-age=86400`;
                                 document.cookie = `impersonate_user_email=${encodeURIComponent(userEmail)}; path=/; max-age=86400`;
+                                setSelectedUserEmail(userEmail);
+                                setSelectedUserName(userName || null);
                                 setProfileMenuOpen(false);
                                 setSearchQuery('');
                                 window.location.reload(); 
@@ -374,12 +369,15 @@ export default function DashboardLayout({
                 </>
               )}
 
-              {selectedUserEmail && isSuperAdmin && (
+              {selectedUserEmail && (
                 <button
                   onClick={() => {
-                    setSelectedUserEmail(null);
+                    localStorage.removeItem('impersonate_user_email');
+                    localStorage.removeItem('impersonate_user_name');
                     document.cookie = 'impersonate_user_id=; path=/; max-age=0';
                     document.cookie = 'impersonate_user_email=; path=/; max-age=0';
+                    setSelectedUserEmail(null);
+                    setSelectedUserName(null);
                     setProfileMenuOpen(false);
                     setSearchQuery('');
                     window.location.reload();
@@ -404,7 +402,6 @@ export default function DashboardLayout({
             </div>
           )}
 
-          {/* 1. Botão de Perfil */}
           <div
             onClick={() => setProfileMenuOpen(!profileMenuOpen)}
             style={{
@@ -446,7 +443,7 @@ export default function DashboardLayout({
                 textOverflow: 'ellipsis', 
                 margin: 0 
               }}>
-                {selectedUserEmail ? `${selectedUserEmail}` : user?.email}
+                {mounted ? (selectedUserName ? selectedUserName : (selectedUserEmail ? selectedUserEmail : directEmail)) : 'A carregar...'}
               </p>
             </div>
 
@@ -455,7 +452,6 @@ export default function DashboardLayout({
             </span>
           </div>
 
-          {/* 2. Botão de Modo Escuro/Claro */}
           <button
             onClick={toggleTheme}
             style={{
@@ -480,7 +476,6 @@ export default function DashboardLayout({
             {isDark ? '☀️ Modo Claro' : '🌙 Modo Escuro'}
           </button>
 
-          {/* 3. Botão de Terminar Sessão */}
           <button
             onClick={handleLogout}
             style={{

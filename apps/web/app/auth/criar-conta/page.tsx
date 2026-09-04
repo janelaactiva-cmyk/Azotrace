@@ -1,15 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '~/lib/supabase';
 import Link from 'next/link';
 import Logo from '~/components/Logo';
 
-export default function SuccessPage() {
+export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
     email: '',
@@ -17,63 +16,6 @@ export default function SuccessPage() {
     confirmPassword: '',
   });
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
-
-  // Função auxiliar para associar o checkout ao utilizador
-  const associateCheckout = async (userId: string, sessionId: string) => {
-    if (!sessionId) return;
-    try {
-      const response = await fetch('/api/associate-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: sessionId,
-          userId: userId,
-        }),
-      });
-
-      if (response.ok) {
-        localStorage.removeItem('pending_checkout_session_id');
-      } else {
-        console.error('Erro ao associar checkout');
-      }
-    } catch (error) {
-      console.error('Erro:', error);
-    }
-  };
-
-  useEffect(() => {
-    // 1. Obter e guardar o session_id do URL imediatamente no localStorage
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('session_id') || localStorage.getItem('pending_checkout_session_id');
-
-    if (sessionId) {
-      localStorage.setItem('pending_checkout_session_id', sessionId);
-      console.log('✅ Pagamento confirmado e guardado:', sessionId);
-
-      // 🔍 Buscar o email associado à sessão do Stripe automaticamente
-      fetch(`/api/get-session-email?session_id=${sessionId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.email) {
-            setForm((prev) => ({ ...prev, email: data.email }));
-          }
-        })
-        .catch((err) => console.error('Erro ao obter email da sessão:', err));
-    }
-
-    // 2. Verificar se já está logado
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUser(user);
-        const storedSessionId = localStorage.getItem('pending_checkout_session_id');
-        if (storedSessionId) {
-          await associateCheckout(user.id, storedSessionId);
-        }
-      }
-    };
-    checkUser();
-  }, []);
 
   const validatePassword = (password: string) => {
     const errors: string[] = [];
@@ -106,7 +48,7 @@ export default function SuccessPage() {
     setLoading(true);
 
     try {
-      // Criar conta
+      // Criar conta no Supabase
       const { data, error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
@@ -118,15 +60,7 @@ export default function SuccessPage() {
       if (error) throw error;
 
       if (data?.user) {
-        const storedSessionId = localStorage.getItem('pending_checkout_session_id');
-        if (storedSessionId) {
-          await associateCheckout(data.user.id, storedSessionId);
-        }
-        
-        setUser(data.user);
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 2000);
+        router.push('/dashboard');
       }
     } catch (err: any) {
       setError('❌ ' + (err.message || 'Erro ao criar conta'));
@@ -135,51 +69,6 @@ export default function SuccessPage() {
     }
   };
 
-  // Se já estiver logado
-  if (user) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#f3f4f6',
-        padding: '20px'
-      }}>
-        <div style={{
-          background: 'white',
-          padding: '48px',
-          borderRadius: '12px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-          textAlign: 'center',
-          maxWidth: '500px'
-        }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '8px' }}>
-            Bem-vindo de volta!
-          </h1>
-          <p style={{ color: '#6b7280', marginBottom: '24px' }}>
-            {user && `A conta ${user.email} foi associada com sucesso.`}
-          </p>
-          <Link
-            href="/dashboard"
-            style={{
-              display: 'inline-block',
-              padding: '12px 32px',
-              background: '#2563eb',
-              color: 'white',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              fontWeight: '500'
-            }}
-          >
-            Ir para o Dashboard
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // Formulário de criação de conta
   return (
     <div style={{
       minHeight: '100vh',
@@ -206,9 +95,7 @@ export default function SuccessPage() {
           <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
             Criar Conta
           </h1>
-          <p style={{ color: '#6b7280', fontSize: '14px' }}>
-            O teu email já foi carregado. Só precisas de definir a password.
-          </p>
+         
         </div>
 
         {error && (
@@ -250,17 +137,17 @@ export default function SuccessPage() {
             <input
               type="email"
               value={form.email}
-              disabled // 👈 Bloqueado para garantir que usa exatamente o email do pagamento
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
               style={{
                 width: '100%',
                 padding: '12px',
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
                 fontSize: '16px',
-                background: '#f3f4f6',
-                color: '#4b5563',
-                cursor: 'not-allowed'
+                background: '#ffffff',
+                color: '#111827'
               }}
+              placeholder=""
               required
             />
           </div>
@@ -328,20 +215,17 @@ export default function SuccessPage() {
         <div style={{ marginTop: '16px', textAlign: 'center' }}>
           <p style={{ fontSize: '14px', color: '#6b7280' }}>
             Já tens conta?
-            <button
-              onClick={() => router.push('/login?from=checkout')}
+            <Link
+              href="/login"
               style={{
-                background: 'none',
-                border: 'none',
                 color: '#2563eb',
-                cursor: 'pointer',
-                fontSize: '14px',
+                textDecoration: 'none',
                 fontWeight: '500',
                 marginLeft: '4px'
               }}
             >
               Fazer login
-            </button>
+            </Link>
           </p>
         </div>
       </div>
