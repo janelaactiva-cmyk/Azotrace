@@ -30,7 +30,6 @@ export default function DashboardLayout({
   const [searchQuery, setSearchQuery] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Carrega do localStorage apenas no cliente para evitar Hydration Mismatch
   useEffect(() => {
     setMounted(true);
     setSelectedUserEmail(localStorage.getItem('impersonate_user_email'));
@@ -111,7 +110,7 @@ export default function DashboardLayout({
   const sidebarTextColor = isDark ? '#ffffff' : '#111827';
   const sidebarSubtext = isDark ? '#9ca3af' : '#6b7280';
   const sidebarActive = isDark ? '#374151' : '#e5e7eb';
-  const sidebarBorderColor = selectedBusinessType ? businessColor : (isDark ? '#4151' : '#e5e7eb');
+  const sidebarBorderColor = selectedBusinessType ? businessColor : (isDark ? '#374151' : '#e5e7eb');
   
   const buttonBg = isDark ? '#374151' : '#f3f4f6';
   const buttonHover = isDark ? '#4b5563' : '#e5e7eb';
@@ -138,9 +137,10 @@ export default function DashboardLayout({
         width: '250px',
         background: sidebarBg,
         color: sidebarTextColor,
-        padding: '24px 16px 16px 16px',
+        padding: '16px 12px',
         display: 'flex',
         flexDirection: 'column',
+        justifyContent: 'space-between',
         position: 'fixed',
         height: '100vh',
         overflowY: 'auto',
@@ -150,83 +150,73 @@ export default function DashboardLayout({
         transition: 'border-color 0.4s ease, background 0.3s ease, color 0.3s ease',
         borderRight: `4px solid ${sidebarBorderColor}`
       }}>
-        <div style={{ marginBottom: '220px' }}>
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ 
-              width: '218px', 
-              height: '80px',  
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              margin: '0 auto', 
-              flexShrink: 0
-            }}>
-              <img 
-                src="/assets/images/logo.png" 
-                alt="Azotrace-logo" 
-                style={{
-                  width: '120px',  
-                  height: '120px',  
-                  objectFit: 'contain',
-                  display: 'block',
-                  flexShrink: 0
-                }}
-              />
-            </div>
-           
-            {/* Contentor com altura fixa estrita (115px) para bloquear qualquer alteração de layout */}
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '6px', 
-              marginTop: '16px', 
-              height: '115px',
-              justifyContent: 'flex-start',
-              overflow: 'hidden',
-              boxSizing: 'border-box'
-            }}>
-              <div style={{ height: '32px', display: 'flex', alignItems: 'center' }}>
-                {selectedBusinessName ? (
-                  <div style={{ 
-                    fontSize: '15px', 
-                    fontWeight: '600',
-                    color: businessColor,
-                    padding: '4px 12px',
-                    background: isDark ? `${businessColor}22` : `${businessColor}11`,
-                    borderRadius: '12px',
-                    display: 'inline-block',
-                    width: 'fit-content'
-                  }}>
-                    {selectedBusinessName}  
-                  </div>
-                ) : null}
-              </div>
-
-              <div style={{
-                padding: '6px 10px',
-                background: mounted && selectedUserEmail ? '#2563eb22' : 'transparent',
-                color: '#2563eb',
-                borderRadius: '6px',
-                fontSize: '11px',
-                fontWeight: 'bold',
-                textAlign: 'center',
-                wordBreak: 'break-all',
-                height: '34px',
-                visibility: mounted && selectedUserEmail ? 'visible' : 'hidden',
-                boxSizing: 'border-box'
+        {/* PARTE SUPERIOR (Logo maior, Info do Negócio + Links) */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ 
+            width: '100%', 
+            height: '100px',  
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            marginBottom: '8px' 
+          }}>
+            <img 
+              src="/assets/images/logo.png" 
+              alt="Azotrace-logo" 
+              style={{
+                width: '135px',  
+                height: '135px',  
+                objectFit: 'contain',
+                display: 'block'
+              }}
+            />
+          </div>
+         
+          {/* Informações dinâmicas compactas */}
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '4px', 
+            marginBottom: '12px',
+            marginTop: '4px',
+            minHeight: '40px'
+          }}>
+            {selectedBusinessName && (
+              <div style={{ 
+                fontSize: '13px', 
+                fontWeight: '600',
+                color: businessColor,
+                padding: '3px 8px',
+                background: isDark ? `${businessColor}22` : `${businessColor}11`,
+                borderRadius: '8px',
+                width: 'fit-content'
               }}>
-                {mounted && selectedUserEmail ? `Conta Ativa: ${selectedUserEmail}` : ''}
+                {selectedBusinessName}  
               </div>
-            </div>
+            )}
+
+            {mounted && selectedUserEmail && (
+              <div style={{
+                padding: '3px 6px',
+                background: '#2563eb22',
+                color: '#2563eb',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                wordBreak: 'break-all'
+              }}>
+                Conta: {selectedUserEmail}
+              </div>
+            )}
           </div>
 
-          <nav style={{ marginBottom: '16px' }}>
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             {navItems.map((item) => {
               const isActive = pathname === item.path;
               
               if (item.label === '⚙️ Administração') {
                 return (
-                  <div key={item.path} style={{ marginBottom: '4px' }}>
+                  <div key={item.path} style={{ marginBottom: '2px' }}>
                     <MegaMenu />
                   </div>
                 );
@@ -238,14 +228,13 @@ export default function DashboardLayout({
                   href={item.path}
                   style={{
                     display: 'block',
-                    padding: '10px 16px',
-                    marginBottom: '4px',
-                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
                     background: isActive ? sidebarActive : 'transparent',
                     color: isActive ? sidebarTextColor : sidebarSubtext,
                     textDecoration: 'none',
                     transition: 'background 0.15s ease, color 0.15s ease',
-                    fontSize: '15px'
+                    fontSize: '14px'
                   }}
                 >
                   {item.label}
@@ -255,55 +244,53 @@ export default function DashboardLayout({
           </nav>
         </div>
 
+        {/* PARTE INFERIOR (Perfil, Tema, Terminar Sessão) */}
         <div style={{ 
-          position: 'absolute', 
-          bottom: '0', 
-          left: '16px', 
-          right: '16px', 
           display: 'flex', 
           flexDirection: 'column', 
-          gap: '8px', 
-          paddingBottom: '16px', 
-          background: sidebarBg
+          gap: '6px', 
+          paddingTop: '10px',
+          borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+          position: 'relative'
         }}>
           
           {profileMenuOpen && (
             <div style={{
               position: 'absolute',
-              bottom: 'calc(100% + 8px)',
+              bottom: 'calc(100% + 6px)',
               left: '0',
               right: '0',
               background: isDark ? '#374151' : '#ffffff',
               border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
-              borderRadius: '10px',
+              borderRadius: '8px',
               boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
               overflow: 'hidden',
               zIndex: 9999,
               display: 'flex',
               flexDirection: 'column'
             }}>
-              <div style={{ padding: '10px 14px', borderBottom: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}` }}>
-                <p style={{ fontSize: '11px', color: sidebarSubtext, margin: 0, fontWeight: 'bold' }}>
+              <div style={{ padding: '8px 12px', borderBottom: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}` }}>
+                <p style={{ fontSize: '10px', color: sidebarSubtext, margin: 0, fontWeight: 'bold' }}>
                   {isSuperAdmin ? 'GERIR CONTAS (SUPABASE)' : 'SESSÃO'}
                 </p>
-                <p style={{ fontSize: '12px', color: sidebarTextColor, margin: '2px 0 0 0', wordBreak: 'break-all' }}>
+                <p style={{ fontSize: '11px', color: sidebarTextColor, margin: '2px 0 0 0', wordBreak: 'break-all' }}>
                   {selectedUserEmail ? selectedUserEmail : (directEmail || 'admin@azotrace.com')}
                 </p>
               </div>
 
               {isSuperAdmin && (
                 <>
-                  <div style={{ padding: '8px 10px', borderBottom: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}` }}>
+                  <div style={{ padding: '6px 8px', borderBottom: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}` }}>
                     <input 
                       type="text"
-                      placeholder="🔍 Pesquisar nome ou email..."
+                      placeholder="🔍 Pesquisar..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '6px 10px',
-                        fontSize: '12px',
-                        borderRadius: '6px',
+                        padding: '5px 8px',
+                        fontSize: '11px',
+                        borderRadius: '4px',
                         border: `1px solid ${isDark ? '#4b5563' : '#d1d5db'}`,
                         background: isDark ? '#1f2937' : '#f9fafb',
                         color: sidebarTextColor,
@@ -313,7 +300,7 @@ export default function DashboardLayout({
                   </div>
 
                   {searchQuery.trim() !== '' && (
-                    <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                    <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
                       {filteredAppUsers.length > 0 ? (
                         filteredAppUsers.map((dbUser, index) => {
                           const userEmail = dbUser.email;
@@ -335,34 +322,24 @@ export default function DashboardLayout({
                                 window.location.reload(); 
                               }}
                               style={{
-                                padding: '8px 14px',
-                                fontSize: '12px',
+                                padding: '6px 10px',
+                                fontSize: '11px',
                                 borderBottom: `1px solid ${isDark ? '#4b5563' : '#f3f4f6'}`,
                                 cursor: 'pointer',
                                 color: isSelected ? '#2563eb' : sidebarTextColor,
                                 background: isSelected ? (isDark ? '#4b5563' : '#e5e7eb') : 'transparent',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                gap: '2px',
                                 fontWeight: isSelected ? 'bold' : 'normal'
                               }}
-                              onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = isDark ? '#4b5563' : '#f3f4f6'; }}
-                              onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>👤</span>
-                                <span style={{ fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {userName ? userName : 'Utilizador sem nome'}
-                                </span>
-                              </div>
-                              <span style={{ fontSize: '11px', color: sidebarSubtext, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingLeft: '20px' }}>
-                                {userEmail}
-                              </span>
+                              <span style={{ fontWeight: '600' }}>{userName || 'Utilizador sem nome'}</span>
+                              <span style={{ fontSize: '10px', color: sidebarSubtext }}>{userEmail}</span>
                             </div>
                           );
                         })
                       ) : (
-                        <p style={{ padding: '12px', fontSize: '12px', color: sidebarSubtext, textAlign: 'center', margin: 0 }}>Nenhum utilizador encontrado.</p>
+                        <p style={{ padding: '8px', fontSize: '11px', color: sidebarSubtext, textAlign: 'center', margin: 0 }}>Nenhum encontrado.</p>
                       )}
                     </div>
                   )}
@@ -384,41 +361,40 @@ export default function DashboardLayout({
                   }}
                   style={{
                     width: '100%',
-                    padding: '8px 14px',
+                    padding: '6px 10px',
                     background: 'transparent',
                     border: 'none',
                     borderTop: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
                     textAlign: 'center',
                     color: '#eab308',
                     cursor: 'pointer',
-                    fontSize: '12px',
+                    fontSize: '11px',
                     fontWeight: 'bold'
                   }}
                 >
                   Voltar à Minha Conta (Admin)
                 </button>
               )}
-
             </div>
           )}
 
+          {/* Botão de Perfil */}
           <div
             onClick={() => setProfileMenuOpen(!profileMenuOpen)}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              padding: '12px',
-              borderRadius: '8px',
+              gap: '8px',
+              padding: '8px 10px',
+              borderRadius: '6px',
               cursor: 'pointer',
               background: profileMenuOpen ? sidebarActive : 'transparent',
-              transition: 'background 0.2s ease',
               border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
             }}
           >
             <div style={{
-              width: '32px',
-              height: '32px',
+              width: '26px',
+              height: '26px',
               borderRadius: '50%',
               background: selectedUserEmail ? '#eab308' : '#2563eb',
               color: 'white',
@@ -427,7 +403,7 @@ export default function DashboardLayout({
               justifyContent: 'center',
               flexShrink: 0
             }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
@@ -435,7 +411,7 @@ export default function DashboardLayout({
             
             <div style={{ overflow: 'hidden', flex: 1 }}>
               <p style={{ 
-                fontSize: '13px', 
+                fontSize: '12px', 
                 color: sidebarTextColor, 
                 fontWeight: '600', 
                 whiteSpace: 'nowrap', 
@@ -447,56 +423,52 @@ export default function DashboardLayout({
               </p>
             </div>
 
-            <span style={{ fontSize: '10px', color: sidebarSubtext, flexShrink: 0 }}>
+            <span style={{ fontSize: '9px', color: sidebarSubtext, flexShrink: 0 }}>
               {profileMenuOpen ? '▼' : '▲'}
             </span>
           </div>
 
+          {/* Botão Tema */}
           <button
             onClick={toggleTheme}
             style={{
               width: '100%',
-              padding: '12px 16px',
+              padding: '8px 10px',
               background: buttonBg,
               color: buttonText,
               border: `1px solid ${sidebarBorderColor}`,
-              borderRadius: '8px',
+              borderRadius: '6px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'background 0.15s ease'
+              gap: '6px',
+              fontSize: '12px',
+              fontWeight: '500'
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = buttonHover; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = buttonBg; }}
           >
             {isDark ? '☀️ Modo Claro' : '🌙 Modo Escuro'}
           </button>
 
+          {/* Botão Sair */}
           <button
             onClick={handleLogout}
             style={{
               width: '100%',
-              padding: '12px 16px',
+              padding: '8px 10px',
               background: buttonBg,
               border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-              borderRadius: '8px',
+              borderRadius: '6px',
               textAlign: 'center',
               color: '#ef4444',
               cursor: 'pointer',
-              fontSize: '14px',
+              fontSize: '12px',
               fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
-              transition: 'background 0.15s ease'
+              gap: '6px'
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? '#4b5563' : '#f3f4f6'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = buttonBg; }}
           >
             Terminar Sessão
           </button>
@@ -510,13 +482,9 @@ export default function DashboardLayout({
         padding: '32px 40px',
         background: isDark ? '#111827' : '#f3f4f6',
         minHeight: '100vh',
-        color: isDark ? '#e5e7eb' : '#111827',
-        transition: 'background 0.3s ease, color 0.3s ease'
+        color: isDark ? '#e5e7eb' : '#111827'
       }}>
-        <div style={{
-          maxWidth: '1400px',
-          margin: '0 auto'
-        }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           {children}
         </div>
       </main>

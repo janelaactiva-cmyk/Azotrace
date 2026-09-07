@@ -62,6 +62,8 @@ export default function Footer() {
           <Link href="/terms">Termos e Condições</Link>
           <span className="mx-2">|</span>
           <Link href="/cookies">Política de Cookies</Link>
+          <span className="mx-2">|</span>
+           <Link href="https://www.livroreclamacoes.pt/Inicio/" target='blank'>Livro de reclamações</Link>
         </div>
 
         <hr className="my-4 text-white-50" />

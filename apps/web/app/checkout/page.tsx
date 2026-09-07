@@ -165,6 +165,7 @@ export default function CheckoutPage() {
 
       if (!response.ok) {
         const error = await response.json();
+        console.error("🔍 ERRO DETALHADO DA API:", error); // 👈 Adiciona este console.error
         throw new Error(error.message || 'Erro ao criar checkout');
       }
 
