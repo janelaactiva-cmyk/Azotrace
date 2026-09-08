@@ -45,10 +45,10 @@ export default function CheckoutPage() {
     confirmEmail: '',
     telefone: '',
     nif: '',
-    morada: '', // 👈 Campo de morada adicionado
+    morada: '', 
     nomeEmpresa: '',
     nifEmpresa: '',
-    moradaEmpresa: '', // 👈 Morada específica da empresa (caso seja comercial)
+    moradaEmpresa: '', 
   });
 
   useEffect(() => {
@@ -146,7 +146,7 @@ export default function CheckoutPage() {
         email: form.email,
         telefone: form.telefone,
         nif: form.nif || '',
-        morada: isCommercial ? form.moradaEmpresa : form.morada, // 👈 Envia a morada correta para o backend/Supabase
+        morada: isCommercial ? form.moradaEmpresa : form.morada, 
         is_commercial: isCommercial,
         nome_empresa: isCommercial ? form.nomeEmpresa : '',
         nif_empresa: isCommercial ? form.nifEmpresa : '',
@@ -164,13 +164,20 @@ export default function CheckoutPage() {
         body: JSON.stringify(dadosCheckout),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        console.error("🔍 ERRO DETALHADO DA API:", error);
-        throw new Error(error.message || 'Erro ao criar checkout');
+      const responseText = await response.text();
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error("🔍 A resposta da API não é um JSON válido:", responseText);
+        throw new Error(`Erro do Servidor (${response.status}): ${responseText.slice(0, 100) || 'Resposta vazia'}`);
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        console.error("🔍 ERRO DETALHADO DA API:", data);
+        throw new Error(data.message || data.error || 'Erro ao criar checkout');
+      }
 
       if (data.url) {
         window.location.href = data.url;
@@ -384,7 +391,6 @@ export default function CheckoutPage() {
                 />
               </div>
 
-              {/* 🏠 Campo de Morada Pessoal (Aparece se não for comercial) */}
               {!isCommercial && (
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Morada *</label>
