@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '~/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 import Logo from '~/components/Logo';
 
@@ -105,27 +106,33 @@ export default function SuccessPage() {
     setLoading(true);
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      // 1. Criar a conta
+      const { error: signUpError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-        },
       });
 
       if (signUpError) throw signUpError;
 
-      if (data?.user) {
+      // 2. Fazer login imediato para obter os dados frescos da sessão
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
+      });
+
+      if (signInError) throw signInError;
+
+      if (signInData?.session) {
         const urlParams = new URLSearchParams(window.location.search);
         const sessionId = urlParams.get('session_id');
-        if (sessionId) {
-          await associateCheckout(sessionId, data.user.id);
+        if (sessionId && signInData.user) {
+          await associateCheckout(sessionId, signInData.user.id);
         }
 
-        setUser(data.user);
+        setUser(signInData.user);
 
-        // 🚀 Assim que a conta é criada, iniciamos o registo do MFA (TOTP)
-        await handleEnrollMFA();
+        // 🚀 Chamar o MFA passando o token explicitamente para evitar falhas de contexto do cliente
+        await handleEnrollMFA(signInData.session.access_token);
       }
     } catch (err: any) {
       setError(err.message || 'Erro ao criar conta');
@@ -133,10 +140,24 @@ export default function SuccessPage() {
     }
   };
 
-  // 📲 Passo 1: Registar o fator MFA (Gera o QR Code)
-  const handleEnrollMFA = async () => {
+  // 📲 Passo 1: Registar o fator MFA utilizando um cliente autenticado diretamente com o token
+  const handleEnrollMFA = async (accessToken: string) => {
     try {
-      const { data, error } = await supabase.auth.mfa.enroll({
+      // Criamos um cliente scoped temporário que carrega o token exato no header Authorization
+      const authenticatedSupabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          auth: { persistSession: false },
+          global: {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        }
+      );
+
+      const { data, error } = await authenticatedSupabase.auth.mfa.enroll({
         factorType: 'totp',
       });
 
@@ -147,7 +168,7 @@ export default function SuccessPage() {
       setStep('setup_mfa');
     } catch (err: any) {
       console.error('Erro ao configurar MFA:', err);
-      // Se falhar o MFA, não bloqueia a entrada, manda para o dashboard
+      setError(err.message || 'Erro ao configurar MFA');
       router.push('/dashboard');
     } finally {
       setLoading(false);

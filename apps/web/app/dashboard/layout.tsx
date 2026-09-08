@@ -113,7 +113,6 @@ export default function DashboardLayout({
   const sidebarBorderColor = selectedBusinessType ? businessColor : (isDark ? '#374151' : '#e5e7eb');
   
   const buttonBg = isDark ? '#374151' : '#f3f4f6';
-  const buttonHover = isDark ? '#4b5563' : '#e5e7eb';
   const buttonText = isDark ? '#ffffff' : '#111827';
 
   const filteredAppUsers = searchQuery.trim() === '' ? [] : appUsers
@@ -140,7 +139,6 @@ export default function DashboardLayout({
         padding: '16px 12px',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
         position: 'fixed',
         height: '100vh',
         overflowY: 'auto',
@@ -150,7 +148,7 @@ export default function DashboardLayout({
         transition: 'border-color 0.4s ease, background 0.3s ease, color 0.3s ease',
         borderRight: `4px solid ${sidebarBorderColor}`
       }}>
-        {/* PARTE SUPERIOR (Logo maior, Info do Negócio + Links) */}
+        {/* PARTE SUPERIOR (Logo, Negócio + Links) */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ 
             width: '100%', 
@@ -172,14 +170,13 @@ export default function DashboardLayout({
             />
           </div>
          
-          {/* Informações dinâmicas compactas */}
           <div style={{ 
             display: 'flex', 
             flexDirection: 'column', 
             gap: '4px', 
             marginBottom: '12px',
             marginTop: '4px',
-            minHeight: '40px'
+            minHeight: '75px' // Mantém o espaço reservado para evitar saltos visuais
           }}>
             {selectedBusinessName && (
               <div style={{ 
@@ -249,7 +246,9 @@ export default function DashboardLayout({
           display: 'flex', 
           flexDirection: 'column', 
           gap: '6px', 
-          paddingTop: '10px',
+          paddingTop: '12px',
+          paddingBottom: '24px',
+          marginTop: 'auto',
           borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
           position: 'relative'
         }}>
@@ -257,7 +256,7 @@ export default function DashboardLayout({
           {profileMenuOpen && (
             <div style={{
               position: 'absolute',
-              bottom: 'calc(100% + 6px)',
+              bottom: 'calc(100% + 8px)',
               left: '0',
               right: '0',
               background: isDark ? '#374151' : '#ffffff',
@@ -300,7 +299,7 @@ export default function DashboardLayout({
                   </div>
 
                   {searchQuery.trim() !== '' && (
-                    <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                    <div style={{ maxHeight: '140px', overflowY: 'auto' }}>
                       {filteredAppUsers.length > 0 ? (
                         filteredAppUsers.map((dbUser, index) => {
                           const userEmail = dbUser.email;

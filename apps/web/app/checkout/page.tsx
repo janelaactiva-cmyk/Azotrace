@@ -45,9 +45,10 @@ export default function CheckoutPage() {
     confirmEmail: '',
     telefone: '',
     nif: '',
+    morada: '', // 👈 Campo de morada adicionado
     nomeEmpresa: '',
     nifEmpresa: '',
-    morada: '',
+    moradaEmpresa: '', // 👈 Morada específica da empresa (caso seja comercial)
   });
 
   useEffect(() => {
@@ -94,8 +95,8 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
-      if (!form.nome || !form.email || !form.telefone) {
-        alert('❌ Preencha todos os campos obrigatórios');
+      if (!form.nome || !form.email || !form.telefone || (!isCommercial && !form.morada)) {
+        alert('❌ Preencha todos os campos obrigatórios (incluindo a morada)');
         setLoading(false);
         return;
       }
@@ -120,8 +121,8 @@ export default function CheckoutPage() {
         return;
       }
 
-      if (isCommercial && (!form.nomeEmpresa || !form.nifEmpresa || !form.morada)) {
-        alert('❌ Preencha o Nome da Empresa, NIF e Morada');
+      if (isCommercial && (!form.nomeEmpresa || !form.nifEmpresa || !form.moradaEmpresa)) {
+        alert('❌ Preencha o Nome da Empresa, NIF e Morada da empresa');
         setLoading(false);
         return;
       }
@@ -145,10 +146,10 @@ export default function CheckoutPage() {
         email: form.email,
         telefone: form.telefone,
         nif: form.nif || '',
+        morada: isCommercial ? form.moradaEmpresa : form.morada, // 👈 Envia a morada correta para o backend/Supabase
         is_commercial: isCommercial,
         nome_empresa: isCommercial ? form.nomeEmpresa : '',
         nif_empresa: isCommercial ? form.nifEmpresa : '',
-        morada: isCommercial ? form.morada : '',
         include_setup: includeSetup,
         config_price: CONFIG_PRICE,
         config_iva: setupIva,
@@ -165,7 +166,7 @@ export default function CheckoutPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        console.error("🔍 ERRO DETALHADO DA API:", error); // 👈 Adiciona este console.error
+        console.error("🔍 ERRO DETALHADO DA API:", error);
         throw new Error(error.message || 'Erro ao criar checkout');
       }
 
@@ -188,7 +189,6 @@ export default function CheckoutPage() {
     
     let newValue = value;
     if (name === 'telefone' || name === 'nif' || name === 'nifEmpresa') {
-      // Remove carateres não numéricos e limita estritamente a 9 dígitos
       newValue = value.replace(/\D/g, '').slice(0, 9);
     }
 
@@ -325,7 +325,6 @@ export default function CheckoutPage() {
                   value={form.nome}
                   onChange={handleChange}
                   style={styles.input}
-                  placeholder=""
                   required
                 />
               </div>
@@ -338,7 +337,6 @@ export default function CheckoutPage() {
                   value={form.email}
                   onChange={handleChange}
                   style={emailError ? styles.inputError : styles.input}
-                  placeholder=""
                   required
                 />
               </div>
@@ -351,7 +349,6 @@ export default function CheckoutPage() {
                   value={form.confirmEmail}
                   onChange={handleChange}
                   style={emailError ? styles.inputError : styles.input}
-                  placeholder=""
                   required
                   disabled={!form.email}
                 />
@@ -361,7 +358,7 @@ export default function CheckoutPage() {
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label}>Telefone/Telemóvel*</label>
+                <label style={styles.label}>Telefone/Telemóvel *</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -370,7 +367,6 @@ export default function CheckoutPage() {
                   value={form.telefone}
                   onChange={handleChange}
                   style={styles.input}
-                  placeholder=""
                   required
                 />
               </div>
@@ -385,9 +381,23 @@ export default function CheckoutPage() {
                   value={form.nif}
                   onChange={handleChange}
                   style={styles.input}
-                  placeholder=""
                 />
               </div>
+
+              {/* 🏠 Campo de Morada Pessoal (Aparece se não for comercial) */}
+              {!isCommercial && (
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Morada *</label>
+                  <input
+                    type="text"
+                    name="morada"
+                    value={form.morada}
+                    onChange={handleChange}
+                    style={styles.input}
+                    required={!isCommercial}
+                  />
+                </div>
+              )}
 
               <div style={{ ...styles.formGroup, marginTop: '8px' }}>
                 <label style={styles.checkbox}>
@@ -414,12 +424,11 @@ export default function CheckoutPage() {
                       value={form.nomeEmpresa}
                       onChange={handleChange}
                       style={styles.input}
-                      placeholder=""
                       required={isCommercial}
                     />
                   </div>
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>NIF da Empresa*</label>
+                    <label style={styles.label}>NIF da Empresa *</label>
                     <input
                       type="text"
                       inputMode="numeric"
@@ -428,19 +437,17 @@ export default function CheckoutPage() {
                       value={form.nifEmpresa}
                       onChange={handleChange}
                       style={styles.input}
-                      placeholder=""
                       required={isCommercial}
                     />
                   </div>
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>Morada *</label>
+                    <label style={styles.label}>Morada da Empresa *</label>
                     <input
                       type="text"
-                      name="morada"
-                      value={form.morada}
+                      name="moradaEmpresa"
+                      value={form.moradaEmpresa}
                       onChange={handleChange}
                       style={styles.input}
-                      placeholder=""
                       required={isCommercial}
                     />
                   </div>
@@ -457,10 +464,10 @@ export default function CheckoutPage() {
                   />
                   <div>
                     <span style={styles.checkboxLabel}>
-                      Formação e apoio na configuração
+                      Extras: Formação e apoio na configuração
                     </span>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
-                      +€{(CONFIG_PRICE * 1.16).toFixed(2) } (Valor com IVA incluído)
+                      +€{(CONFIG_PRICE * 1.16).toFixed(2)} (Valor com IVA incluído)
                     </p>
                   </div>
                 </label>
@@ -562,24 +569,9 @@ export default function CheckoutPage() {
                 border: '1px solid #bbf7d0'
               }}>
                 <p style={{ fontSize: '14px', color: '#16a34a', margin: 0, textAlign: 'center' }}>
-                   Pagamento seguro via Stripe
+                  🔒 Pagamento seguro via Stripe
                 </p>
               </div>
-
-              {isCommercial && form.nomeEmpresa && (
-                <div style={{
-                  marginTop: '12px',
-                  padding: '10px',
-                  background: '#f3f4f6',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  color: '#374151'
-                }}>
-                  <p style={{ margin: 0 }}><strong>Empresa:</strong> {form.nomeEmpresa}</p>
-                  <p style={{ margin: 0 }}><strong>NIF:</strong> {form.nifEmpresa}</p>
-                  <p style={{ margin: 0 }}><strong>Morada:</strong> {form.morada}</p>
-                </div>
-              )}
             </div>
           </div>
         </div>

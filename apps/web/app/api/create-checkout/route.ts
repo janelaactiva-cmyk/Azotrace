@@ -35,19 +35,53 @@ export async function POST(request: Request) {
       config_total,
     } = body;
 
-    // ✅ VALIDAÇÃO
-    if (!nome || !email || !telefone) {
+    // ✅ VALIDAÇÃO BÁSICA DE CAMPOS
+    if (!nome || !email || !telefone || !morada) {
       return NextResponse.json(
-        { error: 'Nome, email e telefone são obrigatórios' },
+        { error: 'Nome, email, telefone e morada são obrigatórios' },
         { status: 400 }
       );
     }
 
     if (is_commercial && (!nome_empresa || !nif_empresa || !morada)) {
       return NextResponse.json(
-        { error: 'Nome da empresa, NIF e morada são obrigatórios para clientes comerciais' },
+        { error: 'Nome da empresa, NIF da empresa e morada são obrigatórios para clientes comerciais' },
         { status: 400 }
       );
+    }
+
+    // 🔒 VALIDAÇÃO DE UNICIDADE (EMAIL E NIF)
+    
+    // 1. Verificar se o email já existe na tabela checkouts ou subscriptions
+    const { data: existingEmail } = await supabase
+      .from('checkouts')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existingEmail) {
+      return NextResponse.json(
+        { error: 'Este email já se encontra registado numa subscrição ou checkout.' },
+        { status: 400 }
+      );
+    }
+
+    // 2. Determinar qual o NIF a validar (pessoal ou empresa)
+    const nifToValidate = is_commercial ? nif_empresa : nif;
+
+    if (nifToValidate) {
+      const { data: existingNif } = await supabase
+        .from('checkouts')
+        .select('id')
+        .or(`nif.eq.${nifToValidate},nif_empresa.eq.${nifToValidate}`)
+        .maybeSingle();
+
+      if (existingNif) {
+        return NextResponse.json(
+          { error: 'Este NIF já se encontra associado a outra subscrição.' },
+          { status: 400 }
+        );
+      }
     }
 
    // ✅ CONSTRUIR CAMPOS PERSONALIZADOS COM TIPO CORRETO
@@ -65,9 +99,9 @@ export async function POST(request: Request) {
       customFields.push({
         key: 'nif_empresa',
         label: { type: 'custom', custom: '📄 NIF da empresa' },
-        type: 'numeric', // 👈 'numeric' para aceitar apenas números
+        type: 'numeric',
         optional: false,
-        numeric: { default_value: nif_empresa }, // 👈 Nota: para type 'numeric', usa-se a propriedade 'numeric' com default_value
+        numeric: { default_value: nif_empresa },
       });
     } else {
       customFields.push({
@@ -81,9 +115,9 @@ export async function POST(request: Request) {
       customFields.push({
         key: 'telefone',
         label: { type: 'custom', custom: '📱 Telemóvel' },
-        type: 'numeric', // 👈 'numeric' para o telemóvel
+        type: 'numeric',
         optional: false,
-        numeric: { default_value: telefone }, // 👈 'numeric' usa o objeto numeric.default_value
+        numeric: { default_value: telefone },
       });
     }
 
@@ -91,13 +125,13 @@ export async function POST(request: Request) {
       {
         price_data: {
           currency: 'eur',
-          tax_behavior: 'inclusive', // 👈 Informa o Stripe que o valor já inclui IVA
+          tax_behavior: 'inclusive',
           product_data: {
             name: `Plano ${plano_nome} - Azotrace`,
             description: `Plano anual com IVA 16% incluído`,
-            tax_code: 'txcd_10000000', // 👈 Código fiscal obrigatório para Managed Payments
+            tax_code: 'txcd_10000000',
           },
-          unit_amount: Math.round(valor_total * 100), // 👈 Usa o valor total correto enviado pelo frontend
+          unit_amount: Math.round(valor_total * 100),
         },
         quantity: 1,
       },
@@ -107,13 +141,13 @@ export async function POST(request: Request) {
       lineItems.push({
         price_data: {
           currency: 'eur',
-          tax_behavior: 'inclusive', // 👈 Informa o Stripe que o setup também já inclui IVA
+          tax_behavior: 'inclusive',
           product_data: {
             name: 'Pacote de Configuração Inicial & Formação Guiada',
             description: 'IVA 16% incluído',
             tax_code: 'txcd_10000000',
           },
-          unit_amount: Math.round(config_total * 100), // 👈 Usa o valor total do setup correto
+          unit_amount: Math.round(config_total * 100),
         },
         quantity: 1,
       });
@@ -121,8 +155,8 @@ export async function POST(request: Request) {
 
     // ✅ CRIAR SESSÃO NO STRIPE
     const session = await stripe.checkout.sessions.create({
-      customer_email: email, // Pré-preenche o email no topo do checkout
-      managed_payments: { enabled: false }, // Evita bloqueios de códigos de impostos complexos
+      customer_email: email,
+      managed_payments: { enabled: false },
       payment_method_types: [
         'card',
         'paypal',
@@ -170,10 +204,10 @@ export async function POST(request: Request) {
         email,
         telefone,
         nif: nif || null,
+        morada: morada || null,
         is_commercial: is_commercial || false,
         nome_empresa: is_commercial ? nome_empresa : null,
         nif_empresa: is_commercial ? nif_empresa : null,
-        morada: is_commercial ? morada : null,
         include_setup: include_setup || false,
         config_price: include_setup ? config_price : null,
         config_iva: include_setup ? config_iva : null,
@@ -185,6 +219,7 @@ export async function POST(request: Request) {
 
     if (checkoutError) {
       console.error('❌ Erro ao guardar checkout:', checkoutError);
+      throw new Error('Erro ao registar os dados na base de dados.');
     }
 
     return NextResponse.json({

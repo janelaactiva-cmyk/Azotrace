@@ -9,7 +9,15 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true, // <-- Ignora erros de TS no build da Vercel
   },
- 
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/landing',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default withNextIntl(nextConfig);

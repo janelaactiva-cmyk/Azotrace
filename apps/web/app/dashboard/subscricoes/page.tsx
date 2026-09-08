@@ -22,7 +22,7 @@ interface SubscriptionItem {
   email: string;
   companyName: string;
   nif: string;
-  address: string;
+  morada: string;
   currentPlan: 'Pro' | 'Essential' | 'Base';
   startDate: string;
   renewalDate: string;
@@ -64,7 +64,7 @@ export default function SubscricoesAnuaisPage() {
       if (data && data.length > 0) {
         let savedHistories: { [key: string]: SubscriptionHistoryItem[] } = {};
         try {
-          const raw = localStorage.getItem('azotrace_client_histories_v6');
+          const raw = localStorage.getItem('azotrace_client_histories_v8');
           if (raw) savedHistories = JSON.parse(raw);
         } catch (e) {
           console.error(e);
@@ -82,14 +82,15 @@ export default function SubscricoesAnuaisPage() {
           // Chave única composta por NIF e Email para garantir restrição estrita
           const clientKey = `${nif}_${email}`;
 
-          // Se já existir um registo com este exato NIF e Email, ignoramos os duplicados
           if (uniqueMap.has(clientKey)) return;
+
+          // Lê exatamente da coluna 'nome' da tua tabela do Supabase (com fallbacks de segurança)
+          const extractedName = sub.nome || sub.name || sub.full_name || sub.client_name || email.split('@')[0];
 
           const startDateFormatted = sub.started_at ? sub.started_at.split('T')[0] : '2026-01-01';
           const expiresAtFormatted = sub.expires_at ? sub.expires_at.split('T')[0] : '2027-01-01';
           const planName = (sub.plan_name || 'Base') as 'Pro' | 'Essential' | 'Base';
 
-          // Garante histórico inicial próprio para este cliente único
           if (!savedHistories[clientKey] || savedHistories[clientKey].length === 0) {
             savedHistories[clientKey] = [
               {
@@ -104,11 +105,11 @@ export default function SubscricoesAnuaisPage() {
             id: subId,
             dbId: sub.id,
             clientCode: `CLI-00${indexCounter}`,
-            name: email.split('@')[0],
+            name: extractedName,
             email: email,
             companyName: sub.company_name || 'Janela Activa, Lda',
             nif: nif,
-            address: 'Ponta Delgada, Açores',
+            morada: sub.morada || 'N/A',
             currentPlan: planName,
             startDate: startDateFormatted,
             renewalDate: expiresAtFormatted,
@@ -120,12 +121,11 @@ export default function SubscricoesAnuaisPage() {
 
         setClientHistories(savedHistories);
         try {
-          localStorage.setItem('azotrace_client_histories_v6', JSON.stringify(savedHistories));
+          localStorage.setItem('azotrace_client_histories_v8', JSON.stringify(savedHistories));
         } catch (e) {}
 
         setSubscriptions(formatted);
-        setSelectedSubId(prev => (formatted.some(s => s.id === prev) ? prev : formatted[0].id));
-
+        setSelectedSubId(prev => (formatted.some(s => s.id === prev) ? prev : formatted[0]?.id || ''));
         setTargetPlansMap(prev => {
           const initialTargets = { ...prev };
           formatted.forEach(s => {
@@ -163,7 +163,6 @@ export default function SubscricoesAnuaisPage() {
 
   const selectedSub = subscriptions.find(s => s.id === selectedSubId) || subscriptions[0];
 
-  // Chave única para o cliente selecionado atual
   const selectedClientKey = selectedSub ? `${selectedSub.nif}_${selectedSub.email}` : '';
   const currentClientHistory = useMemo(() => {
     if (!selectedClientKey) return [];
@@ -274,7 +273,7 @@ export default function SubscricoesAnuaisPage() {
       const newHistoryItem: SubscriptionHistoryItem = {
         oldPlan: oldPlanBeforeChange,
         newPlan: selectedTargetPlan,
-        purchasedAt: purchaseDate
+        purchasedAt: h.purchasedAt || ''     
       };
 
       try {
@@ -283,7 +282,7 @@ export default function SubscricoesAnuaisPage() {
         updatedHistories[selectedClientKey] = [newHistoryItem, ...existing];
 
         setClientHistories(updatedHistories);
-        localStorage.setItem('azotrace_client_histories_v6', JSON.stringify(updatedHistories));
+        localStorage.setItem('azotrace_client_histories_v8', JSON.stringify(updatedHistories));
       } catch (e) {
         console.error(e);
       }
@@ -329,14 +328,14 @@ export default function SubscricoesAnuaisPage() {
         />
       </div>
 
-      {/* TABELA DE CLIENTES (ÚNICOS POR NIF + EMAIL) */}
+      {/* TABELA DE CLIENTES */}
       <div style={{ background: cardBg, border: `1px solid ${borderColor}`, borderRadius: '10px', overflow: 'hidden' }}>
         <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
             <thead style={{ position: 'sticky', top: 0, background: cardBg, zIndex: 1 }}>
               <tr style={{ color: subTextColor, fontSize: '11px', textTransform: 'uppercase', borderBottom: `1px solid ${borderColor}` }}>
                 <th style={{ padding: '12px 16px' }}>Cód.</th>
-                <th style={{ padding: '12px 16px' }}>Cliente / Email</th>
+                <th style={{ padding: '12px 16px' }}>Subscritor / Email</th>
                 <th style={{ padding: '12px 16px' }}>NIF</th>
                 <th style={{ padding: '12px 16px' }}>Plano Atual</th>
                 <th style={{ padding: '12px 16px' }}>Data Início</th>
@@ -397,16 +396,14 @@ export default function SubscricoesAnuaisPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 1fr', gap: '16px' }}>
           
-          {/* DADOS */}
+         {/* DADOS DO CLIENTE COM O NOME DA TABELA 'nome' */}
           <div style={{ background: isDark ? '#111827' : '#f9fafb', padding: '14px', borderRadius: '8px', border: `1px solid ${borderColor}`, fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <h3 style={{ fontSize: '12px', fontWeight: 'bold', color: '#3b82f6', margin: '0 0 4px 0' }}>🏢 Dados do Cliente Único</h3>
+            <div><strong>Nome / Subscritor:</strong> <span style={{ color: textColor, fontWeight: 'bold' }}>{selectedSub.name}</span></div>
             <div><strong>Email:</strong> {selectedSub.email}</div>
             <div><strong>NIF:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{selectedSub.nif}</span></div>
-            <div><strong>Empresa:</strong> {selectedSub.companyName}</div>
-            <div style={{ marginTop: '6px', borderTop: `1px solid ${borderColor}`, paddingTop: '6px' }}>
-              <div><strong>Início da Subscrição:</strong> {selectedSub.startDate}</div>
-              <div><strong>Vencimento Anual:</strong> {selectedSub.renewalDate}</div>
-            </div>
+            <div><strong>Empresa:</strong> {selectedSub.companyName || 'N/A'}</div>
+            <div><strong>Morada:</strong> {selectedSub.morada || 'N/A'}</div>
           </div>
 
           {/* HISTÓRICO EXCLUSIVO DESTE NIF/EMAIL */}
@@ -424,22 +421,24 @@ export default function SubscricoesAnuaisPage() {
             
             <div style={{ maxHeight: '130px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {currentClientHistory && currentClientHistory.length > 0 ? (
-                currentClientHistory.map((h, i) => (
+                currentClientHistory.map((h: SubscriptionHistoryItem, i: number) => (
                   <div key={i} style={{ background: isDark ? '#37415144' : '#e5e7eb66', padding: '6px', borderRadius: '6px', fontSize: '11px' }}>
-                    <div><strong>Data:</strong> {h.purchasedAt}</div>
+                    <div><strong>Data:</strong> {h.purchasedAt || ''}</div>
                     <div>Plano Anterior: <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{h.oldPlan}</span></div>
                     <div>Novo Plano: <span style={{ color: '#10b981', fontWeight: 'bold' }}>{h.newPlan}</span></div>
-                  </div>
-                ))
-              ) : (
-                <div style={{ color: subTextColor }}>Sem histórico registado para este cliente.</div>
-              )}
+            </div>
+            ))
+    ) : (
+  <div style={{ color: subTextColor }}>Sem histórico registado para este cliente.</div>
+)}
             </div>
           </div>
 
           {/* PRÓ-RATA */}
           <div style={{ background: isDark ? '#111827' : '#f9fafb', padding: '14px', borderRadius: '8px', border: `1px solid ${borderColor}`, fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <h3 style={{ fontSize: '12px', fontWeight: 'bold', color: '#3b82f6', margin: '0 0 4px 0' }}>🧮 Pró-Rata ({selectedSub.startDate})</h3>
+            <div><strong>Início da Subscrição:</strong> {selectedSub.startDate}</div>
+              <div><strong>Renovação da Subscrição:</strong> {selectedSub.renewalDate}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Dias Usados:</span>
               <span>{calculation.daysUsed} dias</span>
