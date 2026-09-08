@@ -2,7 +2,7 @@ export default function About() {
   return (
     <section id="about" className="about-section">
       <div className="container">
-        <span className="section-subtitle">Sobre a Azotrace</span>
+        <span className="section-subtitle">Sobre</span>
         <h2>A Nossa Essência</h2>
         <p>
           A <strong>Azotrace</strong> nasceu nos Açores para valorizar os produtos

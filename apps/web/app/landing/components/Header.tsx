@@ -25,10 +25,10 @@ export default function Header({ isDark, toggleTheme }) {
 
           <nav style={{ display: 'none', gap: '24px', alignItems: 'center' }} className="desktop-nav">
             <a href="#home" style={{ color: isDark ? '#f3f4f6' : '#234D87', textDecoration: 'none', fontWeight: '500' }}>Início</a>
-            <a href="#about" style={{ color: isDark ? '#f3f4f6' : '#234D87', textDecoration: 'none', fontWeight: '500' }}>A Nossa Essência</a>
+            <a href="#about" style={{ color: isDark ? '#f3f4f6' : '#234D87', textDecoration: 'none', fontWeight: '500' }}>Sobre</a>
             <a href="#vantagens" style={{ color: isDark ? '#f3f4f6' : '#234D87', textDecoration: 'none', fontWeight: '500' }}>Vantagens</a>
             <a href="#feature" style={{ color: isDark ? '#f3f4f6' : '#234D87', textDecoration: 'none', fontWeight: '500' }}>Como Funciona</a>
-            <a href="#pricing" style={{ color: isDark ? '#f3f4f6' : '#234D87', textDecoration: 'none', fontWeight: '500' }}>Preço</a>
+            <a href="#pricing" style={{ color: isDark ? '#f3f4f6' : '#234D87', textDecoration: 'none', fontWeight: '500' }}>Preçário</a>
             <a href="#faq" style={{ color: isDark ? '#f3f4f6' : '#234D87', textDecoration: 'none', fontWeight: '500' }}>FAQ</a>
             <a href="#contact" style={{ color: isDark ? '#f3f4f6' : '#234D87', textDecoration: 'none', fontWeight: '500' }}>Contactos</a>
           </nav>
