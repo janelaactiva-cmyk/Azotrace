@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       config_total,
     } = body;
 
-    // ✅ VALIDAÇÃO
+    // ✅ VALIDAÇÃO BÁSICA DE CAMPOS
     if (!nome || !email || !telefone) {
       return NextResponse.json(
         { error: 'Nome, email e telefone são obrigatórios' },
@@ -50,7 +50,45 @@ export async function POST(request: Request) {
       );
     }
 
-   // ✅ CONSTRUIR CAMPOS PERSONALIZADOS COM TIPO CORRETO
+    // 🔒 1️⃣ VALIDAÇÃO DE UNICIDADE DO E-MAIL NO SUPABASE
+    const { data: existingEmail, error: emailCheckError } = await supabase
+      .from('checkouts')
+      .select('id')
+      .eq('email', email);
+
+    if (emailCheckError) {
+      console.error('Erro ao verificar email:', emailCheckError);
+    }
+
+    if (existingEmail && existingEmail.length > 0) {
+      return NextResponse.json(
+        { error: 'Este endereço de e-mail já se encontra registado ou associado a uma compra.' },
+        { status: 400 }
+      );
+    }
+
+    // 🔒 2️⃣ VALIDAÇÃO DE UNICIDADE DO NIF NO SUPABASE (Pessoal ou Empresa)
+    const nifParaValidar = is_commercial ? nif_empresa : nif;
+
+    if (nifParaValidar && nifParaValidar.trim() !== '') {
+      const { data: existingNif, error: nifCheckError } = await supabase
+        .from('checkouts')
+        .select('id')
+        .or(`nif.eq.${nifParaValidar},nif_empresa.eq.${nifParaValidar}`);
+
+      if (nifCheckError) {
+        console.error('Erro ao verificar NIF:', nifCheckError);
+      }
+
+      if (existingNif && existingNif.length > 0) {
+        return NextResponse.json(
+          { error: 'Este NIF já se encontra associado a uma conta ou subscrição existente.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // ✅ CONSTRUIR CAMPOS PERSONALIZADOS COM TIPO CORRETO
     const customFields: Stripe.Checkout.SessionCreateParams.CustomField[] = [];
 
     if (is_commercial) {
@@ -65,9 +103,9 @@ export async function POST(request: Request) {
       customFields.push({
         key: 'nif_empresa',
         label: { type: 'custom', custom: '📄 NIF da empresa' },
-        type: 'numeric', // 👈 'numeric' para aceitar apenas números
+        type: 'numeric',
         optional: false,
-        numeric: { default_value: nif_empresa }, // 👈 Nota: para type 'numeric', usa-se a propriedade 'numeric' com default_value
+        numeric: { default_value: nif_empresa },
       });
     } else {
       customFields.push({
@@ -81,9 +119,9 @@ export async function POST(request: Request) {
       customFields.push({
         key: 'telefone',
         label: { type: 'custom', custom: '📱 Telemóvel' },
-        type: 'numeric', // 👈 'numeric' para o telemóvel
+        type: 'numeric',
         optional: false,
-        numeric: { default_value: telefone }, // 👈 'numeric' usa o objeto numeric.default_value
+        numeric: { default_value: telefone },
       });
     }
 
@@ -91,13 +129,13 @@ export async function POST(request: Request) {
       {
         price_data: {
           currency: 'eur',
-          tax_behavior: 'inclusive', // 👈 Informa o Stripe que o valor já inclui IVA
+          tax_behavior: 'inclusive',
           product_data: {
             name: `Plano ${plano_nome} - Azotrace`,
             description: `Plano anual com IVA 16% incluído`,
-            tax_code: 'txcd_10000000', // 👈 Código fiscal obrigatório para Managed Payments
+            tax_code: 'txcd_10000000',
           },
-          unit_amount: Math.round(valor_total * 100), // 👈 Usa o valor total correto enviado pelo frontend
+          unit_amount: Math.round(valor_total * 100),
         },
         quantity: 1,
       },
@@ -107,13 +145,13 @@ export async function POST(request: Request) {
       lineItems.push({
         price_data: {
           currency: 'eur',
-          tax_behavior: 'inclusive', // 👈 Informa o Stripe que o setup também já inclui IVA
+          tax_behavior: 'inclusive',
           product_data: {
             name: 'Pacote de Configuração Inicial & Formação Guiada',
             description: 'IVA 16% incluído',
             tax_code: 'txcd_10000000',
           },
-          unit_amount: Math.round(config_total * 100), // 👈 Usa o valor total do setup correto
+          unit_amount: Math.round(config_total * 100),
         },
         quantity: 1,
       });
@@ -121,8 +159,8 @@ export async function POST(request: Request) {
 
     // ✅ CRIAR SESSÃO NO STRIPE
     const session = await stripe.checkout.sessions.create({
-      customer_email: email, // Pré-preenche o email no topo do checkout
-      managed_payments: { enabled: false }, // Evita bloqueios de códigos de impostos complexos
+      customer_email: email,
+      managed_payments: { enabled: false },
       payment_method_types: [
         'card',
         'paypal',

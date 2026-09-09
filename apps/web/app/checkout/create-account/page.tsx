@@ -131,7 +131,7 @@ export default function SuccessPage() {
 
         setUser(signInData.user);
 
-        // 🚀 Chamar o MFA passando o token explicitamente para evitar falhas de contexto do cliente
+        // 🚀 Chamar o MFA passando o token explicitamente
         await handleEnrollMFA(signInData.session.access_token);
       }
     } catch (err: any) {
@@ -140,10 +140,9 @@ export default function SuccessPage() {
     }
   };
 
-  // 📲 Passo 1: Registar o fator MFA utilizando um cliente autenticado diretamente com o token
+  // 📲 Passo 1: Registar o fator MFA
   const handleEnrollMFA = async (accessToken: string) => {
     try {
-      // Criamos um cliente scoped temporário que carrega o token exato no header Authorization
       const authenticatedSupabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -164,7 +163,7 @@ export default function SuccessPage() {
       if (error) throw error;
 
       setFactorId(data.id);
-      setQrCodeSvg(data.totp.qr_code); // SVG do QR Code fornecido pelo Supabase
+      setQrCodeSvg(data.totp.qr_code);
       setStep('setup_mfa');
     } catch (err: any) {
       console.error('Erro ao configurar MFA:', err);
@@ -175,7 +174,7 @@ export default function SuccessPage() {
     }
   };
 
-  // ✅ Passo 2: Confirmar o código gerado pela App Authenticator para ativar o MFA
+  // ✅ Passo 2: Confirmar o código MFA
   const handleVerifyMFA = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!factorId) return;
@@ -195,7 +194,6 @@ export default function SuccessPage() {
 
       if (verify.error) throw verify.error;
 
-      // Sucesso total com MFA ativado!
       router.push('/dashboard');
     } catch (err: any) {
       setError('Código inválido. Tenta novamente.');
@@ -203,12 +201,10 @@ export default function SuccessPage() {
     }
   };
 
-  // ⏭️ Opção para o utilizador saltar o MFA caso não queira configurar agora
   const handleSkipMFA = () => {
     router.push('/dashboard');
   };
 
-  // Ecrã de Sucesso Inicial (se já tiver sessão iniciada por milagre)
   if (user && step === 'form') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6', padding: '20px' }}>
@@ -232,7 +228,6 @@ export default function SuccessPage() {
           <Logo width={180} height={60} />
         </div>
 
-        {/* 📱 ETAPA 2: CONFIGURAÇÃO DE MFA (QR CODE) */}
         {step === 'setup_mfa' ? (
           <div>
             <div style={{ textAlign: 'center', marginBottom: '20px' }}>
@@ -248,7 +243,6 @@ export default function SuccessPage() {
               </div>
             )}
 
-            {/* Imagem do QR Code gerada pelo Supabase */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }} dangerouslySetInnerHTML={{ __html: qrCodeSvg }} />
 
             <form onSubmit={handleVerifyMFA}>
@@ -285,7 +279,6 @@ export default function SuccessPage() {
             </form>
           </div>
         ) : (
-          /* 📝 ETAPA 1: FORMULÁRIO DE REGISTO DE PASSWORD */
           <div>
             <div style={{ textAlign: 'center', marginBottom: '24px' }}>
               <div style={{ fontSize: '48px', marginBottom: '8px' }}>✅</div>
