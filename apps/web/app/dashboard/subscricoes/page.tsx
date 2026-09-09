@@ -5,7 +5,7 @@ import { useTheme } from '~/lib/theme-context';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yzfyoboxiwvppbeptp.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'a-tua-chave-anon-aqui';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6ZnlvYm94aXd2cHBiZXBpcHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5MjE2MTIsImV4cCI6MjEwMTQ5NzYxMn0.B8T29WNNN7VQY-5WGUatf4vkpBvhGQb0Gl4XpXT5wk4';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface SubscriptionHistoryItem {
@@ -270,10 +270,11 @@ export default function SubscricoesAnuaisPage() {
         return;
       }
 
+      // CORREÇÃO: Utilizar purchaseDate em vez da variável inexistente 'h'
       const newHistoryItem: SubscriptionHistoryItem = {
         oldPlan: oldPlanBeforeChange,
         newPlan: selectedTargetPlan,
-        purchasedAt: h.purchasedAt || ''     
+        purchasedAt: purchaseDate     
       };
 
       try {
@@ -426,11 +427,11 @@ export default function SubscricoesAnuaisPage() {
                     <div><strong>Data:</strong> {h.purchasedAt || ''}</div>
                     <div>Plano Anterior: <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{h.oldPlan}</span></div>
                     <div>Novo Plano: <span style={{ color: '#10b981', fontWeight: 'bold' }}>{h.newPlan}</span></div>
-            </div>
-            ))
-    ) : (
-  <div style={{ color: subTextColor }}>Sem histórico registado para este cliente.</div>
-)}
+                  </div>
+                ))
+              ) : (
+                <div style={{ color: subTextColor }}>Sem histórico registado para este cliente.</div>
+              )}
             </div>
           </div>
 
@@ -438,7 +439,7 @@ export default function SubscricoesAnuaisPage() {
           <div style={{ background: isDark ? '#111827' : '#f9fafb', padding: '14px', borderRadius: '8px', border: `1px solid ${borderColor}`, fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <h3 style={{ fontSize: '12px', fontWeight: 'bold', color: '#3b82f6', margin: '0 0 4px 0' }}>🧮 Pró-Rata ({selectedSub.startDate})</h3>
             <div><strong>Início da Subscrição:</strong> {selectedSub.startDate}</div>
-              <div><strong>Renovação da Subscrição:</strong> {selectedSub.renewalDate}</div>
+            <div><strong>Renovação da Subscrição:</strong> {selectedSub.renewalDate}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Dias Usados:</span>
               <span>{calculation.daysUsed} dias</span>

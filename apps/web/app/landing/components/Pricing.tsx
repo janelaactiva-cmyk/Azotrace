@@ -70,7 +70,7 @@ export default function Pricing() {
           <div className="col-lg-12">
             <div className="section-title text-center">
               <span>Preçário</span>
-              <h2>Nosso plano de preços</h2>
+              <h2>Nossos planos de preços</h2>
               <p style={{ color: '#6b7280', fontSize: '14px' }}>
                 IVA a incluir à taxa legal em vigor
               </p>
