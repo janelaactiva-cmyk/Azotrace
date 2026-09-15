@@ -24,6 +24,7 @@ export default function SuccessPage() {
   const [factorId, setFactorId] = useState<string | null>(null);
   const [qrCodeSvg, setQrCodeSvg] = useState<string>('');
   const [mfaCode, setMfaCode] = useState('');
+  const [accessToken, setAccessToken] = useState<string | null>(null); // 👈 Token guardado em memória para o MFA
 
   useEffect(() => {
     const initPage = async () => {
@@ -130,6 +131,7 @@ export default function SuccessPage() {
         }
 
         setUser(signInData.user);
+        setAccessToken(signInData.session.access_token); // 👈 Guarda o token imediatamente
 
         // 🚀 Chamar o MFA passando o token explicitamente
         await handleEnrollMFA(signInData.session.access_token);
@@ -140,8 +142,8 @@ export default function SuccessPage() {
     }
   };
 
-  // 📲 Passo 1: Registar o fator MFA
-  const handleEnrollMFA = async (accessToken: string) => {
+  // 📲 Passo 1: Registar o fator MFA (Limpando anteriores pendentes)
+  const handleEnrollMFA = async (token: string) => {
     try {
       const authenticatedSupabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -150,11 +152,18 @@ export default function SuccessPage() {
           auth: { persistSession: false },
           global: {
             headers: {
-              Authorization: `Bearer ${accessToken}`,
+              Authorization: `Bearer ${token}`,
             },
           },
         }
       );
+
+      const { data: factorsList } = await authenticatedSupabase.auth.mfa.listFactors();
+      if (factorsList && factorsList.totp) {
+        for (const factor of factorsList.totp) {
+          await authenticatedSupabase.auth.mfa.unenroll({ factorId: factor.id });
+        }
+      }
 
       const { data, error } = await authenticatedSupabase.auth.mfa.enroll({
         factorType: 'totp',
@@ -174,29 +183,49 @@ export default function SuccessPage() {
     }
   };
 
-  // ✅ Passo 2: Confirmar o código MFA
+  // ✅ Passo 2: Criar challenge fresco e confirmar o código MFA utilizando o token guardado
   const handleVerifyMFA = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!factorId) return;
+    if (!factorId || !accessToken) {
+      setError('Sessão expirada. Por favor, recarrega a página.');
+      return;
+    }
 
     setLoading(true);
     setError('');
 
     try {
-      const challenge = await supabase.auth.mfa.challenge({ factorId });
-      if (challenge.error) throw challenge.error;
+      const authenticatedSupabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          auth: { persistSession: false },
+          global: {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        }
+      );
 
-      const verify = await supabase.auth.mfa.verify({
+      const { data: challengeData, error: challengeError } = await authenticatedSupabase.auth.mfa.challenge({ 
+        factorId 
+      });
+      
+      if (challengeError) throw challengeError;
+
+      const { error: verifyError } = await authenticatedSupabase.auth.mfa.verify({
         factorId,
-        challengeId: challenge.data.id,
-        code: mfaCode,
+        challengeId: challengeData.id,
+        code: mfaCode.trim(),
       });
 
-      if (verify.error) throw verify.error;
+      if (verifyError) throw verifyError;
 
       router.push('/dashboard');
     } catch (err: any) {
-      setError('Código inválido. Tenta novamente.');
+      console.error('Erro detalhado MFA:', err);
+      setError('Código inválido. Verifica se a hora do teu dispositivo está correta.');
       setLoading(false);
     }
   };
@@ -243,7 +272,13 @@ export default function SuccessPage() {
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }} dangerouslySetInnerHTML={{ __html: qrCodeSvg }} />
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+              {qrCodeSvg.startsWith('data:') ? (
+                <img src={qrCodeSvg} alt="QR Code MFA" style={{ width: '180px', height: '180px' }} />
+              ) : (
+                <div dangerouslySetInnerHTML={{ __html: qrCodeSvg }} />
+              )}
+            </div>
 
             <form onSubmit={handleVerifyMFA}>
               <div style={{ marginBottom: '16px' }}>

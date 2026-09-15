@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
   }
 
+  // 1. EVENTO: Checkout Concluído com Sucesso
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     const customerEmail = session.customer_details?.email || session.customer_email;
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ received: true });
       }
 
-      // 2. Obter dinamicamente o nome correto do plano (Totalmente Blindado)
+      // 2. Obter dinamicamente o nome correto do plano
       console.log('🔍 [PASSO 2] A obter nome do plano...');
       let planName = 'Plano Azotrace';
       
@@ -154,6 +155,12 @@ export async function POST(request: Request) {
       }
       console.log('✅ [PASSO 5.1] Product key guardada com sucesso!');
 
+      // 5.2 Garantir que o perfil correspondente fica com status 'active'
+      await supabaseAdmin
+        .from('profiles')
+        .update({ status: 'active', subscription_ends_at: null })
+        .eq('email', customerEmail);
+
       // 6. Enviar o e-mail para o cliente com a chave gerada
       console.log('📧 [PASSO 6] A enviar e-mail...');
       try {
@@ -234,12 +241,68 @@ export async function POST(request: Request) {
     } catch (err: any) {
       console.error('🔥 [ERRO CRÍTICO CAPTURADO]:', err?.message || err);
       console.error('🔍 [STACK TRACE]:', err?.stack);
-      // Devolvemos o erro detalhado para o Stripe e para o terminal verem a causa exata
       return NextResponse.json({ 
         error: 'Erro interno do servidor', 
         details: err?.message || 'Erro desconhecido',
         stack: err?.stack 
       }, { status: 500 });
+    }
+  }
+
+  // 2. EVENTO: Subscrição Cancelada / Terminada (Inicia período de graça de 90 dias)
+  if (event.type === 'customer.subscription.deleted') {
+    const subscription = event.data.object as Stripe.Subscription;
+    try {
+      const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
+      const customer = await stripe.customers.retrieve(customerId);
+      
+      if (customer && !customer.deleted && (customer as Stripe.Customer).email) {
+        const customerEmail = (customer as Stripe.Customer).email;
+        const nowIso = new Date().toISOString();
+
+        await supabaseAdmin
+          .from('profiles')
+          .update({ status: 'inactive', subscription_ends_at: nowIso })
+          .eq('email', customerEmail);
+
+        await supabaseAdmin
+          .from('subscriptions')
+          .update({ status: 'canceled' })
+          .eq('email', customerEmail);
+
+        console.log(`🛑 [SUBSCRIPTION DELETED] Conta ${customerEmail} marcada como inativa.`);
+      }
+    } catch (err: any) {
+      console.error('❌ Erro no customer.subscription.deleted:', err?.message);
+    }
+  }
+
+  // 3. EVENTO: Subscrição Atualizada / Renovada (Reativa a conta imediatamente)
+  if (event.type === 'customer.subscription.updated') {
+    const subscription = event.data.object as Stripe.Subscription;
+    if (subscription.status === 'active') {
+      try {
+        const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
+        const customer = await stripe.customers.retrieve(customerId);
+
+        if (customer && !customer.deleted && (customer as Stripe.Customer).email) {
+          const customerEmail = (customer as Stripe.Customer).email;
+
+          await supabaseAdmin
+            .from('profiles')
+            .update({ status: 'active', subscription_ends_at: null })
+            .eq('email', customerEmail);
+
+          await supabaseAdmin
+            .from('subscriptions')
+            .update({ status: 'active' })
+            .eq('email', customerEmail);
+
+          console.log(`✅ [SUBSCRIPTION UPDATED] Conta ${customerEmail} reativada com sucesso.`);
+        }
+      } catch (err: any) {
+        console.error('❌ Erro no customer.subscription.updated:', err?.message);
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { unstable_noStore as noStore } from 'next/cache';
+import { redirect } from 'next/navigation'; // 👈 Necessário para redirecionar
 import { DashboardContent } from './_components/dashboard-content';
 
 // 🔥 Informa o Next.js para ignorar a validação estática de instant navigation nesta rota
@@ -35,6 +36,19 @@ export default async function DashboardPage() {
   const impersonatedUserId = cookieStore.get('impersonate_user_id')?.value;
   const impersonatedEmail = cookieStore.get('impersonate_user_email')?.value;
   const isSuperAdmin = user?.email === 'admin@azotrace.com';
+
+  // 🛑 PROTEÇÃO DE SUBSCRIÇÃO: Se o utilizador estiver inativo e NÃO for o admin principal, redireciona
+  if (user && !isSuperAdmin) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('status')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.status === 'inactive') {
+      redirect('/renovar-subscricao');
+    }
+  }
 
   const activeDisplayEmail = (isSuperAdmin && impersonatedEmail) ? impersonatedEmail : (user?.email || 'Convidado');
 
