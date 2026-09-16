@@ -30,6 +30,53 @@ export default function DashboardLayout({
   const [searchQuery, setSearchQuery] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const handleLogout = useCallback(async () => {
+    localStorage.removeItem('is_super_admin');
+    localStorage.removeItem('user_email');
+    localStorage.removeItem('impersonate_user_email');
+    localStorage.removeItem('impersonate_user_name');
+    document.cookie = 'impersonate_user_id=; path=/; max-age=0';
+    document.cookie = 'impersonate_user_email=; path=/; max-age=0';
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  }, []);
+
+  // --- SISTEMA DE INATIVIDADE (IDLE TIMEOUT) ---
+  useEffect(() => {
+    // 15 minutos de inatividade (em milissegundos). Podes alterar aqui (ex: 30 * 60 * 1000 para 30 min)
+    const IDLE_TIMEOUT_MS = 15 * 60 * 1000; 
+    let inactivityTimer: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        // Ação executada quando o tempo esgotar
+        console.warn('Sessão terminada por inatividade.');
+        handleLogout();
+      }, IDLE_TIMEOUT_MS);
+    };
+
+    // Eventos que indicam atividade do utilizador
+    const events = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart', 'click'];
+
+    // Registar os listeners de eventos
+    events.forEach((event) => {
+      window.addEventListener(event, resetTimer);
+    });
+
+    // Iniciar o temporizador pela primeira vez
+    resetTimer();
+
+    // Limpar os listeners e o temporizador ao desmontar o componente
+    return () => {
+      clearTimeout(inactivityTimer);
+      events.forEach((event) => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [handleLogout]);
+  // ---------------------------------------------
+
   useEffect(() => {
     setMounted(true);
     setSelectedUserEmail(localStorage.getItem('impersonate_user_email'));
@@ -80,17 +127,6 @@ export default function DashboardLayout({
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleLogout = useCallback(async () => {
-    localStorage.removeItem('is_super_admin');
-    localStorage.removeItem('user_email');
-    localStorage.removeItem('impersonate_user_email');
-    localStorage.removeItem('impersonate_user_name');
-    document.cookie = 'impersonate_user_id=; path=/; max-age=0';
-    document.cookie = 'impersonate_user_email=; path=/; max-age=0';
-    await supabase.auth.signOut();
-    window.location.href = '/';
   }, []);
 
   const navItems = [
@@ -176,7 +212,7 @@ export default function DashboardLayout({
             gap: '4px', 
             marginBottom: '12px',
             marginTop: '4px',
-            minHeight: '75px' // Mantém o espaço reservado para evitar saltos visuais
+            minHeight: '75px'
           }}>
             {selectedBusinessName && (
               <div style={{ 
@@ -214,7 +250,11 @@ export default function DashboardLayout({
               if (item.label === '⚙️ Administração') {
                 return (
                   <div key={item.path} style={{ marginBottom: '2px' }}>
-                    <MegaMenu />
+                    <MegaMenu 
+                      sidebarActive={sidebarActive}
+                      sidebarTextColor={sidebarTextColor}
+                      sidebarSubtext={sidebarSubtext}
+                    />
                   </div>
                 );
               }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface MenuItem {
   id: string;
@@ -94,201 +94,112 @@ const menuConfig: MenuItem[] = [
   },
 ];
 
-// Submenu flutuante
-function SubMenu({ items, onItemClick, parentRef }: { 
-  items: MenuItem[]; 
-  onItemClick: (path: string) => void;
-  parentRef: React.RefObject<HTMLDivElement>;
-}) {
-  const [subOpen, setSubOpen] = useState<string | null>(null);
-  const subMenuRef = useRef<HTMLDivElement>(null);
-
-  // Fechar submenu quando clicar fora
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (subMenuRef.current && !subMenuRef.current.contains(event.target as Node)) {
-        setSubOpen(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div 
-      ref={subMenuRef}
-      style={{
-        position: 'absolute',
-        left: '100%',
-        top: '0',
-        background: 'white',
-        borderRadius: '8px',
-        boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-        border: '1px solid #e5e7eb',
-        minWidth: '220px',
-        padding: '4px 0',
-        zIndex: 1000,
-        animation: 'slideIn 0.15s ease-out'
-      }}
-    >
-      {items.map((item) => {
-        const hasChildren = item.children && item.children.length > 0;
-        const isOpen = subOpen === item.id;
-
-        return (
-          <div 
-            key={item.id} 
-            style={{ position: 'relative' }}
-            onMouseEnter={() => {
-              if (hasChildren) {
-                setSubOpen(item.id);
-              }
-            }}
-            onMouseLeave={() => {
-              if (hasChildren) {
-                setTimeout(() => setSubOpen(null), 100);
-              }
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                color: '#374151',
-                fontSize: '14px',
-                transition: 'all 0.15s ease',
-                gap: '8px',
-                whiteSpace: 'nowrap'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f3f4f6';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-              }}
-              onClick={() => {
-                if (item.path) {
-                  onItemClick(item.path);
-                  setSubOpen(null);
-                }
-              }}
-            >
-              {item.icon && <span style={{ fontSize: '16px' }}>{item.icon}</span>}
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {hasChildren && (
-                <span style={{ fontSize: '12px', color: '#9ca3af' }}>▶</span>
-              )}
-            </div>
-            {hasChildren && isOpen && (
-              <SubMenu 
-                items={item.children} 
-                onItemClick={onItemClick}
-                parentRef={subMenuRef}
-              />
-            )}
-          </div>
-        );
-      })}
-      <style>{`
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(-8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-export default function MenuAdmin({ onItemClick }: { onItemClick?: (path: string) => void }) {
+export default function MegaMenu({ onItemClick }: { onItemClick?: (path: string) => void }) {
   const router = useRouter();
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const pathname = usePathname();
+  
+  const [isDark, setIsDark] = useState(false);
+  const [openMenu, setOpenMenu] = useState(false);
+  const [activeSubMenu, setActiveSubMenu] = useState<string | null>(null);
+  
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Fechar menu quando clicar fora
+  useEffect(() => {
+    const checkTheme = () => {
+      const darkActive = document.documentElement.classList.contains('dark') || localStorage.getItem('theme') === 'dark';
+      setIsDark(darkActive);
+    };
+
+    checkTheme();
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setOpenMenu(null);
+        setOpenMenu(false);
+        setActiveSubMenu(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleItemClick = (path: string) => {
+  const isAdministrationActive = pathname.startsWith('/dashboard/administracao');
+  const isActive = isAdministrationActive || openMenu;
+
+  const currentBackground = isActive 
+    ? (isDark ? '#374151' : '#e5e7eb') 
+    : 'transparent';
+
+  const currentColor = isActive 
+    ? (isDark ? '#ffffff' : '#111827') 
+    : (isDark ? '#9ca3af' : '#6b7280');
+
+  const handleItemClientClick = (path: string) => {
     if (onItemClick) onItemClick(path);
     router.push(path);
-    setOpenMenu(null);
+    setOpenMenu(false);
+    setActiveSubMenu(null);
   };
 
   return (
-    <div ref={menuRef} style={{ position: 'relative', display: 'inline-block' }}>
-      {/* Botão principal */}
+    <div ref={menuRef} style={{ position: 'relative', width: '100%' }}>
+      {/* Botão de Administração */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
-          padding: '10px 16px',
-          background: openMenu ? '#e5e7eb' : 'transparent',
-          borderRadius: '8px',
+          padding: '8px 12px',
+          borderRadius: '6px',
           cursor: 'pointer',
-          fontWeight: '600',
-          color: '#111827',
-          transition: 'all 0.2s'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = '#f3f4f6';
-        }}
-        onMouseLeave={(e) => {
-          if (!openMenu) {
-            e.currentTarget.style.background = 'transparent';
-          }
+          background: currentBackground,
+          color: currentColor,
+          transition: 'background 0.15s ease, color 0.15s ease',
+          fontSize: '14px',
+          gap: '8px',
+          width: '100%'
         }}
         onClick={() => {
-          setOpenMenu(openMenu === 'admin' ? null : 'admin');
+          setOpenMenu(!openMenu);
+          setActiveSubMenu(null);
         }}
       >
         <span>⚙️</span>
-        <span>Administração</span>
+        <span style={{ flex: 1, fontWeight: isActive ? '600' : 'normal' }}>Administração</span>
         <span style={{ 
-          fontSize: '12px', 
-          transition: 'transform 0.2s',
-          transform: openMenu === 'admin' ? 'rotate(180deg)' : 'rotate(0deg)',
-          color: '#9ca3af'
+          fontSize: '10px', 
+          transform: openMenu ? 'rotate(180deg)' : 'rotate(0deg)',
+          color: currentColor
         }}>
           ▼
         </span>
       </div>
 
-      {/* Menu dropdown */}
-      {openMenu === 'admin' && (
+      {/* Caixa do Menu Flutuante Principal */}
+      {openMenu && (
         <div
           style={{
             position: 'absolute',
             top: '100%',
             left: '0',
             marginTop: '4px',
-            background: 'white',
+            backgroundColor: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#e5e7eb' : '#111827',
             borderRadius: '8px',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-            border: '1px solid #e5e7eb',
-            minWidth: '220px',
-            padding: '4px 0',
-            zIndex: 999
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+            border: `1px solid ${isDark ? '#374151' : '#d1d5db'}`,
+            minWidth: '240px',
+            padding: '6px 0',
+            zIndex: 9999
           }}
         >
           {menuConfig.map((item) => {
             const hasChildren = item.children && item.children.length > 0;
+            const isSubOpen = activeSubMenu === item.id;
 
             return (
               <div key={item.id} style={{ position: 'relative' }}>
@@ -296,39 +207,74 @@ export default function MenuAdmin({ onItemClick }: { onItemClick?: (path: string
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    padding: '8px 16px',
-                    borderRadius: '4px',
+                    padding: '10px 16px',
                     cursor: 'pointer',
-                    color: '#374151',
+                    color: isDark ? '#e5e7eb' : '#111827',
                     fontSize: '14px',
-                    transition: 'all 0.15s ease',
-                    gap: '8px',
-                    whiteSpace: 'nowrap'
+                    gap: '10px',
+                    whiteSpace: 'nowrap',
+                    backgroundColor: isSubOpen ? (isDark ? '#374151' : '#f3f4f6') : 'transparent'
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#f3f4f6';
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = isDark ? '#374151' : '#f3f4f6'; }}
+                  onMouseLeave={(e) => { 
+                    if (!isSubOpen) e.currentTarget.style.backgroundColor = 'transparent'; 
                   }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                  }}
-                  onClick={() => {
-                    if (item.path) {
-                      handleItemClick(item.path);
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (hasChildren) {
+                      setActiveSubMenu(isSubOpen ? null : item.id);
+                    } else if (item.path) {
+                      handleItemClientClick(item.path);
                     }
                   }}
                 >
                   {item.icon && <span style={{ fontSize: '16px' }}>{item.icon}</span>}
-                  <span style={{ flex: 1 }}>{item.label}</span>
-                  {hasChildren && (
-                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>▶</span>
-                  )}
+                  <span style={{ flex: 1, fontWeight: 500 }}>{item.label}</span>
+                  {hasChildren && <span style={{ fontSize: '12px', color: isDark ? '#9ca3af' : '#6b7280' }}>{isSubOpen ? '▼' : '▶'}</span>}
                 </div>
-                {hasChildren && (
-                  <SubMenu 
-                    items={item.children} 
-                    onItemClick={handleItemClick}
-                    parentRef={menuRef}
-                  />
+
+                {/* Submenu lateral */}
+                {hasChildren && isSubOpen && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: '100%',
+                      top: '0',
+                      backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                      color: isDark ? '#e5e7eb' : '#111827',
+                      borderRadius: '8px',
+                      boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+                      border: `1px solid ${isDark ? '#374151' : '#d1d5db'}`,
+                      minWidth: '220px',
+                      padding: '6px 0',
+                      zIndex: 10000,
+                    }}
+                  >
+                    {item.children!.map((subItem) => (
+                      <div
+                        key={subItem.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '8px 16px',
+                          cursor: 'pointer',
+                          color: isDark ? '#e5e7eb' : '#111827',
+                          fontSize: '14px',
+                          gap: '8px',
+                          whiteSpace: 'nowrap'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = isDark ? '#374151' : '#f3f4f6'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (subItem.path) handleItemClientClick(subItem.path);
+                        }}
+                      >
+                        {subItem.icon && <span style={{ fontSize: '16px' }}>{subItem.icon}</span>}
+                        <span style={{ flex: 1 }}>{subItem.label}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             );

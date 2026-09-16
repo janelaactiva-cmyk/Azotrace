@@ -1,10 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MegaMenu from '../components/MegaMenu';
 
 export default function AdministracaoClient() {
   const [currentPath, setCurrentPath] = useState<string>('');
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const checkTheme = () => {
+      const darkActive = document.documentElement.classList.contains('dark') || localStorage.getItem('theme') === 'dark';
+      setIsDark(darkActive);
+    };
+
+    checkTheme();
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleMenuClick = (path: string) => {
     setCurrentPath(path);
@@ -57,24 +71,25 @@ export default function AdministracaoClient() {
         </div>
       </div>
 
-      {/* MegaMenu */}
+      {/* MegaMenu Container com suporte dinâmico para Dark Mode */}
       <div style={{ 
-        background: 'white', 
+        background: isDark ? '#1f2937' : '#ffffff', 
         borderRadius: '8px', 
-        border: '1px solid #e5e7eb',
+        border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
         padding: '12px 20px',
         marginBottom: '24px',
         display: 'flex',
         alignItems: 'center',
         gap: '16px',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        transition: 'background 0.2s ease, border-color 0.2s ease'
       }}>
         <MegaMenu onItemClick={handleMenuClick} />
         {currentPath && (
           <span style={{ 
             fontSize: '14px', 
-            color: '#6b7280',
-            borderLeft: '1px solid #e5e7eb',
+            color: isDark ? '#9ca3af' : '#6b7280',
+            borderLeft: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
             paddingLeft: '16px'
           }}>
             📍 {pageName}
@@ -82,31 +97,32 @@ export default function AdministracaoClient() {
         )}
       </div>
 
-      {/* Conteúdo */}
+      {/* Conteúdo Dinâmico */}
       <div style={{
-        background: 'white',
+        background: isDark ? '#1f2937' : '#ffffff',
         borderRadius: '8px',
-        border: '1px solid #e5e7eb',
+        border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
         padding: '24px',
-        minHeight: '300px'
+        minHeight: '300px',
+        transition: 'background 0.2s ease, border-color 0.2s ease'
       }}>
         {currentPath ? (
           <div>
             <h2 style={{ 
               fontSize: '20px', 
               fontWeight: '600', 
-              color: 'var(--text-primary)', 
+              color: isDark ? '#ffffff' : 'var(--text-primary)', 
               marginBottom: '16px',
-              borderBottom: '2px solid #e5e7eb',
+              borderBottom: `2px solid ${isDark ? '#374151' : '#e5e7eb'}`,
               paddingBottom: '12px'
             }}>
               {pageName}
             </h2>
             <div style={{
               padding: '20px',
-              background: '#f9fafb',
+              background: isDark ? '#111827' : '#f9fafb',
               borderRadius: '8px',
-              border: '1px solid #e5e7eb',
+              border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
               minHeight: '200px'
             }}>
               <div style={{ 
@@ -115,10 +131,10 @@ export default function AdministracaoClient() {
                 alignItems: 'center', 
                 justifyContent: 'center',
                 height: '150px',
-                color: '#6b7280'
+                color: isDark ? '#9ca3af' : '#6b7280'
               }}>
                 <span style={{ fontSize: '48px', marginBottom: '16px' }}>📄</span>
-                <p style={{ fontSize: '16px', fontWeight: '500' }}>{pageName}</p>
+                <p style={{ fontSize: '16px', fontWeight: '500', color: isDark ? '#e5e7eb' : '#374151' }}>{pageName}</p>
                 <p style={{ fontSize: '14px', marginTop: '8px' }}>
                   Conteúdo em desenvolvimento. Brevemente disponível.
                 </p>
@@ -128,10 +144,10 @@ export default function AdministracaoClient() {
         ) : (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>📋</span>
-            <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '8px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: '600', color: isDark ? '#ffffff' : 'var(--text-primary)', marginBottom: '8px' }}>
               Seleciona uma opção do menu
             </h2>
-            <p style={{ color: 'var(--text-secondary)' }}>
+            <p style={{ color: isDark ? '#9ca3af' : 'var(--text-secondary)' }}>
               Clica em <strong>Administração</strong> e navega pelos submenus.
             </p>
           </div>

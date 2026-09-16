@@ -7,7 +7,7 @@ export default function FAQ() {
   const [openCons, setOpenCons] = useState<string | null>(null);
 
   const produtores = [
-    { id: 'prod1', q: 'O que é a AzoTrace?', a: 'A AzoTrace é uma plataforma de rastreabilidade digital que permite gerir e valorizar os seus produtos através de QR Codes únicos.' },
+    { id: 'prod1', q: 'O que é a Azotrace?', a: 'A AzoTrace é uma plataforma de rastreabilidade digital que permite gerir e valorizar os seus produtos através de QR Codes únicos.' },
     { id: 'prod2', q: 'Como funciona a plataforma?', a: 'Registe os produtos, gere QR Codes exclusivos e disponibilize aos consumidores toda a informação sobre a origem e autenticidade.' },
     { id: 'prod3', q: 'Posso gerir vários produtos ou marcas?', a: 'Sim. A plataforma permite gerir vários produtos, lotes e marcas a partir de uma única conta.' },
   ];
