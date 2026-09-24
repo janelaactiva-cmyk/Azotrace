@@ -15,12 +15,20 @@ export default function PageClient() {
 
   const loadUsers = async () => {
     try {
-      const { data, error } = await supabase.auth.admin.listUsers();
+      // Consulta a tabela profiles em vez de supabase.auth.admin
+      const { data, error } = await supabase.from('profiles').select('*');
       if (error) throw error;
-      setUsers(data?.users || []);
+
+      const formattedUsers = (data || []).map(u => ({
+        id: u.id,
+        email: u.email || u.mail || u.username || 'Sem email',
+        created_at: u.created_at || new Date().toISOString(),
+      }));
+
+      setUsers(formattedUsers);
     } catch (error) {
       console.error('Erro:', error);
-      // Fallback para dados de exemplo
+      // Fallback para dados de exemplo se houver algum problema na tabela
       setUsers([
         { id: '1', email: 'admin@azotrace.com', created_at: new Date().toISOString() },
         { id: '2', email: 'user@azotrace.com', created_at: new Date().toISOString() },

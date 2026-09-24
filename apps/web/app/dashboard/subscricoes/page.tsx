@@ -35,6 +35,24 @@ const PLAN_PRICES = {
   Pro: 851.88,
 };
 
+// Função de validação matemática do NIF Português
+function validarNIF(nif: string): boolean {
+  const nifStr = nif.trim();
+  if (!/^[12356789][0-9]{8}$/.test(nifStr)) return false;
+
+  const chars = nifStr.split('').map(Number);
+  let soma = 0;
+  
+  for (let i = 0; i < 8; i++) {
+    soma += chars[i] * (9 - i);
+  }
+
+  let resto = soma % 11;
+  let digitoControlo = resto < 2 ? 0 : 11 - resto;
+
+  return digitoControlo === chars[8];
+}
+
 export default function SubscricoesAnuaisPage() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -46,7 +64,6 @@ export default function SubscricoesAnuaisPage() {
   const [loadingDb, setLoadingDb] = useState<boolean>(false);
   const [targetPlansMap, setTargetPlansMap] = useState<{ [key: string]: keyof typeof PLAN_PRICES }>({});
   
-  // Histórico isolado por chave única (NIF + Email)
   const [clientHistories, setClientHistories] = useState<{ [clientKey: string]: SubscriptionHistoryItem[] }>({});
 
   const fetchRealSubscriptions = async () => {
@@ -77,16 +94,13 @@ export default function SubscricoesAnuaisPage() {
           indexCounter++;
           const subId = String(sub.id || indexCounter);
           const email = (sub.email || `sem-email-${indexCounter}@exemplo.com`).toLowerCase().trim();
-          const nif = (sub.nif || '509123456').trim();
+          const nif = (sub.nif || '').trim();
           
-          // Chave única composta por NIF e Email para garantir restrição estrita
           const clientKey = `${nif}_${email}`;
 
           if (uniqueMap.has(clientKey)) return;
 
-          // Lê exatamente da coluna 'nome' da tua tabela do Supabase (com fallbacks de segurança)
           const extractedName = sub.nome || sub.name || sub.full_name || sub.client_name || email.split('@')[0];
-
           const startDateFormatted = sub.started_at ? sub.started_at.split('T')[0] : '2026-01-01';
           const expiresAtFormatted = sub.expires_at ? sub.expires_at.split('T')[0] : '2027-01-01';
           const planName = (sub.plan_name || 'Base') as 'Pro' | 'Essential' | 'Base';
@@ -107,7 +121,7 @@ export default function SubscricoesAnuaisPage() {
             clientCode: `CLI-00${indexCounter}`,
             name: extractedName,
             email: email,
-            companyName: sub.company_name || 'Janela Activa, Lda',
+            companyName: sub.company_name || 'N/A',
             nif: nif,
             morada: sub.morada || 'N/A',
             currentPlan: planName,
@@ -238,12 +252,35 @@ export default function SubscricoesAnuaisPage() {
       return;
     }
 
+    // Validação estrita de NIF antes de atualizar
+    if (!validarNIF(selectedSub.nif)) {
+      alert('❌ Erro: O NIF introduzido não é válido ou é inventado. Introduza um NIF real e válido.');
+      return;
+    }
+
     try {
       setLoadingDb(true);
+
+      // Validação de Duplicados na Base de Dados (NIF não pode pertencer a outra linha)
+      const { data: existingNif, error: checkError } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('nif', selectedSub.nif)
+        .neq('id', selectedSub.dbId);
+
+      if (checkError) {
+        console.error(checkError);
+      }
+
+      if (existingNif && existingNif.length > 0) {
+        alert('❌ Erro: Este NIF já está registado noutra subscrição ativa.');
+        setLoadingDb(false);
+        return;
+      }
+
       const expiresAt = new Date();
       expiresAt.setFullYear(expiresAt.getFullYear() + 1);
       const purchaseDate = new Date().toISOString().split('T')[0];
-
       const oldPlanBeforeChange = selectedSub.currentPlan;
 
       const { data, error: updateError } = await supabase
@@ -265,16 +302,15 @@ export default function SubscricoesAnuaisPage() {
       }
 
       if (!data || data.length === 0) {
-        alert('⚠️ O Supabase bloqueou a atualização (verifique se desativou o RLS na tabela `subscriptions`).');
+        alert('⚠️ O Supabase bloqueou a atualização.');
         setLoadingDb(false);
         return;
       }
 
-      // CORREÇÃO: Utilizar purchaseDate em vez da variável inexistente 'h'
       const newHistoryItem: SubscriptionHistoryItem = {
         oldPlan: oldPlanBeforeChange,
         newPlan: selectedTargetPlan,
-        purchasedAt: purchaseDate     
+        purchasedAt: purchaseDate    
       };
 
       try {
@@ -300,14 +336,13 @@ export default function SubscricoesAnuaisPage() {
   return (
     <div style={{ maxWidth: '1300px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* TÍTULO E PESQUISA */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: textColor, margin: 0 }}>
             Gestão de Subscrições Anuais
           </h1>
           <p style={{ fontSize: '12px', color: subTextColor, marginTop: '2px' }}>
-            Registo restrito a um NIF e email único por cliente.
+            Registo restrito a um NIF válido e email único por cliente.
           </p>
         </div>
 
@@ -329,7 +364,6 @@ export default function SubscricoesAnuaisPage() {
         />
       </div>
 
-      {/* TABELA DE CLIENTES */}
       <div style={{ background: cardBg, border: `1px solid ${borderColor}`, borderRadius: '10px', overflow: 'hidden' }}>
         <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
@@ -384,7 +418,6 @@ export default function SubscricoesAnuaisPage() {
         </div>
       </div>
 
-      {/* CHECKOUT & HISTÓRICO ISOLADO */}
       <div style={{ background: cardBg, border: `2px solid ${calculation.isUpgrade ? '#10b981' : '#ef4444'}`, borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${borderColor}`, paddingBottom: '10px' }}>
           <h2 style={{ fontSize: '15px', fontWeight: 'bold', margin: 0, color: textColor }}>
@@ -397,17 +430,15 @@ export default function SubscricoesAnuaisPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 1fr', gap: '16px' }}>
           
-         {/* DADOS DO CLIENTE COM O NOME DA TABELA 'nome' */}
           <div style={{ background: isDark ? '#111827' : '#f9fafb', padding: '14px', borderRadius: '8px', border: `1px solid ${borderColor}`, fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <h3 style={{ fontSize: '12px', fontWeight: 'bold', color: '#3b82f6', margin: '0 0 4px 0' }}>🏢 Dados do Cliente Único</h3>
             <div><strong>Nome / Subscritor:</strong> <span style={{ color: textColor, fontWeight: 'bold' }}>{selectedSub.name}</span></div>
             <div><strong>Email:</strong> {selectedSub.email}</div>
             <div><strong>NIF:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{selectedSub.nif}</span></div>
-            <div><strong>Empresa:</strong> {selectedSub.companyName || 'N/A'}</div>
-            <div><strong>Morada:</strong> {selectedSub.morada || 'N/A'}</div>
+            <div><strong>Empresa:</strong> {selectedSub.companyName}</div>
+            <div><strong>Morada:</strong> {selectedSub.morada}</div>
           </div>
 
-          {/* HISTÓRICO EXCLUSIVO DESTE NIF/EMAIL */}
           <div style={{ background: isDark ? '#111827' : '#f9fafb', padding: '14px', borderRadius: '8px', border: `1px solid ${borderColor}`, fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <h3 style={{ fontSize: '12px', fontWeight: 'bold', color: '#3b82f6', margin: '0 0 4px 0' }}>📅 Histórico de Transações (NIF: {selectedSub.nif})</h3>
             
@@ -435,7 +466,6 @@ export default function SubscricoesAnuaisPage() {
             </div>
           </div>
 
-          {/* PRÓ-RATA */}
           <div style={{ background: isDark ? '#111827' : '#f9fafb', padding: '14px', borderRadius: '8px', border: `1px solid ${borderColor}`, fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <h3 style={{ fontSize: '12px', fontWeight: 'bold', color: '#3b82f6', margin: '0 0 4px 0' }}>🧮 Pró-Rata ({selectedSub.startDate})</h3>
             <div><strong>Início da Subscrição:</strong> {selectedSub.startDate}</div>

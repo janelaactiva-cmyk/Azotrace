@@ -1,26 +1,25 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '~/lib/supabase';
-import Link from 'next/link';
 import { useTheme } from '~/lib/theme-context';
 import { useBusiness } from '~/lib/business-context';
 import { getBusinessIcon } from '~/lib/business-icons';
-import MegaMenu from './components/MegaMenu';
+import AccessibleSidebarAtualizado from './components/AccessibleSidebarAtualizado';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
   const { selectedBusinessType, selectedBusinessName } = useBusiness();
   
   const [mounted, setMounted] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [sidebarPinned, setSidebarPinned] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [appUsers, setAppUsers] = useState<any[]>([]);
   
   const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null);
@@ -28,7 +27,7 @@ export default function DashboardLayout({
   const [directEmail, setDirectEmail] = useState<string>('admin@azotrace.com');
 
   const [searchQuery, setSearchQuery] = useState('');
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLElement>(null);
 
   const handleLogout = useCallback(async () => {
     localStorage.removeItem('is_super_admin');
@@ -45,7 +44,7 @@ export default function DashboardLayout({
   useEffect(() => {
     // 15 minutos de inatividade (em milissegundos). Podes alterar aqui (ex: 30 * 60 * 1000 para 30 min)
     const IDLE_TIMEOUT_MS = 15 * 60 * 1000; 
-    let inactivityTimer: NodeJS.Timeout;
+    let inactivityTimer: ReturnType<typeof setTimeout>;
 
     const resetTimer = () => {
       clearTimeout(inactivityTimer);
@@ -97,6 +96,28 @@ export default function DashboardLayout({
     });
   }, []);
 
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 768px)');
+    const syncViewport = () => {
+      setIsMobile(media.matches);
+      setSidebarExpanded(false);
+      setSidebarPinned(false);
+    };
+
+    syncViewport();
+    media.addEventListener('change', syncViewport);
+    return () => media.removeEventListener('change', syncViewport);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile || !sidebarExpanded) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMobile, sidebarExpanded]);
+
   const isSuperAdmin = directEmail === 'admin@azotrace.com' || (typeof window !== 'undefined' && localStorage.getItem('is_super_admin') === 'true');
 
   const loadAppUsers = async () => {
@@ -129,15 +150,6 @@ export default function DashboardLayout({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const navItems = [
-    { path: '/dashboard', label: '📊 Dashboard' },
-    { path: '/dashboard/administracao', label: '⚙️ Administração' },
-    { path: '/dashboard/blockchain', label: '⛓️ Blockchain' },
-    { path: '/dashboard/analytics', label: '📈 Análises/Estatísticas' },
-    { path: '/dashboard/chatbot', label: '💬 Chatbot' },
-    { path: '/dashboard/subscricoes', label: '💳 Subscrições' },
-  ];
-
   const isDark = theme === 'dark';
   const businessIcon = selectedBusinessType ? getBusinessIcon(selectedBusinessType) : null;
   const businessColor = businessIcon?.color || '#6B7280';
@@ -168,117 +180,232 @@ export default function DashboardLayout({
       background: isDark ? '#111827' : '#f3f4f6',
       color: isDark ? '#e5e7eb' : '#111827'
     }}>
-      <aside ref={menuRef} style={{
-        width: '250px',
-        background: sidebarBg,
-        color: sidebarTextColor,
-        padding: '16px 12px',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'fixed',
-        height: '100vh',
-        overflowY: 'auto',
-        zIndex: 1000,
-        left: 0,
-        top: 0,
-        transition: 'border-color 0.4s ease, background 0.3s ease, color 0.3s ease',
-        borderRight: `4px solid ${sidebarBorderColor}`
-      }}>
+      {isMobile && !sidebarExpanded && (
+        <button
+          type="button"
+          aria-label="Abrir menu de navegação"
+          aria-controls="dashboard-sidebar"
+          aria-expanded={false}
+          onClick={() => setSidebarExpanded(true)}
+          style={{
+            position: 'fixed',
+            top: '12px',
+            left: '12px',
+            zIndex: 1450,
+            width: '44px',
+            height: '44px',
+            borderRadius: '10px',
+            border: `1px solid ${sidebarBorderColor}`,
+            background: sidebarBg,
+            color: sidebarTextColor,
+            boxShadow: '0 6px 18px rgba(15,23,42,.16)',
+            cursor: 'pointer',
+            fontSize: '22px',
+          }}
+        >
+          ☰
+        </button>
+      )}
+
+      {sidebarExpanded && (!sidebarPinned || isMobile) && (
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          onClick={() => {
+            setSidebarPinned(false);
+            setSidebarExpanded(false);
+          }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: isMobile ? 1300 : 900,
+            border: 0,
+            padding: 0,
+            margin: 0,
+            background: isDark ? 'rgba(2, 6, 23, .58)' : 'rgba(15, 23, 42, .34)',
+            backdropFilter: 'blur(2px)',
+            WebkitBackdropFilter: 'blur(2px)',
+            cursor: isMobile ? 'pointer' : 'default',
+          }}
+        />
+      )}
+
+      <aside
+        id="dashboard-sidebar"
+        ref={menuRef}
+        aria-label="Barra lateral do dashboard"
+        onMouseEnter={() => { if (!isMobile) setSidebarExpanded(true); }}
+        onMouseLeave={() => {
+          if (!isMobile && !sidebarPinned) {
+            setSidebarExpanded(false);
+            setProfileMenuOpen(false);
+            setSearchQuery('');
+          }
+        }}
+        onFocusCapture={() => { if (!isMobile) setSidebarExpanded(true); }}
+        onBlurCapture={(event) => {
+          if (!isMobile && !sidebarPinned && !event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            setSidebarExpanded(false);
+            setProfileMenuOpen(false);
+          }
+        }}
+        style={{
+          width: isMobile ? 'min(88vw, 320px)' : (sidebarExpanded ? '248px' : '72px'),
+          background: sidebarBg,
+          color: sidebarTextColor,
+          padding: isMobile ? '14px 12px' : '14px 8px',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'fixed',
+          height: '100vh',
+          overflow: isMobile ? 'auto' : 'visible',
+          zIndex: isMobile ? 1400 : 1000,
+          left: 0,
+          top: 0,
+          transform: isMobile ? (sidebarExpanded ? 'translateX(0)' : 'translateX(-105%)') : undefined,
+          transition: 'width 180ms ease, padding 180ms ease, transform 220ms ease, border-color 0.4s ease, background 0.3s ease, color 0.3s ease, box-shadow 180ms ease',
+          borderRight: `4px solid ${sidebarBorderColor}`,
+          boxShadow: sidebarExpanded ? '8px 0 24px rgba(15, 23, 42, 0.18)' : 'none',
+          boxSizing: 'border-box'
+        }}
+      >
+        {isMobile && sidebarExpanded && (
+          <button
+            type="button"
+            aria-label="Fechar menu"
+            onClick={() => {
+              setSidebarPinned(false);
+              setSidebarExpanded(false);
+            }}
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              zIndex: 1500,
+              width: '36px',
+              height: '36px',
+              borderRadius: '9px',
+              border: `1px solid ${isDark ? '#4b5563' : '#d1d5db'}`,
+              background: isDark ? '#111827' : '#f9fafb',
+              color: sidebarTextColor,
+              cursor: 'pointer',
+              fontSize: '22px',
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        )}
+
         {/* PARTE SUPERIOR (Logo, Negócio + Links) */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ 
-            width: '100%', 
-            height: '100px',  
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            marginBottom: '8px' 
+          <div style={{
+            width: '100%',
+            height: sidebarExpanded ? '92px' : '54px',
+            position: 'relative',
+            marginBottom: sidebarExpanded ? '4px' : '10px',
+            transition: 'height 180ms ease'
           }}>
-            <img 
-              src="/assets/images/logo.png" 
-              alt="Azotrace-logo" 
+            <a
+              href="https://azotrace.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Abrir página inicial da Azotrace"
+              title="Azotrace.com"
               style={{
-                width: '135px',  
-                height: '135px',  
-                objectFit: 'contain',
-                display: 'block'
+                position: 'absolute',
+                top: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'block',
+                borderRadius: '10px',
+                lineHeight: 0,
               }}
-            />
-          </div>
-         
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '4px', 
-            marginBottom: '12px',
-            marginTop: '4px',
-            minHeight: '75px'
-          }}>
-            {selectedBusinessName && (
-              <div style={{ 
-                fontSize: '13px', 
-                fontWeight: '600',
-                color: businessColor,
-                padding: '3px 8px',
-                background: isDark ? `${businessColor}22` : `${businessColor}11`,
-                borderRadius: '8px',
-                width: 'fit-content'
-              }}>
-                {selectedBusinessName}  
-              </div>
-            )}
-
-            {mounted && selectedUserEmail && (
-              <div style={{
-                padding: '3px 6px',
-                background: '#2563eb22',
-                color: '#2563eb',
-                borderRadius: '4px',
-                fontSize: '10px',
-                fontWeight: 'bold',
-                wordBreak: 'break-all'
-              }}>
-                Conta: {selectedUserEmail}
-              </div>
-            )}
+            >
+              <img
+                src="/assets/images/logo.png"
+                alt="Azotrace"
+                style={{
+                  width: sidebarExpanded ? '86px' : '44px',
+                  height: sidebarExpanded ? '86px' : '44px',
+                  objectFit: 'contain',
+                  display: 'block',
+                  transition: 'width 180ms ease, height 180ms ease'
+                }}
+              />
+            </a>
           </div>
 
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            {navItems.map((item) => {
-              const isActive = pathname === item.path;
-              
-              if (item.label === '⚙️ Administração') {
-                return (
-                  <div key={item.path} style={{ marginBottom: '2px' }}>
-                    <MegaMenu 
-                      sidebarActive={sidebarActive}
-                      sidebarTextColor={sidebarTextColor}
-                      sidebarSubtext={sidebarSubtext}
-                    />
-                  </div>
-                );
-              }
+          {sidebarExpanded && (
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '4px', 
+              marginBottom: '12px',
+              marginTop: '2px',
+              minHeight: selectedBusinessName ? '32px' : '0',
+              alignItems: 'center',
+              textAlign: 'center'
+            }}>
+              {selectedBusinessName && (
+                <div style={{ 
+                  fontSize: '13px', 
+                  fontWeight: '600',
+                  color: businessColor,
+                  padding: '3px 8px',
+                  background: isDark ? `${businessColor}22` : `${businessColor}11`,
+                  borderRadius: '8px',
+                  width: 'fit-content',
+                  maxWidth: '100%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {selectedBusinessName}
+                </div>
+              )}
 
-              return (
-                <Link
-                  key={item.path}
-                  href={item.path}
-                  style={{
-                    display: 'block',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    background: isActive ? sidebarActive : 'transparent',
-                    color: isActive ? sidebarTextColor : sidebarSubtext,
-                    textDecoration: 'none',
-                    transition: 'background 0.15s ease, color 0.15s ease',
-                    fontSize: '14px'
-                  }}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+              {isMobile && mounted && selectedUserEmail && (
+                <div style={{
+                  padding: '3px 6px',
+                  background: '#2563eb22',
+                  color: '#2563eb',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  wordBreak: 'break-all'
+                }}>
+                  Conta: {selectedUserEmail}
+                </div>
+              )}
+            </div>
+          )}
+
+          <AccessibleSidebarAtualizado
+            isDark={isDark}
+            sidebarActive={sidebarActive}
+            sidebarTextColor={sidebarTextColor}
+            sidebarSubtext={sidebarSubtext}
+            isSidebarExpanded={sidebarExpanded}
+            accentColor={sidebarBorderColor}
+            isMobile={isMobile}
+            isPinned={sidebarPinned}
+            onPinnedChange={(pinned) => {
+              setSidebarPinned(pinned);
+              if (pinned) setSidebarExpanded(true);
+            }}
+            onNavigate={() => {
+  if (isMobile) {
+    setSidebarPinned(false);
+    setSidebarExpanded(false);
+    return;
+  }
+
+  if (!sidebarPinned) {
+    setSidebarExpanded(false);
+  }
+}}
+          />
         </div>
 
         {/* PARTE INFERIOR (Perfil, Tema, Terminar Sessão) */}
@@ -292,9 +419,51 @@ export default function DashboardLayout({
           borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
           position: 'relative'
         }}>
+          {!isMobile && (
+            <div style={{ display: 'flex', justifyContent: sidebarExpanded ? 'stretch' : 'center', width: '100%', padding: '0 0 8px' }}>
+              <button
+                type="button"
+                aria-label={sidebarPinned ? 'Reduzir menu lateral' : 'Expandir menu lateral'}
+                title={sidebarPinned ? 'Reduzir' : 'Expandir'}
+                aria-pressed={sidebarPinned}
+                onClick={() => {
+                  const next = !sidebarPinned;
+                  setSidebarPinned(next);
+                  setSidebarExpanded(next);
+                }}
+                style={{
+                  width: sidebarExpanded ? '100%' : '52px',
+                  minHeight: sidebarExpanded ? '36px' : '48px',
+                  padding: sidebarExpanded ? '8px 10px' : '5px 2px',
+                  display: 'inline-flex',
+                  flexDirection: sidebarExpanded ? 'row' : 'column',
+                  alignItems: 'center',
+                  justifyContent: sidebarExpanded ? 'flex-start' : 'center',
+                  gap: sidebarExpanded ? '8px' : '3px',
+                  borderRadius: '9px',
+                  border: `1px solid ${sidebarPinned ? sidebarBorderColor : (isDark ? '#4b5563' : '#d1d5db')}`,
+                  background: sidebarPinned ? `${sidebarBorderColor}22` : 'transparent',
+                  color: sidebarPinned ? sidebarBorderColor : sidebarSubtext,
+                  cursor: 'pointer',
+                  fontSize: sidebarExpanded ? '12px' : '9px',
+                  fontWeight: '600',
+                  fontFamily: 'inherit',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 17v5" />
+                  <path d="M5 17h14" />
+                  <path d="M6 3h12l-2 6 2 4H6l2-4-2-6Z" />
+                </svg>
+                <span>{sidebarPinned ? 'Reduzir' : 'Expandir'}</span>
+              </button>
+            </div>
+          )}
+
           
           {profileMenuOpen && (
-            <div style={{
+            <section aria-label="Gestão da sessão e da conta" style={{
               position: 'absolute',
               bottom: 'calc(100% + 8px)',
               left: '0',
@@ -323,6 +492,7 @@ export default function DashboardLayout({
                     <input 
                       type="text"
                       placeholder="🔍 Pesquisar..."
+                      aria-label="Pesquisar utilizadores"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       style={{
@@ -332,8 +502,7 @@ export default function DashboardLayout({
                         borderRadius: '4px',
                         border: `1px solid ${isDark ? '#4b5563' : '#d1d5db'}`,
                         background: isDark ? '#1f2937' : '#f9fafb',
-                        color: sidebarTextColor,
-                        outline: 'none'
+                        color: sidebarTextColor
                       }}
                     />
                   </div>
@@ -347,8 +516,10 @@ export default function DashboardLayout({
                           const isSelected = selectedUserEmail === userEmail;
 
                           return (
-                            <div 
+                            <button
+                              type="button"
                               key={index}
+                              aria-label={`Usar conta ${userName || userEmail}`}
                               onClick={() => {
                                 localStorage.setItem('impersonate_user_email', userEmail);
                                 localStorage.setItem('impersonate_user_name', userName || '');
@@ -369,12 +540,16 @@ export default function DashboardLayout({
                                 background: isSelected ? (isDark ? '#4b5563' : '#e5e7eb') : 'transparent',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                fontWeight: isSelected ? 'bold' : 'normal'
+                                fontWeight: isSelected ? 'bold' : 'normal',
+                                width: '100%',
+                                border: 'none',
+                                textAlign: 'left',
+                                fontFamily: 'inherit'
                               }}
                             >
                               <span style={{ fontWeight: '600' }}>{userName || 'Utilizador sem nome'}</span>
                               <span style={{ fontSize: '10px', color: sidebarSubtext }}>{userEmail}</span>
-                            </div>
+                            </button>
                           );
                         })
                       ) : (
@@ -414,21 +589,27 @@ export default function DashboardLayout({
                   Voltar à Minha Conta (Admin)
                 </button>
               )}
-            </div>
+            </section>
           )}
 
           {/* Botão de Perfil */}
-          <div
+          <button
+            type="button"
+            aria-expanded={profileMenuOpen}
+            aria-label="Abrir opções da conta"
             onClick={() => setProfileMenuOpen(!profileMenuOpen)}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '8px 10px',
+              gap: sidebarExpanded ? '8px' : '0',
+              padding: sidebarExpanded ? '8px 10px' : '8px 6px',
+              justifyContent: sidebarExpanded ? 'flex-start' : 'center',
               borderRadius: '6px',
               cursor: 'pointer',
               background: profileMenuOpen ? sidebarActive : 'transparent',
-              border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
+              border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+              fontFamily: 'inherit',
+              textAlign: 'left'
             }}
           >
             <div style={{
@@ -448,31 +629,36 @@ export default function DashboardLayout({
               </svg>
             </div>
             
-            <div style={{ overflow: 'hidden', flex: 1 }}>
-              <p style={{ 
-                fontSize: '12px', 
-                color: sidebarTextColor, 
-                fontWeight: '600', 
-                whiteSpace: 'nowrap', 
-                overflow: 'hidden', 
-                textOverflow: 'ellipsis', 
-                margin: 0 
-              }}>
-                {mounted ? (selectedUserName ? selectedUserName : (selectedUserEmail ? selectedUserEmail : directEmail)) : 'A carregar...'}
-              </p>
-            </div>
+            {sidebarExpanded && (
+              <>
+                <div style={{ overflow: 'hidden', flex: 1 }}>
+                  <p style={{ 
+                    fontSize: '12px', 
+                    color: sidebarTextColor, 
+                    fontWeight: '600', 
+                    whiteSpace: 'nowrap', 
+                    overflow: 'hidden', 
+                    textOverflow: 'ellipsis', 
+                    margin: 0 
+                  }}>
+                    {mounted ? (selectedUserName ? selectedUserName : (selectedUserEmail ? selectedUserEmail : directEmail)) : 'A carregar...'}
+                  </p>
+                </div>
 
-            <span style={{ fontSize: '9px', color: sidebarSubtext, flexShrink: 0 }}>
-              {profileMenuOpen ? '▼' : '▲'}
-            </span>
-          </div>
+                <span style={{ fontSize: '9px', color: sidebarSubtext, flexShrink: 0 }} aria-hidden="true">
+                  {profileMenuOpen ? '▼' : '▲'}
+                </span>
+              </>
+            )}
+          </button>
 
           {/* Botão Tema */}
           <button
+            type="button"
             onClick={toggleTheme}
             style={{
               width: '100%',
-              padding: '8px 10px',
+              padding: sidebarExpanded ? '8px 10px' : '8px 6px',
               background: buttonBg,
               color: buttonText,
               border: `1px solid ${sidebarBorderColor}`,
@@ -480,21 +666,23 @@ export default function DashboardLayout({
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              justifyContent: sidebarExpanded ? 'flex-start' : 'center',
               gap: '6px',
               fontSize: '12px',
               fontWeight: '500'
             }}
           >
-            {isDark ? '☀️ Modo Claro' : '🌙 Modo Escuro'}
+            <span aria-hidden="true">{isDark ? '☀️' : '🌙'}</span>
+            {sidebarExpanded && <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>}
           </button>
 
           {/* Botão Sair */}
           <button
+            type="button"
             onClick={handleLogout}
             style={{
               width: '100%',
-              padding: '8px 10px',
+              padding: sidebarExpanded ? '8px 10px' : '8px 6px',
               background: buttonBg,
               border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
               borderRadius: '6px',
@@ -505,20 +693,21 @@ export default function DashboardLayout({
               fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              justifyContent: sidebarExpanded ? 'flex-start' : 'center',
               gap: '6px'
             }}
           >
-            Terminar Sessão
+            <span aria-hidden="true">↪</span>
+            {sidebarExpanded && <span>Terminar Sessão</span>}
           </button>
 
         </div>
       </aside>
 
-      <main style={{
-        marginLeft: '250px',
+      <main id="dashboard-main" tabIndex={-1} style={{
+        marginLeft: isMobile ? '0' : '72px',
         flex: 1,
-        padding: '32px 40px',
+        padding: isMobile ? '72px 16px 24px' : '32px 40px',
         background: isDark ? '#111827' : '#f3f4f6',
         minHeight: '100vh',
         color: isDark ? '#e5e7eb' : '#111827'
