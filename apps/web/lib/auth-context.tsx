@@ -19,23 +19,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const getUser = async () => {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) {
-        console.log('🔴 Erro ao obter utilizador:', error.message);
+      // getSession primeiro (usa cookie/localStorage sem validar no servidor)
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.log('🔴 Erro ao obter sessão:', sessionError.message);
         setUser(null);
-        // Limpar cookies se houver erro
-        if (typeof document !== 'undefined') {
-          document.cookie.split(';').forEach(c => {
-            document.cookie = c
-              .replace(/^ +/, '')
-              .replace(/=.*/, '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/');
-          });
-        }
-      } else {
-        setUser(user);
-        if (user) {
-          console.log('👤 Utilizador autenticado:', user.email);
-        }
+        return;
+      }
+
+      if (!sessionData.session) {
+        // Sem sessão — não é erro, é só um utilizador não autenticado
+        console.log('ℹ️ Sem sessão ativa.');
+        setUser(null);
+        return;
+      }
+
+      // Só se houver sessão, validamos o user no servidor
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+
+      if (userError) {
+        console.log('🔴 Erro ao obter utilizador:', userError.message);
+        setUser(null);
+        return;
+      }
+
+      setUser(userData.user);
+      if (userData.user) {
+        console.log('👤 Utilizador autenticado:', userData.user.email);
       }
     } catch (error) {
       console.error('Erro ao obter utilizador:', error);
@@ -52,18 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔔 Evento de autenticação:', event);
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
           setUser(session?.user || null);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
-          // Limpar cookies no logout
-          if (typeof document !== 'undefined') {
-            document.cookie.split(';').forEach(c => {
-              document.cookie = c
-                .replace(/^ +/, '')
-                .replace(/=.*/, '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/');
-            });
-          }
         }
         setLoading(false);
       }
@@ -77,14 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    // Limpar todos os cookies
-    if (typeof document !== 'undefined') {
-      document.cookie.split(';').forEach(c => {
-        document.cookie = c
-          .replace(/^ +/, '')
-          .replace(/=.*/, '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/');
-      });
-    }
+    // 🔒 NÃO apagamos cookies manualmente — o supabase.auth.signOut() já trata disso
   };
 
   const refreshUser = async () => {

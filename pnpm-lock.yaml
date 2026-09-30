@@ -10,7 +10,7 @@ catalogs:
       specifier: '*'
       version: 1.6.0
     '@hookform/resolvers':
-      specifier: '*'
+      specifier: ^5.6.0
       version: 5.6.0
     '@makerkit/data-loader-supabase-core':
       specifier: '*'
@@ -139,7 +139,7 @@ catalogs:
       specifier: '*'
       version: 15.0.0
     react-hook-form:
-      specifier: '*'
+      specifier: ^7.84.0
       version: 7.84.0
     react-resizable-panels:
       specifier: '*'
@@ -184,12 +184,22 @@ catalogs:
       specifier: '*'
       version: 4.1.10
     zod:
-      specifier: '*'
+      specifier: ^4.4.3
       version: 4.4.3
 
 importers:
 
   .:
+    dependencies:
+      '@hookform/resolvers':
+        specifier: 'catalog:'
+        version: 5.6.0(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.84.0(react@19.2.8))(zod@4.4.3)
+      react-hook-form:
+        specifier: 'catalog:'
+        version: 7.84.0(react@19.2.8)
+      zod:
+        specifier: 'catalog:'
+        version: 4.4.3
     devDependencies:
       '@manypkg/cli':
         specifier: 'catalog:'

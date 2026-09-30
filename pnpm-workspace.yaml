@@ -11,7 +11,7 @@ allowBuilds:
 
 catalog:
   "@base-ui/react": "*"
-  "@hookform/resolvers": "*"
+  "@hookform/resolvers": "^5.6.0"
   "@makerkit/data-loader-supabase-core": "*"
   "@makerkit/data-loader-supabase-nextjs": "*"
   "@manypkg/cli": "*"
@@ -54,7 +54,7 @@ catalog:
   "react-day-picker": "*"
   "react-dom": "*"
   "react-dropzone": "*"
-  "react-hook-form": "*"
+  "react-hook-form": "^7.84.0"
   "react-resizable-panels": "*"
   "react-top-loading-bar": "*"
   "recharts": "*"
@@ -69,4 +69,4 @@ catalog:
   "typescript": "*"
   "vaul": "*"
   "vitest": "*"
-  "zod": "*"
+  "zod": "^4.4.3"

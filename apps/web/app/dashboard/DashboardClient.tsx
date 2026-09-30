@@ -40,11 +40,11 @@ const BusinessCard = memo(({ business, isSelected, onSelect }: any) => {
         <h3 style={{ fontWeight: 'bold', fontSize: '18px', color: 'var(--text-primary)' }}>{business.nome}</h3>
         {isSelected && <span style={{ marginLeft: 'auto', color: icon.color }}>✅</span>}
       </div>
-      
+
       <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '8px' }}>
         Tipo: {icon.label}
       </p>
-      
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: '14px' }}>
         {business.quantidade && (
           <p style={{ color: 'var(--text-primary)' }}>
@@ -120,30 +120,32 @@ export default function DashboardClient() {
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // 🔑 Carrega negócios assim que o componente monta.
+  //   Não espera pelo `user` — o RLS do Supabase decide o que é visível.
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-      return;
-    }
-    if (user) {
-      loadBusinesses();
-    }
-  }, [user, authLoading]);
+    loadBusinesses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadBusinesses = async () => {
     try {
-      if (!user) return;
+      console.log('[dashboard] user atual:', user?.id, user?.email);
 
+      // Sem filtro por user_id — o RLS trata da segurança.
       const { data, error } = await supabase
         .from('negocios')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[dashboard] erro:', error);
+        throw error;
+      }
+
+      console.log('[dashboard] devolvidos:', data?.length ?? 0);
       setBusinesses(data || []);
     } catch (error) {
-      console.error('Erro:', error);
+      console.error('[dashboard] catch:', error);
     } finally {
       setLoading(false);
     }
@@ -153,7 +155,7 @@ export default function DashboardClient() {
     setSelectedBusiness(business.id, business.tipo, business.nome);
   }, [setSelectedBusiness]);
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
         <p style={{ color: 'var(--text-secondary)' }}>A carregar negócios...</p>
@@ -167,7 +169,6 @@ export default function DashboardClient() {
 
   return (
     <div>
-      {/* POPUP DE COOKIES - PEQUENO */}
       <CookieConsent />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>

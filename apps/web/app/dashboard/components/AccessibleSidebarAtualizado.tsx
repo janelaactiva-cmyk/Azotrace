@@ -33,8 +33,22 @@ const productsItem: NavigationItem = {
   description: 'Categorias, campos e organização do catálogo.',
   children: [
     {
+      id: 'produtos-negocios',
+      label: 'Negócio',
+      icon: '🏢',
+       path: '/dashboard/administracao/negocios',
+      
+    },
+    {
+      id: 'produtos-campos',
+      label: 'Campos do Formulário',
+      icon: '🧾',
+      path: '/dashboard/administracao/campos',
+      
+    },
+    {
       id: 'produtos-categorias',
-      label: 'Categorias de Produtos',
+      label: 'Template do Website',
       icon: '🏷️',
       children: [
         {
@@ -67,31 +81,6 @@ const productsItem: NavigationItem = {
               path: '/dashboard/administracao/subcategorias/criar',
             },
           ],
-        },
-      ],
-    },
-    {
-      id: 'produtos-campos',
-      label: 'Campos dos Produtos',
-      icon: '🧾',
-      path: '/dashboard/administracao/campos',
-    },
-    {
-      id: 'produtos-negocios',
-      label: 'Negócio',
-      icon: '🏢',
-      children: [
-        {
-          id: 'negocios-formulario',
-          label: 'Formulário do Negócio',
-          icon: '📝',
-          path: '/dashboard/administracao/negocios/criar',
-        },
-        {
-          id: 'negocios-list',
-          label: 'Listar Negócios',
-          icon: '📋',
-          path: '/dashboard/administracao/negocios',
         },
       ],
     },
@@ -577,7 +566,6 @@ export default function AccessibleSidebarAtualizado({
       }}
       style={{ position: 'relative', width: '100%' }}
     >
-      {/* A mesma barra muda de compacta para expandida; os ícones não são duplicados. */}
       <ul style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: 0, padding: 0 }}>
         {mainItems.map((item) => {
           const active = itemContainsPath(item, pathname);
@@ -672,7 +660,6 @@ export default function AccessibleSidebarAtualizado({
         })}
       </ul>
 
-      {/* Barra contextual independente. O pin NÃO fixa esta barra. */}
       {isSidebarExpanded && selectedRoot?.children?.length && (
         <aside
           aria-label={`Opções de ${selectedRoot.label}`}
@@ -735,5 +722,4 @@ export default function AccessibleSidebarAtualizado({
       )}
     </nav>
   );
-
 }
