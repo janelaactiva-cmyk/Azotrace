@@ -5,21 +5,40 @@ import { usePathname } from 'next/navigation';
 
 const tabs = [
   {
+    id: 'listar',
+    label: 'Lista de Negócios',
+    icon: '📋',
+    href: '/dashboard/administracao/negocios',
+  },
+   {
+    id: 'campos',
+    label: 'Campos do Formulário',
+    icon: '🧾',
+    href: '/dashboard/administracao/negocios/campos',
+  },
+  
+  {
     id: 'formulario',
     label: 'Formulário do Negócio',
     icon: '📝',
     href: '/dashboard/administracao/negocios/criar',
   },
+ 
   {
-    id: 'listar',
-    label: 'Listar Negócios',
-    icon: '📋',
-    href: '/dashboard/administracao/negocios',
+    id: 'template',
+    label: 'Template do website',
+    icon: '🎨',
+    href: '/dashboard/administracao/negocios/template-website',
   },
 ];
 
 export default function TabsNegocios() {
   const pathname = usePathname();
+
+  // Descobre qual tab está ativa: a que tem o href MAIS LONGO que corresponde ao pathname atual
+  const activeTab = tabs
+    .filter((tab) => pathname === tab.href || pathname.startsWith(tab.href + '/'))
+    .sort((a, b) => b.href.length - a.href.length)[0];
 
   return (
     <nav
@@ -32,10 +51,7 @@ export default function TabsNegocios() {
       }}
     >
       {tabs.map((tab) => {
-        // Ativo quando pathname é exatamente a href OU começa por ela (ex: /criar/xyz)
-        const active =
-          pathname === tab.href ||
-          (tab.id === 'listar' && pathname.startsWith('/dashboard/administracao/negocios/') && !pathname.startsWith('/dashboard/administracao/negocios/criar'));
+        const active = activeTab?.id === tab.id;
 
         return (
           <Link

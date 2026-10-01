@@ -63,9 +63,8 @@ export default function PageClient() {
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: 'clamp(16px, 3vw, 34px)' }}>
       <Breadcrumb
         items={[
-          { label: 'Dashboard', href: '/dashboard' },
-          { label: 'Administração', href: '/dashboard/administracao' },
-          { label: 'Produtos', href: '/dashboard/administracao/produtos' },
+          
+          { label: 'Configurações', href: '/dashboard/administracao' },
           { label: 'Negócio' },
         ]}
       />
@@ -95,7 +94,7 @@ export default function PageClient() {
               📊 Lista de Negócios
             </h2>
             <button
-              onClick={() => router.push('/dashboard/administracao/negocios/criar')}
+              onClick={() => router.push('/dashboard/administracao/negocios/campos')}
               style={{
                 padding: '8px 16px',
                 background: '#2563eb',
@@ -105,7 +104,7 @@ export default function PageClient() {
                 cursor: 'pointer',
               }}
             >
-              ➕ Criar Negócio
+              ➕ Criar Novos Campos
             </button>
           </div>
 

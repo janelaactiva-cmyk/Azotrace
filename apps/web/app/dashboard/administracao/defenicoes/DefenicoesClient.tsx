@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '~/lib/supabase';
 import { useAuth } from '~/lib/auth-context';
 
-export default function ConfiguracoesClient() {
+export default function DefenicoesClient() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState({
@@ -25,9 +25,9 @@ export default function ConfiguracoesClient() {
     setLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      alert('✅ Configurações guardadas com sucesso!');
+      alert('✅ Defenições guardadas com sucesso!');
     } catch (error) {
-      alert('❌ Erro ao guardar configurações');
+      alert('❌ Erro ao guardar defenições');
     } finally {
       setLoading(false);
     }
@@ -40,7 +40,7 @@ export default function ConfiguracoesClient() {
   return (
     <div>
       <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
-        ⚙️ Configurações Gerais
+        ⚙️ Defenições Gerais
       </h2>
       
       <form onSubmit={handleSubmit} style={{ maxWidth: '600px' }}>
@@ -137,7 +137,7 @@ export default function ConfiguracoesClient() {
             opacity: loading ? 0.7 : 1
           }}
         >
-          {loading ? 'A guardar...' : '💾 Guardar Configurações'}
+          {loading ? 'A guardar...' : '💾 Guardar Defenições'}
         </button>
       </form>
     </div>

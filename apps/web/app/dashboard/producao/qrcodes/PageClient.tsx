@@ -20,7 +20,6 @@ interface NegocioItem {
   created_at: string;
 }
 
-// Definição dos campos disponíveis para configurar
 interface FieldConfig {
   key: keyof NegocioItem;
   label: string;
@@ -43,7 +42,6 @@ export default function PageClient() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedProductForModal, setSelectedProductForModal] = useState<NegocioItem | null>(null);
 
-  // Estados dos Checkboxes para o Website
   const [websiteFields, setWebsiteFields] = useState<Record<string, boolean>>({
     nome: true,
     tipo: true,
@@ -55,7 +53,6 @@ export default function PageClient() {
     observacoes: true,
   });
 
-  // Estados dos Checkboxes para o QR Code
   const [qrFields, setQrFields] = useState<Record<string, boolean>>({
     nome: true,
     tipo: true,
@@ -97,17 +94,14 @@ export default function PageClient() {
     (item.origem && item.origem.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Alternar checkbox do website
   const toggleWebsiteField = (key: string) => {
     setWebsiteFields(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Alternar checkbox do QR code
   const toggleQrField = (key: string) => {
     setQrFields(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Gera dinamicamente o objeto/JSON apenas com os campos selecionados para o QR Code
   const generateCustomQrPayload = (item: NegocioItem) => {
     const payloadData: Record<string, any> = { id: item.id };
     
@@ -127,7 +121,6 @@ export default function PageClient() {
   return (
     <div style={{ maxWidth: '1300px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
-      {/* Título Principal */}
       <div>
         <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
           ⚙️ Configuração Dinâmica de Campos (Website vs QR Code)
@@ -137,10 +130,8 @@ export default function PageClient() {
         </p>
       </div>
 
-      {/* PAINEL DE CHECKBOXES DE CONFIGURAÇÃO */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
         
-        {/* Caixa de Controlo para o Website */}
         <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', padding: '16px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', marginTop: 0, marginBottom: '10px', borderBottom: '1px solid #f3f4f6', paddingBottom: '8px' }}>
             🖥️ Campos Visíveis no Website
@@ -160,7 +151,6 @@ export default function PageClient() {
           </div>
         </div>
 
-        {/* Caixa de Controlo para o QR Code */}
         <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', padding: '16px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', marginTop: 0, marginBottom: '10px', borderBottom: '1px solid #f3f4f6', paddingBottom: '8px' }}>
             📱 Campos Codificados no QR Code
@@ -182,7 +172,6 @@ export default function PageClient() {
 
       </div>
 
-      {/* Barra de Pesquisa */}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <input
           type="text"
@@ -202,7 +191,6 @@ export default function PageClient() {
         />
       </div>
 
-      {/* Tabela de Negócios Dinâmica */}
       <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '10px', overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
@@ -301,7 +289,6 @@ export default function PageClient() {
         </div>
       </div>
 
-      {/* Modal de Detalhe e Inspeção do Payload do QR Code */}
       {selectedProductForModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ background: '#ffffff', padding: '30px', borderRadius: '12px', width: '450px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>

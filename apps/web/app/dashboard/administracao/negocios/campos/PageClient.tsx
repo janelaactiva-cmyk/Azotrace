@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '~/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 interface Field {
   name: string;
@@ -14,11 +15,16 @@ interface Field {
 }
 
 export default function PageClient() {
+  const router = useRouter();         
   const [fields, setFields] = useState<Field[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<Field>({ name: '', title: '', type: 'text', required: false });
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const formRef = useRef<HTMLFormElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  
 
   useEffect(() => {
     (async () => {
@@ -69,6 +75,10 @@ export default function PageClient() {
   const handleEdit = (i: number) => {
     setForm(fields[i]);
     setEditingIdx(i);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      nameInputRef.current?.focus();
+    }, 50);
   };
 
   const handleDelete = async (i: number) => {
@@ -84,17 +94,56 @@ export default function PageClient() {
     await persist(next);
   };
 
+  const handleCreateNew = () => {
+    setForm({ name: '', title: '', type: 'text', required: false });
+    setEditingIdx(null);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      nameInputRef.current?.focus();
+    }, 50);
+  };
+
   if (loading) return <p style={{ padding: 40 }}>A carregar…</p>;
 
   return (
     <div>
-      <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
-        📋 Campos do Formulário do Negócio
-      </h2>
+      {/* CABEÇALHO */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '16px',
+        }}
+      >
+        <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', margin: 0 }}>
+          📋 Campos do Formulário do Negócio
+        </h2>
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard/administracao/negocios/criar')}
+            style={{
+            padding: '8px 16px',
+            background: '#2563eb',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+          }}
+        >
+          ➕ Criar Novo Formulário
+        </button>
+      </div>
 
-      <form onSubmit={handleSubmit} style={{ marginBottom: '24px', background: '#f9fafb', padding: '20px', borderRadius: '8px' }}>
+      {/* FORMULÁRIO */}
+      <form
+        ref={formRef}
+        onSubmit={handleSubmit}
+        style={{ marginBottom: '24px', background: '#f9fafb', padding: '20px', borderRadius: '8px', scrollMarginTop: '20px' }}
+      >
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
           <input
+            ref={nameInputRef}
             type="text"
             placeholder="Nome técnico (ex: data_producao)"
             value={form.name}
@@ -133,7 +182,6 @@ export default function PageClient() {
             style={{ flex: 1, minWidth: '180px', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
           />
 
-          {/* SUFIXO — só para Número */}
           {form.type === 'number' && (
             <select
               value={form.suffix || ''}
@@ -141,62 +189,52 @@ export default function PageClient() {
               style={{ padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', minWidth: '200px' }}
             >
               <option value="">— Sem sufixo —</option>
-
               <optgroup label="Temperatura">
                 <option value="°C">°C (Celsius)</option>
                 <option value="°F">°F (Fahrenheit)</option>
                 <option value="K">K (Kelvin)</option>
               </optgroup>
-
               <optgroup label="Massa / Peso">
                 <option value="kg">kg (quilograma)</option>
                 <option value="g">g (grama)</option>
                 <option value="mg">mg (miligrama)</option>
                 <option value="t">t (tonelada)</option>
               </optgroup>
-
               <optgroup label="Volume">
                 <option value="L">L (litro)</option>
                 <option value="mL">mL (mililitro)</option>
                 <option value="m³">m³ (metro cúbico)</option>
                 <option value="cm³">cm³ (centímetro cúbico)</option>
               </optgroup>
-
               <optgroup label="Comprimento">
                 <option value="m">m (metro)</option>
                 <option value="cm">cm (centímetro)</option>
                 <option value="mm">mm (milímetro)</option>
                 <option value="km">km (quilómetro)</option>
               </optgroup>
-
               <optgroup label="Percentagem">
                 <option value="%">% (percentagem)</option>
                 <option value="‰">‰ (permilagem)</option>
               </optgroup>
-
               <optgroup label="Área">
                 <option value="m²">m² (metro quadrado)</option>
                 <option value="cm²">cm² (centímetro quadrado)</option>
                 <option value="ha">ha (hectare)</option>
               </optgroup>
-
               <optgroup label="Velocidade">
                 <option value="km/h">km/h (quilómetros por hora)</option>
                 <option value="m/s">m/s (metros por segundo)</option>
               </optgroup>
-
               <optgroup label="Energia">
                 <option value="kWh">kWh (quilowatt-hora)</option>
                 <option value="J">J (joule)</option>
                 <option value="kcal">kcal (quilocaloria)</option>
               </optgroup>
-
               <optgroup label="Moeda">
                 <option value="€">€ (Euro)</option>
                 <option value="$">$ (Dólar)</option>
                 <option value="£">£ (Libra)</option>
               </optgroup>
-
               <optgroup label="Outros">
                 <option value="un">un (unidade)</option>
                 <option value="pç">pç (peça)</option>
@@ -207,7 +245,6 @@ export default function PageClient() {
             </select>
           )}
 
-          {/* FORMATO DE DATA — só para Data */}
           {form.type === 'date' && (
             <select
               value={form.dateFormat || 'date'}
@@ -241,6 +278,7 @@ export default function PageClient() {
         </div>
       </form>
 
+      {/* TABELA */}
       <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ background: '#f9fafb' }}>

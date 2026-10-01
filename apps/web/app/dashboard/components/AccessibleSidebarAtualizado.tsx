@@ -27,64 +27,11 @@ type AccessibleSidebarProps = {
 };
 
 const productsItem: NavigationItem = {
-  id: 'produtos',
-  label: 'Produtos',
+  id: 'negocio',
+  label: 'Negócio',
   icon: '📦',
-  description: 'Categorias, campos e organização do catálogo.',
-  children: [
-    {
-      id: 'produtos-negocios',
-      label: 'Negócio',
-      icon: '🏢',
-       path: '/dashboard/administracao/negocios',
-      
-    },
-    {
-      id: 'produtos-campos',
-      label: 'Campos do Formulário',
-      icon: '🧾',
-      path: '/dashboard/administracao/campos',
-      
-    },
-    {
-      id: 'produtos-categorias',
-      label: 'Template do Website',
-      icon: '🏷️',
-      children: [
-        {
-          id: 'categorias-list',
-          label: 'Listar Categorias',
-          icon: '📋',
-          path: '/dashboard/administracao/categorias',
-        },
-        {
-          id: 'categorias-create',
-          label: 'Criar Categoria',
-          icon: '➕',
-          path: '/dashboard/administracao/categorias/criar',
-        },
-        {
-          id: 'categorias-sub',
-          label: 'Subcategorias',
-          icon: '📂',
-          children: [
-            {
-              id: 'sub-list',
-              label: 'Listar Subcategorias',
-              icon: '📋',
-              path: '/dashboard/administracao/subcategorias',
-            },
-            {
-              id: 'sub-create',
-              label: 'Criar Subcategoria',
-              icon: '➕',
-              path: '/dashboard/administracao/subcategorias/criar',
-            },
-          ],
-        },
-      ],
-    },
-  ],
+  description: 'Dados do negócio, campos, categorias e template do website.',
+  path: '/dashboard/administracao/negocios',
 };
 
 const usersItem: NavigationItem = {
@@ -221,7 +168,7 @@ const securityItem: NavigationItem = {
 
 const administrationItem: NavigationItem = {
   id: 'administracao',
-  label: 'Administração',
+  label: 'Configurações',
   icon: '⚙️',
   description: 'Gerir produtos, utilizadores, privacidade e segurança.',
   children: [productsItem, usersItem, rgpdItem, securityItem],
@@ -237,13 +184,13 @@ const productionItem: NavigationItem = {
       id: 'producao-qrcode',
       label: 'QR Code',
       icon: '▦',
-      path: '/dashboard/administracao/qrcodes',
+      path: '/dashboard/producao/qrcodes',
     },
     {
       id: 'producao-blockchain',
       label: 'Blockchain',
       icon: '⛓️',
-      path: '/dashboard/blockchain',
+      path: '/dashboard/producao/blockchain',
     },
     {
       id: 'producao-inserir-dados',
