@@ -1,5 +1,4 @@
-import { renderPublishedBusinessWebsite } from '../dashboard/administracao/produtos/template-website/_lib/server/public-site-route';
-
+import { renderPublishedBusinessWebsite } from '../dashboard/website/template-website/_lib/server/public-site-route';
 export async function GET(
   _request: Request,
   {
