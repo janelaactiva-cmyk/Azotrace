@@ -12,7 +12,14 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Azotrace',
-  description: 'Sistema de gestão de negócios agrícolas',
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
   icons: {
     icon: '/assets/images//favicon.png', // Podes alterar para o caminho do teu ícone se estiver na pasta public
   },
