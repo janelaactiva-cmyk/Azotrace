@@ -1,0 +1,58 @@
+:global(#dashboard-sidebar) {
+  border-right-color: var(--azotrace-business-accent, #47B37D) !important;
+}
+
+:global(#dashboard-sidebar [aria-label^="Opções de"]) {
+  border-right-color: var(--azotrace-business-accent, #47B37D) !important;
+}
+
+
+.bar, .emptyBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 13px 15px;
+  border: 1px solid #e0e6eb;
+  border-left: 5px solid var(--accent, #47B37D);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, .04);
+}
+
+.emptyBar strong, .emptyBar span { display: block; }
+.emptyBar strong { font-size: 13px; color: #17232d; }
+.emptyBar span { margin-top: 2px; font-size: 12px; color: #74818d; }
+
+.identity { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent), transparent 82%); flex: 0 0 auto; }
+.identity > div { min-width: 0; }
+.kicker { display: block; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .13em; color: #8a96a0; }
+.identity strong { display: block; margin-top: 1px; font-size: 14px; color: #17232d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.identity small { display: block; margin-top: 2px; font-size: 12px; color: #74818d; }
+
+.controls { display: flex; align-items: end; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.selectWrap { display: grid; gap: 3px; font-size: 12px; font-weight: 700; color: #75828d; }
+.selectWrap select { min-width: 180px; height: 34px; border: 1px solid #cfd8df; border-radius: 7px; background: #fff; padding: 0 29px 0 10px; color: #26343f; font-size: 12px; }
+
+.addButton, .manageButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+}
+.addButton { background: var(--accent, #47B37D); color: #fff; }
+.manageButton { border: 1px solid #cfd8df; background: #fff; color: #34424d; }
+
+@media (max-width: 720px) {
+  .bar, .emptyBar { align-items: flex-start; flex-direction: column; }
+  .controls { width: 100%; justify-content: flex-start; }
+  .selectWrap, .selectWrap select { width: 100%; }
+  .addButton, .manageButton { flex: 1; }
+}

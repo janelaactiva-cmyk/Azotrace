@@ -83,7 +83,7 @@ export default function CookiePopup() {
           padding: '8px 12px',
           background: '#0f172a',
           borderRadius: '6px',
-          fontSize: '11px',
+          fontSize: '12px',
           color: '#ffffff',
           wordBreak: 'break-all',
           maxHeight: '60px',

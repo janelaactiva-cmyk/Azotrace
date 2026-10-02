@@ -262,7 +262,7 @@ function ImageUploadField(props: {
                   </div>
 
                   <div data-image-upload-help>
-                    JPG, PNG ou WebP. A imagem é carregada para o Supabase Storage quando o Supabase está ativo.
+                    JPG, PNG ou WebP. A imagem é guardada no Supabase Storage do negócio.
                   </div>
                   {uploadError ? <div data-image-upload-error>{uploadError}</div> : null}
                 </div>
@@ -325,12 +325,12 @@ function EditorSection(props: {
           <div data-editor-section-title-row className="flex items-center gap-2">
             <span data-editor-section-title className="text-sm font-semibold text-slate-900 dark:text-slate-100">{props.title}</span>
             {props.badge ? (
-              <span data-editor-section-badge className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+              <span data-editor-section-badge className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[12px] font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                 {props.badge}
               </span>
             ) : null}
           </div>
-          <p className="mt-0.5 text-[11px] leading-4 text-slate-500 dark:text-slate-400">{props.description}</p>
+          <p className="mt-0.5 text-[12px] leading-4 text-slate-500 dark:text-slate-400">{props.description}</p>
         </div>
         <span className="text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
       </summary>
@@ -345,7 +345,7 @@ function EditorSection(props: {
 function ItemCard(props: { title: string; children: ReactNode }) {
   return (
     <div data-item-card className="space-y-3 rounded-sm border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div data-item-card-title className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{props.title}</div>
+      <div data-item-card-title className="text-[12px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{props.title}</div>
       {props.children}
     </div>
   );
@@ -503,7 +503,7 @@ export function WebsiteTemplateEditor(props: Props) {
                     data-active={active ? 'true' : 'false'}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`relative shrink-0 rounded-t-sm border border-transparent border-b-0 px-4 py-2 text-[10px] font-semibold uppercase tracking-wide transition-colors ${
+                    className={`relative shrink-0 rounded-t-sm border border-transparent border-b-0 px-4 py-2 text-[12px] font-semibold uppercase tracking-wide transition-colors ${
                       active
                         ? 'border-slate-300 bg-white text-slate-900 dark:bg-slate-950'
                         : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -759,7 +759,7 @@ export function WebsiteTemplateEditor(props: Props) {
                   <div className="rounded-sm border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                     <div className="mb-4">
                       <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Paleta de cores</h3>
-                      <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">As alterações serão verificadas no preview final no separador Publicação.</p>
+                      <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">As alterações serão verificadas no preview final no separador Publicação.</p>
                     </div>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                       {[
@@ -781,7 +781,7 @@ export function WebsiteTemplateEditor(props: Props) {
                               <FormControl>
                                 <div className="flex items-center gap-3 rounded-md border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-950">
                                   <Input type="color" {...field} className="h-8 w-10 cursor-pointer border-0 p-0" />
-                                  <span className="truncate font-mono text-[11px] text-slate-500 dark:text-slate-400">{field.value}</span>
+                                  <span className="truncate font-mono text-[12px] text-slate-500 dark:text-slate-400">{field.value}</span>
                                 </div>
                               </FormControl>
                               <FormMessage />
@@ -807,7 +807,7 @@ export function WebsiteTemplateEditor(props: Props) {
                 <Workspace preview={preview}>
                   <div className="space-y-4 rounded-sm border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                     <div className="border-b border-slate-200 pb-4 dark:border-slate-800">
-                      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Estado atual</div>
+                      <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">Estado atual</div>
                       <div className="mt-2 flex items-center gap-2">
                         <span className={`h-2.5 w-2.5 rounded-full ${status === 'published' ? 'bg-emerald-500' : 'bg-amber-400'}`} />
                         <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -817,14 +817,14 @@ export function WebsiteTemplateEditor(props: Props) {
                     </div>
 
                     <div>
-                      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Template</div>
+                      <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">Template</div>
                       <div className="mt-1 text-sm font-medium text-slate-900 dark:text-slate-100">
                         {templateId.replace('template-', 'Template ')}
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Alterações</div>
+                      <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">Alterações</div>
                       <div className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                         {form.formState.isDirty ? 'Existem alterações por guardar.' : 'Tudo guardado.'}
                       </div>
@@ -849,7 +849,7 @@ export function WebsiteTemplateEditor(props: Props) {
               <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
                 {form.formState.isDirty ? 'Existem alterações por guardar' : 'Website atualizado'}
               </div>
-              <div className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+              <div className="mt-0.5 text-[12px] text-slate-500 dark:text-slate-400">
                 {status === 'published' ? 'Estado atual: publicado' : 'Estado atual: rascunho'}
               </div>
             </div>

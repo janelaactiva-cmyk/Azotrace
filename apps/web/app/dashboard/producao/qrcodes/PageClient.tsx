@@ -195,7 +195,7 @@ export default function PageClient() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
             <thead>
-              <tr style={{ background: '#f9fafb', color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb' }}>
+              <tr style={{ background: '#f9fafb', color: '#6b7280', fontSize: '12px', textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb' }}>
                 <th style={{ padding: '12px 16px' }}>QR Code (Customizado)</th>
                 {websiteFields.nome && <th style={{ padding: '12px 16px' }}>Produto</th>}
                 {websiteFields.tipo && <th style={{ padding: '12px 16px' }}>Tipo</th>}
@@ -234,7 +234,7 @@ export default function PageClient() {
 
                       {websiteFields.tipo && (
                         <td style={{ padding: '12px 16px', textTransform: 'capitalize' }}>
-                          <span style={{ background: '#eff6ff', color: '#2563eb', padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>
+                          <span style={{ background: '#eff6ff', color: '#2563eb', padding: '3px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
                             {item.tipo || 'Geral'}
                           </span>
                         </td>
@@ -269,7 +269,7 @@ export default function PageClient() {
                       <td style={{ padding: '12px 16px' }}>
                         <button
                           onClick={() => setSelectedProductForModal(item)}
-                          style={{ padding: '6px 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                          style={{ padding: '6px 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
                         >
                           Ver QR Code
                         </button>
@@ -304,7 +304,7 @@ export default function PageClient() {
               />
             </div>
 
-            <div style={{ fontSize: '11px', textAlign: 'left', background: '#f3f4f6', padding: '12px', borderRadius: '6px', color: '#374151', fontFamily: 'monospace', maxHeight: '120px', overflowY: 'auto' }}>
+            <div style={{ fontSize: '12px', textAlign: 'left', background: '#f3f4f6', padding: '12px', borderRadius: '6px', color: '#374151', fontFamily: 'monospace', maxHeight: '120px', overflowY: 'auto' }}>
               <strong>Conteúdo exato codificado no QR:</strong>
               <pre style={{ margin: '4px 0 0 0', whiteSpace: 'pre-wrap' }}>{generateCustomQrPayload(selectedProductForModal)}</pre>
             </div>

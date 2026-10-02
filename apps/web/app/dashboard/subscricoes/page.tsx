@@ -356,7 +356,7 @@ export default function SubscricoesAnuaisPage() {
         <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
             <thead style={{ position: 'sticky', top: 0, background: cardBg, zIndex: 1 }}>
-              <tr style={{ color: subTextColor, fontSize: '11px', textTransform: 'uppercase', borderBottom: `1px solid ${borderColor}` }}>
+              <tr style={{ color: subTextColor, fontSize: '12px', textTransform: 'uppercase', borderBottom: `1px solid ${borderColor}` }}>
                 <th style={{ padding: '12px 16px' }}>Cód.</th>
                 <th style={{ padding: '12px 16px' }}>Email (Supabase)</th>
                 <th style={{ padding: '12px 16px' }}>NIF</th>
@@ -408,7 +408,7 @@ export default function SubscricoesAnuaisPage() {
           <h2 style={{ fontSize: '15px', fontWeight: 'bold', margin: 0, color: textColor }}>
             🧾 CHECKOUT & HISTÓRICO — {selectedSub.email}
           </h2>
-          <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '20px', background: calculation.isUpgrade ? '#10b98122' : '#ef444422', color: calculation.isUpgrade ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
+          <span style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '20px', background: calculation.isUpgrade ? '#10b98122' : '#ef444422', color: calculation.isUpgrade ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
             {calculation.isUpgrade ? 'UPGRADE PROPORCIONAL' : 'DOWNGRADE DE PLANO'}
           </span>
         </div>
@@ -429,7 +429,7 @@ export default function SubscricoesAnuaisPage() {
             <div style={{ maxHeight: '130px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {currentClientHistory && currentClientHistory.length > 0 ? (
                 currentClientHistory.map((h: SubscriptionHistoryItem, i: number) => (
-                  <div key={i} style={{ background: isDark ? '#37415144' : '#e5e7eb66', padding: '6px', borderRadius: '6px', fontSize: '11px' }}>
+                  <div key={i} style={{ background: isDark ? '#37415144' : '#e5e7eb66', padding: '6px', borderRadius: '6px', fontSize: '12px' }}>
                     <div><strong>Data:</strong> {h.purchasedAt || ''}</div>
                     <div>Plano Anterior: <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{h.oldPlan}</span></div>
                     <div>Novo Plano: <span style={{ color: '#10b981', fontWeight: 'bold' }}>{h.newPlan}</span></div>

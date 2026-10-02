@@ -196,7 +196,7 @@ export default function MenuAdmin({ onItemClick }: { onItemClick?: (path: string
       >
         <span>⚙️ Administração</span>
         <span style={{ 
-          fontSize: '10px',
+          fontSize: '12px',
           transition: 'transform 0.2s',
           transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)'
         }}>

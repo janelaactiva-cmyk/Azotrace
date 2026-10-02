@@ -364,7 +364,7 @@ export default function Chatbot() {
                 >
                   {msg.text}
                 </div>
-                <span style={{ fontSize: '10px', color: '#94a3b8', padding: '0 4px' }}>
+                <span style={{ fontSize: '12px', color: '#94a3b8', padding: '0 4px' }}>
                   {formatTime(msg.timestamp)}
                 </span>
               </div>

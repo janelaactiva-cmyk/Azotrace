@@ -61,7 +61,7 @@ export default function CookieConsent() {
           <p style={{ fontSize: '13px', fontWeight: '500', margin: 0 }}>
             Utilizamos cookies para autenticação.
           </p>
-          <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 0 0' }}>
+          <p style={{ fontSize: '12px', color: '#94a3b8', margin: '2px 0 0 0' }}>
             Aceita os cookies para uma melhor experiência?
           </p>
         </div>

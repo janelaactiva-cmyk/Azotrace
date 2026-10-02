@@ -26,177 +26,93 @@ type AccessibleSidebarProps = {
   onNavigate?: () => void;
 };
 
-const productsItem: NavigationItem = {
-  id: 'negocio',
-  label: 'Negócio',
-  icon: '📦',
-  description: 'Dados do negócio, campos, categorias e template do website.',
-  path: '/dashboard/administracao/negocios',
-};
-
-const usersItem: NavigationItem = {
-  id: 'users',
-  label: 'Utilizadores',
-  icon: '👥',
-  description: 'Contas, perfis, permissões e acessos.',
+const productionItem: NavigationItem = {
+  id: 'producao',
+  label: 'Produção',
+  icon: '🏭',
+  description: 'Operação diária do negócio ativo.',
   children: [
-    {
-      id: 'users-list',
-      label: 'Listar Utilizadores',
-      icon: '📋',
-      path: '/dashboard/administracao/utilizadores',
-    },
-    {
-      id: 'users-create',
-      label: 'Criar Utilizador',
-      icon: '➕',
-      path: '/dashboard/administracao/utilizadores/criar',
-    },
-    {
-      id: 'users-edit',
-      label: 'Editar Utilizador',
-      icon: '✏️',
-      path: '/dashboard/administracao/utilizadores/editar',
-    },
-    {
-      id: 'users-perfis',
-      label: 'Perfis e Permissões',
-      icon: '🔑',
-      path: '/dashboard/administracao/perfis',
-    },
+    { id: 'producao-inserir', label: 'Inserir dados', icon: '✍️', path: '/dashboard/producao/inserir-dados' },
+    { id: 'producao-registos', label: 'Registos', icon: '📋', path: '/dashboard/producao/registos' },
+    { id: 'producao-etapas', label: 'Etapas', icon: '🧭', path: '/dashboard/producao/etapas' },
+    { id: 'producao-qualidade', label: 'Qualidade', icon: '✅', path: '/dashboard/producao/qualidade' },
+    { id: 'producao-importar', label: 'Importar dados', icon: '📥', path: '/dashboard/producao/importar' },
+    { id: 'producao-unidades', label: 'Unidades de produção', icon: '🏗️', path: '/dashboard/producao/unidades' },
+    { id: 'produtos', label: 'Produtos', icon: '📦', description: 'Produtos e configuração dos respetivos dados.', path: '/dashboard/produtos' },
+    { id: 'lotes', label: 'Lotes', icon: '🗂️', description: 'Lotes e respetiva origem.', path: '/dashboard/lotes' },
   ],
 };
 
-const rgpdItem: NavigationItem = {
-  id: 'rgpd',
-  label: 'RGPD / Privacidade',
-  icon: '🔒',
-  description: 'Consentimentos, direitos dos titulares e retenção de dados.',
+const traceabilityItem: NavigationItem = {
+  id: 'rastreabilidade',
+  label: 'Rastreabilidade',
+  icon: '🔗',
+  description: 'Publicação para o consumidor, relatórios e validação.',
   children: [
     {
-      id: 'rgpd-policy',
-      label: 'Política de Privacidade',
-      icon: '📄',
-      path: '/dashboard/administracao/rgpd/politica',
+      id: 'publicacao-qr',
+      label: 'Publicação e QR',
+      icon: '▦',
+      description: 'Escolher dados públicos, atualizar a página e imprimir o QR.',
+      path: '/dashboard/publicacao',
     },
     {
-      id: 'rgpd-consents',
-      label: 'Consentimentos',
-      icon: '✅',
-      path: '/dashboard/administracao/rgpd/consentimentos',
+      id: 'report-bi',
+      label: 'Report / BI',
+      icon: '📈',
+      description: 'Relatórios e indicadores do negócio.',
+      path: '/dashboard/analytics',
     },
     {
-      id: 'rgpd-requests',
-      label: 'Pedidos dos Titulares',
-      icon: '📨',
-      children: [
-        {
-          id: 'rgpd-requests-list',
-          label: 'Listar Pedidos',
-          icon: '📋',
-          path: '/dashboard/administracao/rgpd/pedidos',
-        },
-        {
-          id: 'rgpd-requests-new',
-          label: 'Novo Pedido',
-          icon: '➕',
-          path: '/dashboard/administracao/rgpd/pedidos/novo',
-        },
-        {
-          id: 'rgpd-requests-history',
-          label: 'Histórico de Pedidos',
-          icon: '📜',
-          children: [
-            { id: 'history-2024', label: '2024', icon: '📅', path: '/dashboard/administracao/rgpd/historico/2024' },
-            { id: 'history-2025', label: '2025', icon: '📅', path: '/dashboard/administracao/rgpd/historico/2025' },
-            { id: 'history-2026', label: '2026', icon: '📅', path: '/dashboard/administracao/rgpd/historico/2026' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'rgpd-export',
-      label: 'Exportação de Dados',
-      icon: '📤',
-      path: '/dashboard/administracao/rgpd/exportacao',
-    },
-    {
-      id: 'rgpd-delete',
-      label: 'Apagamento / Anonimização',
-      icon: '🗑️',
-      path: '/dashboard/administracao/rgpd/apagamento',
-    },
-    {
-      id: 'rgpd-retention',
-      label: 'Retenção de Dados',
-      icon: '🗓️',
-      path: '/dashboard/administracao/rgpd/retencao',
-    },
-    {
-      id: 'rgpd-contractors',
-      label: 'Subcontratantes',
-      icon: '🤝',
-      path: '/dashboard/administracao/rgpd/subcontratantes',
-    },
-    {
-      id: 'rgpd-activities',
-      label: 'Registo de Atividades',
-      icon: '📝',
-      path: '/dashboard/administracao/rgpd/atividades',
-    },
-  ],
-};
-
-const securityItem: NavigationItem = {
-  id: 'seguranca',
-  label: 'Segurança',
-  icon: '🛡️',
-  description: 'Auditoria e monitorização dos acessos e ações.',
-  children: [
-    {
-      id: 'seguranca-logs',
-      label: 'Logs / Auditoria',
-      icon: '📊',
-      children: [
-        { id: 'logs-acesso', label: 'Logs de Acesso', icon: '🔐', path: '/dashboard/administracao/logs/acesso' },
-        { id: 'logs-accao', label: 'Logs de Ações', icon: '📝', path: '/dashboard/administracao/logs/acoes' },
-        { id: 'logs-erro', label: 'Logs de Erros', icon: '❌', path: '/dashboard/administracao/logs/erros' },
-      ],
+      id: 'blockchain',
+      label: 'Blockchain',
+      icon: '⛓️',
+      description: 'Histórico e validação blockchain.',
+      path: '/dashboard/blockchain',
     },
   ],
 };
 
 const administrationItem: NavigationItem = {
   id: 'administracao',
-  label: 'Configurações',
+  label: 'Administração',
   icon: '⚙️',
-  description: 'Gerir produtos, utilizadores, privacidade e segurança.',
-  children: [productsItem, usersItem, rgpdItem, securityItem],
-};
-
-const productionItem: NavigationItem = {
-  id: 'producao',
-  label: 'Produção',
-  icon: '🏭',
-  description: 'Operações de rastreabilidade, QR Code e registo de dados.',
+  description: 'Configuração da empresa, equipa, privacidade e subscrição.',
   children: [
     {
-      id: 'producao-qrcode',
-      label: 'QR Code',
-      icon: '▦',
-      path: '/dashboard/producao/qrcodes',
+      id: 'negocio-config',
+      label: 'Negócio',
+      icon: '🏢',
+      description: 'Dados e configuração do negócio ativo.',
+      path: '/dashboard/administracao/negocios',
     },
     {
-      id: 'producao-blockchain',
-      label: 'Blockchain',
-      icon: '⛓️',
-      path: '/dashboard/producao/blockchain',
+      id: 'users',
+      label: 'Utilizadores',
+      icon: '👥',
+      description: 'Contas, perfis, permissões e acessos.',
+      path: '/dashboard/administracao/utilizadores',
     },
     {
-      id: 'producao-inserir-dados',
-      label: 'Inserir dados',
-      icon: '✍️',
-      path: '/dashboard/producao/inserir-dados',
+      id: 'rgpd',
+      label: 'RGPD / Privacidade',
+      icon: '🔒',
+      description: 'Privacidade, consentimentos e direitos dos titulares.',
+      path: '/dashboard/administracao/rgpd/politica',
+    },
+    {
+      id: 'seguranca',
+      label: 'Segurança',
+      icon: '🛡️',
+      description: 'Auditoria e monitorização dos acessos e ações.',
+      path: '/dashboard/administracao/logs/acesso',
+    },
+    {
+      id: 'pagamentos-subscricoes',
+      label: 'Pagamentos e subscrições',
+      icon: '💳',
+      description: 'Planos, pagamentos e subscrições.',
+      path: '/dashboard/subscricoes',
     },
   ],
 };
@@ -206,36 +122,17 @@ const mainItems: NavigationItem[] = [
     id: 'dashboard',
     label: 'Dashboard',
     icon: '📊',
-    description: 'Visão geral da atividade e dos indicadores principais.',
+    description: 'Visão geral da atividade.',
     path: '/dashboard',
   },
-  administrationItem,
-  {
-    id: 'pagamentos-subscricoes',
-    label: 'Pagamentos e subscrições',
-    icon: '💳',
-    description: 'Planos, pagamentos e estado das subscrições.',
-    path: '/dashboard/subscricoes',
-  },
-  {
-    id: 'chatbot',
-    label: 'Chatbot',
-    icon: '💬',
-    description: 'Configurar e acompanhar o assistente inteligente.',
-    path: '/dashboard/chatbot',
-  },
   productionItem,
-  {
-    id: 'report-bi',
-    label: 'Report / BI',
-    icon: '📈',
-    description: 'Relatórios, métricas e inteligência de negócio.',
-    path: '/dashboard/analytics',
-  },
+  traceabilityItem,
+  administrationItem,
 ];
 
 function itemContainsPath(item: NavigationItem, pathname: string): boolean {
   if (item.path === pathname) return true;
+  if (item.path && item.path !== '/dashboard' && pathname.startsWith(`${item.path}/`)) return true;
   return Boolean(item.children?.some((child) => itemContainsPath(child, pathname)));
 }
 
@@ -641,7 +538,7 @@ export default function AccessibleSidebarAtualizado({
             <div style={{ minWidth: 0 }}>
               <h2 style={{ margin: 0, color: sidebarTextColor, fontSize: '15px', lineHeight: 1.25 }}>{selectedRoot.label}</h2>
               {selectedRoot.description && (
-                <p style={{ margin: '6px 0 0', color: sidebarSubtext, fontSize: '11px', lineHeight: 1.5 }}>
+                <p style={{ margin: '6px 0 0', color: sidebarSubtext, fontSize: '12px', lineHeight: 1.5 }}>
                   {selectedRoot.description}
                 </p>
               )}

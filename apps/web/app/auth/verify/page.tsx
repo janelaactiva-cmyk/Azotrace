@@ -7,7 +7,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { MultiFactorChallengeContainer } from '@kit/auth/mfa';
 import { checkRequiresMultiFactorAuthentication } from '@kit/supabase/check-requires-mfa';
-import { getSupabaseServerClient } from '@kit/supabase/server-client';
+import { getSupabaseServerClient } from '~/lib/supabase-server';
 
 import { AuthFormSkeleton } from '~/components/skeletons/page-skeletons';
 import pathsConfig from '~/config/paths.config';
@@ -43,7 +43,7 @@ async function VerifyChallenge(props: Props) {
   // which <Suspense> does not fix the way it fixes uncached data
   await connection();
 
-  const client = getSupabaseServerClient();
+  const client = await getSupabaseServerClient();
 
   const { data } = await client.auth.getClaims();
 

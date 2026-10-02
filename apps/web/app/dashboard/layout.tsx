@@ -6,6 +6,8 @@ import { useTheme } from '~/lib/theme-context';
 import { useBusiness } from '~/lib/business-context';
 import { getBusinessIcon } from '~/lib/business-icons';
 import AccessibleSidebarAtualizado from './components/AccessibleSidebarAtualizado';
+import { BUSINESS_CHANGED_EVENT, BUSINESSES_UPDATED_EVENT, getActiveProducerState } from './onboarding/_lib/local-store';
+import { loadRemoteProducerState } from './onboarding/_lib/supabase-store';
 
 export default function DashboardLayout({
   children,
@@ -13,7 +15,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { theme, toggleTheme } = useTheme();
-  const { selectedBusinessType, selectedBusinessName } = useBusiness();
+  const { selectedBusinessId, selectedBusinessType, selectedBusinessName } = useBusiness();
 
   const [mounted, setMounted] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -21,6 +23,7 @@ export default function DashboardLayout({
   const [sidebarPinned, setSidebarPinned] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [appUsers, setAppUsers] = useState<any[]>([]);
+  const [workspaceAccent, setWorkspaceAccent] = useState<string>('');
 
   const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null);
   const [selectedUserName, setSelectedUserName] = useState<string | null>(null);
@@ -160,6 +163,34 @@ export default function DashboardLayout({
     };
   }, [isMobile, sidebarExpanded]);
 
+
+  useEffect(() => {
+    const syncBusinessAccent = async () => {
+      const businessId = selectedBusinessId ? String(selectedBusinessId) : '';
+      let state = getActiveProducerState(businessId || null);
+      if (!state && businessId) {
+        try {
+          state = await loadRemoteProducerState(businessId);
+        } catch (error) {
+          console.warn('Não foi possível carregar a cor do negócio do Supabase:', error);
+        }
+      }
+      const accent = state?.business.accentColor ?? '';
+      setWorkspaceAccent(accent);
+      if (accent) document.documentElement.style.setProperty('--azotrace-business-accent', accent);
+    };
+    void syncBusinessAccent();
+    const listener = () => void syncBusinessAccent();
+    window.addEventListener('storage', listener);
+    window.addEventListener(BUSINESS_CHANGED_EVENT, listener as EventListener);
+    window.addEventListener(BUSINESSES_UPDATED_EVENT, listener as EventListener);
+    return () => {
+      window.removeEventListener('storage', listener);
+      window.removeEventListener(BUSINESS_CHANGED_EVENT, listener as EventListener);
+      window.removeEventListener(BUSINESSES_UPDATED_EVENT, listener as EventListener);
+    };
+  }, [selectedBusinessId]);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -183,11 +214,11 @@ export default function DashboardLayout({
   const sidebarTextColor = isDark ? '#ffffff' : '#111827';
   const sidebarSubtext = isDark ? '#9ca3af' : '#6b7280';
   const sidebarActive = isDark ? '#374151' : '#e5e7eb';
-  const sidebarBorderColor = selectedBusinessType
+  const sidebarBorderColor = workspaceAccent || (selectedBusinessType
     ? businessColor
     : isDark
       ? '#374151'
-      : '#e5e7eb';
+      : '#e5e7eb');
 
   const buttonBg = isDark ? '#374151' : '#f3f4f6';
   const buttonText = isDark ? '#ffffff' : '#111827';
@@ -241,7 +272,7 @@ export default function DashboardLayout({
         </button>
       )}
 
-      {sidebarExpanded && !isMobile && (
+      {sidebarExpanded && !isMobile && !sidebarPinned && (
         <button
           type="button"
           aria-label="Fechar menu"
@@ -312,7 +343,7 @@ export default function DashboardLayout({
           transition:
             'width 180ms ease, padding 180ms ease, transform 220ms ease, border-color 0.4s ease, background 0.3s ease, color 0.3s ease, box-shadow 180ms ease',
           borderRight: `4px solid ${sidebarBorderColor}`,
-          boxShadow: sidebarExpanded ? '8px 0 24px rgba(15, 23, 42, 0.18)' : 'none',
+          boxShadow: sidebarExpanded && !sidebarPinned ? '8px 0 24px rgba(15, 23, 42, 0.18)' : 'none',
           boxSizing: 'border-box',
         }}
       >
@@ -403,9 +434,9 @@ export default function DashboardLayout({
                   style={{
                     fontSize: '13px',
                     fontWeight: '600',
-                    color: businessColor,
+                    color: workspaceAccent || businessColor,
                     padding: '3px 8px',
-                    background: isDark ? `${businessColor}22` : `${businessColor}11`,
+                    background: isDark ? `${workspaceAccent || businessColor}22` : `${workspaceAccent || businessColor}11`,
                     borderRadius: '8px',
                     width: 'fit-content',
                     maxWidth: '100%',
@@ -425,7 +456,7 @@ export default function DashboardLayout({
                     background: '#2563eb22',
                     color: '#2563eb',
                     borderRadius: '4px',
-                    fontSize: '10px',
+                    fontSize: '12px',
                     fontWeight: 'bold',
                     wordBreak: 'break-all',
                   }}
@@ -560,12 +591,12 @@ export default function DashboardLayout({
                   borderBottom: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
                 }}
               >
-                <p style={{ fontSize: '10px', color: sidebarSubtext, margin: 0, fontWeight: 'bold' }}>
+                <p style={{ fontSize: '12px', color: sidebarSubtext, margin: 0, fontWeight: 'bold' }}>
                   {isSuperAdmin ? 'GERIR CONTAS (SUPABASE)' : 'SESSÃO'}
                 </p>
                 <p
                   style={{
-                    fontSize: '11px',
+                    fontSize: '12px',
                     color: sidebarTextColor,
                     margin: '2px 0 0 0',
                     wordBreak: 'break-all',
@@ -592,7 +623,7 @@ export default function DashboardLayout({
                       style={{
                         width: '100%',
                         padding: '5px 8px',
-                        fontSize: '11px',
+                        fontSize: '12px',
                         borderRadius: '4px',
                         border: `1px solid ${isDark ? '#4b5563' : '#d1d5db'}`,
                         background: isDark ? '#1f2937' : '#f9fafb',
@@ -629,7 +660,7 @@ export default function DashboardLayout({
                               }}
                               style={{
                                 padding: '6px 10px',
-                                fontSize: '11px',
+                                fontSize: '12px',
                                 borderBottom: `1px solid ${isDark ? '#4b5563' : '#f3f4f6'}`,
                                 cursor: 'pointer',
                                 color: isSelected ? '#2563eb' : sidebarTextColor,
@@ -650,7 +681,7 @@ export default function DashboardLayout({
                               <span style={{ fontWeight: '600' }}>
                                 {userName || 'Utilizador sem nome'}
                               </span>
-                              <span style={{ fontSize: '10px', color: sidebarSubtext }}>
+                              <span style={{ fontSize: '12px', color: sidebarSubtext }}>
                                 {userEmail}
                               </span>
                             </button>
@@ -660,7 +691,7 @@ export default function DashboardLayout({
                         <p
                           style={{
                             padding: '8px',
-                            fontSize: '11px',
+                            fontSize: '12px',
                             color: sidebarSubtext,
                             textAlign: 'center',
                             margin: 0,
@@ -696,7 +727,7 @@ export default function DashboardLayout({
                     textAlign: 'center',
                     color: '#eab308',
                     cursor: 'pointer',
-                    fontSize: '11px',
+                    fontSize: '12px',
                     fontWeight: 'bold',
                   }}
                 >
@@ -779,7 +810,7 @@ export default function DashboardLayout({
                 </div>
 
                 <span
-                  style={{ fontSize: '9px', color: sidebarSubtext, flexShrink: 0 }}
+                  style={{ fontSize: '12px', color: sidebarSubtext, flexShrink: 0 }}
                   aria-hidden="true"
                 >
                   {profileMenuOpen ? '▼' : '▲'}
@@ -843,12 +874,13 @@ export default function DashboardLayout({
         id="dashboard-main"
         tabIndex={-1}
         style={{
-          marginLeft: isMobile ? '0' : '72px',
+          marginLeft: isMobile ? '0' : sidebarPinned ? '248px' : '72px',
           flex: 1,
           padding: isMobile ? '72px 16px 24px' : '32px 40px',
           background: isDark ? '#111827' : '#f3f4f6',
           minHeight: '100vh',
           color: isDark ? '#e5e7eb' : '#111827',
+          transition: 'margin-left 180ms ease, background 0.3s ease, color 0.3s ease',
         }}
       >
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>{children}</div>

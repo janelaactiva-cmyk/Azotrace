@@ -154,7 +154,7 @@ export default function CookieChecker() {
       )}
 
       <div style={{ marginTop: '8px' }}>
-        <p style={{ fontSize: '11px', color: '#9ca3af' }}>
+        <p style={{ fontSize: '12px', color: '#9ca3af' }}>
           💡 Os cookies de autenticação (sb-*) são HttpOnly e não aparecem aqui.
           Para os ver, usa DevTools → Application → Cookies.
         </p>

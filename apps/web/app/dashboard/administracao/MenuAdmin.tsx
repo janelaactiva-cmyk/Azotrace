@@ -171,7 +171,7 @@ export default function MegaMenu({ onItemClick }: { onItemClick?: (path: string)
         <span>⚙️</span>
         <span style={{ flex: 1, fontWeight: isActive ? '600' : 'normal' }}>Administração</span>
         <span style={{ 
-          fontSize: '10px', 
+          fontSize: '12px', 
           transform: openMenu ? 'rotate(180deg)' : 'rotate(0deg)',
           color: currentColor
         }}>
