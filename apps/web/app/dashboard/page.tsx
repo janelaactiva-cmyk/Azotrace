@@ -1,5 +1,7 @@
-import { ProducerDashboard } from './_components/ProducerDashboard';
+import { DashboardHome } from './_components/DashboardHome';
+
+export const instant = false;
 
 export default function DashboardPage() {
-  return <ProducerDashboard />;
+  return <DashboardHome />;
 }

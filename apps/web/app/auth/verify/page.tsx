@@ -52,13 +52,13 @@ async function VerifyChallenge(props: Props) {
   }
 
   const needsMfa = await checkRequiresMultiFactorAuthentication(client);
+  const nextPath = (await props.searchParams).next;
+  const validNext = typeof nextPath === 'string' && nextPath.startsWith('/') && !nextPath.startsWith('//') && !nextPath.includes('\\');
+  const redirectPath = validNext && nextPath !== '/home' ? nextPath : pathsConfig.app.home;
 
   if (!needsMfa) {
-    redirect(pathsConfig.auth.signIn);
+    redirect(redirectPath);
   }
-
-  const nextPath = (await props.searchParams).next;
-  const redirectPath = nextPath ?? pathsConfig.app.home;
 
   return (
     <MultiFactorChallengeContainer

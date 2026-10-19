@@ -1,17 +1,22 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '~/lib/supabase';
 import Logo from '~/components/Logo';
 import Link from 'next/link';
+import { safeAuthNext, googleCallbackUrl } from '~/lib/auth-navigation';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromCheckout = searchParams.get('from') === 'checkout';
+  const requestedNext = searchParams.get('next');
+  const safeNext = safeAuthNext(requestedNext);
+  const redirectPath = fromCheckout ? '/checkout/success' : safeNext;
   
   const [loading, setLoading] = useState(false);
+  const googlePending = useRef(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,15 +25,11 @@ function LoginForm() {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        if (fromCheckout) {
-          router.push('/checkout/success');
-        } else {
-          router.push('/dashboard');
-        }
+        router.replace(redirectPath);
       }
     };
     checkAuth();
-  }, [router, fromCheckout]);
+  }, [router, redirectPath]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,11 +45,7 @@ function LoginForm() {
       if (error) throw error;
 
       if (data?.user) {
-        if (fromCheckout) {
-          router.push('/checkout/success');
-        } else {
-          router.push('/dashboard');
-        }
+        router.replace(redirectPath);
         router.refresh();
       }
     } catch (err: any) {
@@ -60,21 +57,28 @@ function LoginForm() {
 
   // Função para autenticação com o Google
   const handleGoogleLogin = async () => {
+    if (googlePending.current || loading) return;
+    googlePending.current = true;
+    setLoading(true);
     try {
       setError('');
-      const redirectToUrl = fromCheckout 
-        ? `${window.location.origin}/checkout/success` 
-        : `${window.location.origin}/dashboard`;
+      const redirectToUrl = googleCallbackUrl(window.location.origin,redirectPath);
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectToUrl,
+          queryParams: {
+            prompt: 'select_account',
+            hl: 'pt-PT',
+          },
         },
       });
 
       if (error) throw error;
     } catch (err: any) {
+      googlePending.current = false;
+      setLoading(false);
       setError('❌ ' + (err.message || 'Erro ao entrar com o Google'));
     }
   };
@@ -129,6 +133,7 @@ function LoginForm() {
       <button
         type="button"
         onClick={handleGoogleLogin}
+        disabled={loading}
         style={{
           width: '100%',
           padding: '12px',

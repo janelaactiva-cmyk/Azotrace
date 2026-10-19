@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo } from 'react';
+import { ArrowRight, ClipboardList, Layers, Package, Plus, QrCode, Warehouse } from 'lucide-react';
 
 
 import {
@@ -9,6 +10,8 @@ import {
   type LocalProductionRecord,
 } from '../onboarding/_lib/local-store';
 import { useProducerWorkspace } from '../_lib/use-producer-workspace';
+import { hasPermission } from '../_lib/local-users';
+import { useLocalUser } from '../_lib/use-local-user';
 import { BusinessWorkspaceSwitcher } from './BusinessWorkspaceSwitcher';
 import styles from './producer-dashboard.module.css';
 
@@ -63,6 +66,8 @@ function newestFirst<T>(rows: T[], dateOf: (row: T) => string) {
 
 export function ProducerDashboard() {
   const { store, loading } = useProducerWorkspace();
+  const user = useLocalUser();
+  const canCreateBusiness = hasPermission(user, 'business.manage');
 
   const stats = useMemo(() => {
     const today = new Date();
@@ -147,14 +152,18 @@ export function ProducerDashboard() {
       <div className={styles.page}>
         <BusinessWorkspaceSwitcher />
         <section className={styles.welcomeEmpty}>
-          <span className={styles.eyebrow}>Primeiro acesso</span>
-          <h1>Bem-vindo ao Azotrace</h1>
+          <span className={styles.eyebrow}>{canCreateBusiness ? 'Primeiro acesso' : 'Sem negócio atribuído'}</span>
+          <h1>{canCreateBusiness ? 'Bem-vindo ao Azotrace' : 'Ainda não tens acesso a um negócio'}</h1>
           <p>
-            Cria o primeiro negócio, define o que produzes, as unidades de produção, os campos de registo e o primeiro lote. Os dados ficam associados à tua conta e sincronizados com o Supabase.
+            {canCreateBusiness
+              ? 'Cria o primeiro negócio da tua empresa, define o que produzes, as unidades de produção, os campos de registo e o primeiro lote.'
+              : 'Pede ao Admin da tua empresa para te adicionar a um negócio e atribuir as permissões necessárias para o teu trabalho.'}
           </p>
-          <Link className={styles.primaryButton} href="/dashboard/onboarding?new=1">
-            Criar primeiro negócio →
-          </Link>
+          {canCreateBusiness ? (
+            <Link className={styles.primaryButton} href="/dashboard/onboarding?new=1">
+              Criar primeiro negócio →
+            </Link>
+          ) : null}
         </section>
       </div>
     );
@@ -224,29 +233,29 @@ export function ProducerDashboard() {
         </div>
         <div className={styles.headerActions}>
           <Link className={styles.primaryButton} href="/dashboard/producao/inserir-dados">
-            + Inserir dados
+            <Plus size={16} strokeWidth={1.8} /> Inserir dados
           </Link>
         </div>
       </header>
 
       <section className={styles.statsGrid}>
         <article className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.iconGreen}`}>P</div>
+          <div className={`${styles.statIcon} ${styles.iconGreen}`}><Package size={18} strokeWidth={1.8} /></div>
           <div><span>Produtos ativos</span><strong>{stats.products}</strong></div>
           <small>{stats.productTypes} tipo(s) configurado(s)</small>
         </article>
         <article className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.iconBlue}`}>U</div>
+          <div className={`${styles.statIcon} ${styles.iconBlue}`}><Warehouse size={18} strokeWidth={1.8} /></div>
           <div><span>{unitLabel}</span><strong>{stats.units}</strong></div>
           <small>Unidades de origem da produção</small>
         </article>
         <article className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.iconOrange}`}>L</div>
+          <div className={`${styles.statIcon} ${styles.iconOrange}`}><Layers size={18} strokeWidth={1.8} /></div>
           <div><span>Lotes ativos</span><strong>{stats.activeBatches}</strong></div>
           <small>{stats.allBatches} lote(s) no total</small>
         </article>
         <article className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.iconPurple}`}>R</div>
+          <div className={`${styles.statIcon} ${styles.iconPurple}`}><ClipboardList size={18} strokeWidth={1.8} /></div>
           <div><span>Registos</span><strong>{stats.records}</strong></div>
           <small>{stats.todayRecords} criado(s) hoje</small>
         </article>
@@ -261,24 +270,24 @@ export function ProducerDashboard() {
         </div>
         <div className={styles.quickGrid}>
           <Link href="/dashboard/producao/inserir-dados" className={styles.quickCard}>
-            <span className={`${styles.quickIcon} ${styles.quickGreen}`}>+</span>
+            <span className={`${styles.quickIcon} ${styles.quickGreen}`}><Plus size={17} strokeWidth={1.8} /></span>
             <div><strong>Inserir dados</strong><small>Adicionar um novo registo de produção.</small></div>
-            <span className={styles.arrow}>→</span>
+            <span className={styles.arrow}><ArrowRight size={15} strokeWidth={1.8} /></span>
           </Link>
           <Link href="/dashboard/lotes" className={styles.quickCard}>
-            <span className={`${styles.quickIcon} ${styles.quickBlue}`}>L</span>
+            <span className={`${styles.quickIcon} ${styles.quickBlue}`}><Layers size={17} strokeWidth={1.8} /></span>
             <div><strong>Ver lotes</strong><small>Acompanhar lotes e respetiva origem.</small></div>
-            <span className={styles.arrow}>→</span>
+            <span className={styles.arrow}><ArrowRight size={15} strokeWidth={1.8} /></span>
           </Link>
           <Link href="/dashboard/producao/unidades" className={styles.quickCard}>
-            <span className={`${styles.quickIcon} ${styles.quickOrange}`}>U</span>
+            <span className={`${styles.quickIcon} ${styles.quickOrange}`}><Warehouse size={17} strokeWidth={1.8} /></span>
             <div><strong>Unidades de produção</strong><small>Estufas, colmeias, pipas ou outras unidades.</small></div>
-            <span className={styles.arrow}>→</span>
+            <span className={styles.arrow}><ArrowRight size={15} strokeWidth={1.8} /></span>
           </Link>
           <Link href="/dashboard/qrcodes" className={styles.quickCard}>
-            <span className={`${styles.quickIcon} ${styles.quickPurple}`}>QR</span>
+            <span className={`${styles.quickIcon} ${styles.quickPurple}`}><QrCode size={17} strokeWidth={1.8} /></span>
             <div><strong>QR Codes</strong><small>Gerar e gerir etiquetas de rastreabilidade.</small></div>
-            <span className={styles.arrow}>→</span>
+            <span className={styles.arrow}><ArrowRight size={15} strokeWidth={1.8} /></span>
           </Link>
         </div>
       </section>

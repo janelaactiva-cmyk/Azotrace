@@ -7,7 +7,7 @@ const PLANOS_DISPONIVEIS = [
   { id: 'price_1NxBaseIdDoStripe', name: 'Base' },
   { id: 'price_1NxEssentialIdDoStripe', name: 'Essential' },
   { id: 'price_1NxProIdDoStripe', name: 'Pro' },
-];
+] as const;
 
 interface ClientActionsProps {
   stripeSessionId: string;
@@ -15,7 +15,7 @@ interface ClientActionsProps {
 }
 
 export default function ClientActions({ stripeSessionId, currentPlanName }: ClientActionsProps) {
-  const [selectedPlan, setSelectedPlan] = useState(PLANOS_DISPONIVEIS[0].id);
+  const [selectedPlan, setSelectedPlan] = useState<string>(PLANOS_DISPONIVEIS[0].id);
   const [loading, setLoading] = useState(false);
 
   const handleAlterarPlano = async () => {

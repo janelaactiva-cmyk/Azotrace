@@ -1,3 +1,6 @@
+// Esta página depende da sessão validada pelo layout do dashboard.
+export const instant = false;
+
 import { redirect } from 'next/navigation';
 
 /**

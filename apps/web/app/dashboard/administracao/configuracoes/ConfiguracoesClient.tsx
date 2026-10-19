@@ -3,8 +3,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '~/lib/supabase';
 import { useAuth } from '~/lib/auth-context';
+import MfaSettings from '~/components/MfaSettings';
+import { useLocalUser } from '../../_lib/use-local-user';
 
 export default function ConfiguracoesClient() {
+  const appUser = useLocalUser();
+  const canManageGeneral = appUser.role === 'superadmin' || appUser.role === 'admin';
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState({
@@ -39,6 +43,9 @@ export default function ConfiguracoesClient() {
 
   return (
     <div>
+      <h1 style={{ fontSize: 25, marginBottom: 16 }}>Configurações</h1>
+      <MfaSettings />
+      {canManageGeneral ? <>
       <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
         ⚙️ Configurações Gerais
       </h2>
@@ -140,6 +147,7 @@ export default function ConfiguracoesClient() {
           {loading ? 'A guardar...' : '💾 Guardar Configurações'}
         </button>
       </form>
+      </> : null}
     </div>
   );
 }

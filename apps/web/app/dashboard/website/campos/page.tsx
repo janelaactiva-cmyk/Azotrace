@@ -1,3 +1,6 @@
+// Esta página depende da sessão validada pelo layout do dashboard.
+export const instant = false;
+
 import Breadcrumb from '../_components/Breadcrumb';
 import TabsNegocios from '../_components/TabsNegocios';
 import PageClient from './PageClient';

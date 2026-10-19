@@ -9,7 +9,7 @@ export default function PageClient() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !confirm) return;
-    if (!confirm('Tem certeza que deseja apagar todos os dados deste utilizador?')) return;
+    if (!window.confirm('Tem certeza que deseja apagar todos os dados deste utilizador?')) return;
     alert('🗑️ Dados de ' + email + ' serão apagados em 30 dias.');
     setEmail('');
     setConfirm(false);

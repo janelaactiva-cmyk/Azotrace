@@ -73,7 +73,9 @@ export default function PageClient() {
   };
 
   const handleEdit = (i: number) => {
-    setForm(fields[i]);
+    const field = fields[i];
+    if (!field) return;
+    setForm(field);
     setEditingIdx(i);
     setTimeout(() => {
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -90,7 +92,9 @@ export default function PageClient() {
     const j = i + dir;
     if (j < 0 || j >= fields.length) return;
     const next = [...fields];
-    [next[i], next[j]] = [next[j], next[i]];
+    const current = next[i], adjacent = next[j];
+    if (!current || !adjacent) return;
+    [next[i], next[j]] = [adjacent, current];
     await persist(next);
   };
 

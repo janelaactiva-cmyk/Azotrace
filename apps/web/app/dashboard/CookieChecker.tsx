@@ -23,7 +23,7 @@ export default function CookieChecker() {
     if (cookieString) {
       const cookiePairs = cookieString.split(';').map(c => c.trim());
       const parsed = cookiePairs.map(c => {
-        const [name, ...valueParts] = c.split('=');
+        const [name = '', ...valueParts] = c.split('=');
         return { name: name.trim(), value: valueParts.join('=') };
       });
       setCookies(parsed);

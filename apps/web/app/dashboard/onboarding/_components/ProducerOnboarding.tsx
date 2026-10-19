@@ -6,8 +6,12 @@ import { useRouter } from 'next/navigation';
 import { useBusiness } from '~/lib/business-context';
 
 import { BusinessWorkspaceSwitcher } from '../../_components/BusinessWorkspaceSwitcher';
+import { saveOnlineWorkspace } from '../../_lib/online-workspace';
+import { useLocalUser } from '../../_lib/use-local-user';
+import { getCurrentLocalUser, hasPermission, userCanAccessBusiness } from '../../_lib/local-users';
 
 import styles from '../onboarding.module.css';
+import { ProductTypeIcon } from './ProductTypeIcon';
 import {
   PRODUCER_PRESETS,
   getPreset,
@@ -18,12 +22,13 @@ import { buildRecordSchema } from '../_lib/dynamic-zod';
 import {
   createEmptyProducerState,
   getActiveProducerState,
+  imageFileToLocalDataUrl,
   makeLocalId,
   saveProducerState,
+  createAutomaticBatchForUnit,
   DEFAULT_BUSINESS_COLORS,
   type ProducerLocalState,
 } from '../_lib/local-store';
-import { loadRemoteProducerState, saveRemoteProducerState, uploadProducerAsset } from '../_lib/supabase-store';
 
 const STEP_LABELS = [
   'Bem-vindo',
@@ -32,7 +37,7 @@ const STEP_LABELS = [
   'Unidades',
   'Campos',
   'Etapas',
-  'Produto e lote',
+  'Produto e lotes',
   'Primeiro registo',
   'Concluído',
 ];
@@ -46,15 +51,12 @@ function makeKey(label: string) {
     .replace(/^_|_$/g, '');
 }
 
-function generateBatchCode(productTypeName: string) {
-  const prefix = makeKey(productTypeName).replace(/_/g, '').slice(0, 3).toUpperCase() || 'LOT';
-  return `${prefix}-${new Date().getFullYear()}-0001`;
-}
 
 export default function ProducerOnboarding({ forceNew = false }: { forceNew?: boolean }) {
   const router = useRouter();
   const initializedRef = useRef(false);
   const { selectedBusinessId, selectedBusinessName, setSelectedBusiness } = useBusiness();
+  const localUser = useLocalUser();
 
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -62,7 +64,7 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
   const [step, setStep] = useState(0);
   const [store, setStore] = useState<ProducerLocalState | null>(null);
 
-  const [companyName, setCompanyName] = useState(selectedBusinessName ?? '');
+  const [companyName, setCompanyName] = useState('');
   const [accentColor, setAccentColor] = useState(DEFAULT_BUSINESS_COLORS[0]!);
   const [businessKind, setBusinessKind] = useState('Produção');
   const [location, setLocation] = useState('');
@@ -84,9 +86,8 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
   const [productDescription, setProductDescription] = useState('');
   const [productImageFile, setProductImageFile] = useState<File | null>(null);
   const [productImageUrl, setProductImageUrl] = useState('');
-  const [batchCode, setBatchCode] = useState(`ANA-${new Date().getFullYear()}-0001`);
   const [batchStartDate, setBatchStartDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [selectedUnitIds, setSelectedUnitIds] = useState<string[]>([]);
+  const [selectedUnitId, setSelectedUnitId] = useState('');
 
   const [recordStageId, setRecordStageId] = useState('');
   const [recordValues, setRecordValues] = useState<Record<string, any>>({});
@@ -95,6 +96,9 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
   const selectedPreset = useMemo(() => getPreset(presetId), [presetId]);
 
   useEffect(() => {
+    // Só um Admin de uma empresa pode criar/configurar negócios. Esperamos que
+    // a identidade efetiva seja resolvida antes de inicializar o onboarding.
+    if (localUser.role !== 'admin' || !localUser.companyId || !hasPermission(localUser, 'business.manage')) return;
     if (initializedRef.current) return;
     initializedRef.current = true;
 
@@ -104,7 +108,7 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
       if (cancelled) return;
       setStore(next);
       setStep(Math.min(next.onboardingStep ?? 0, 8));
-      setCompanyName(next.business.name || selectedBusinessName || '');
+      setCompanyName(next.business.name || '');
       setBusinessKind(next.business.kind || 'Produção');
       setLocation(next.business.location || '');
       setLogoUrl(next.business.logoUrl || '');
@@ -120,7 +124,7 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
       if (next.units.length) {
         setUnits(next.units.map(({ id, code, name }) => ({ id, code, name })));
         setUnitCount(next.units.length);
-        setSelectedUnitIds(next.batches[0]?.unitIds?.length ? next.batches[0].unitIds : next.units.map((unit) => unit.id));
+        setSelectedUnitId(next.batches[0]?.productionUnitId || next.units[0]?.id || '');
       }
       if (next.fields.length) setFields(next.fields.map((field) => ({ ...field })));
       if (next.stages.length) {
@@ -134,7 +138,6 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
         setProductImageUrl(next.products[0].imageUrl ?? '');
       }
       if (next.batches[0]) {
-        setBatchCode(next.batches[0].code);
         setBatchStartDate(next.batches[0].startDate);
       }
       setLoaded(true);
@@ -142,44 +145,40 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
 
     const initialize = async () => {
       if (forceNew) {
-        applyState(createEmptyProducerState({ name: '' }));
+        applyState(createEmptyProducerState({
+          name: '',
+          companyId: localUser.companyId,
+        }));
         return;
       }
 
       const preferredId = selectedBusinessId ? String(selectedBusinessId) : null;
       const local = getActiveProducerState(preferredId);
-      if (local) applyState(local);
-
-      if (preferredId) {
-        try {
-          const remote = await loadRemoteProducerState(preferredId);
-          if (remote) {
-            applyState(remote);
-            return;
-          }
-          if (local) await saveRemoteProducerState(local);
-        } catch (cause) {
-          console.warn('Não foi possível carregar o onboarding do Supabase:', cause);
-          if (!local && !cancelled) setError('Não foi possível carregar os dados do negócio no Supabase.');
-        }
+      if (local && userCanAccessBusiness(localUser, local.business.id)) {
+        applyState(local);
+        return;
       }
 
-      if (!local && !cancelled) {
+      if (!cancelled) {
         applyState(createEmptyProducerState({
-          id: selectedBusinessId ? String(selectedBusinessId) : undefined,
-          name: selectedBusinessName ?? '',
+          companyId: localUser.companyId,
+          name: '',
         }));
       }
     };
 
     void initialize();
     return () => { cancelled = true; };
-  }, [forceNew, selectedBusinessId, selectedBusinessName]);
+  }, [forceNew, selectedBusinessId, selectedBusinessName, localUser.companyId]);
 
   const persist = async (next: ProducerLocalState) => {
+    const actor = getCurrentLocalUser();
+    if (!hasPermission(actor, 'business.manage') || actor.companyId !== next.business.companyId) {
+      throw new Error('Só o Admin da empresa pode guardar a configuração deste negócio.');
+    }
+    await saveOnlineWorkspace(next);
     saveProducerState(next);
-    setStore(next);
-    await saveRemoteProducerState(next);
+    setStore(getActiveProducerState(next.business.id) ?? next);
   };
 
   const runSave = async (fn: () => Promise<void> | void) => {
@@ -196,12 +195,9 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
 
   const saveCompany = async () => {
     if (!store) return;
-    if (!companyName.trim()) throw new Error('Indica o nome da empresa.');
+    if (!companyName.trim()) throw new Error('Indica o nome do negócio.');
 
-    // Garante que o negócio já existe no Supabase antes de carregar ficheiros
-    // para o Storage (as políticas usam o business_id como fronteira multitenant).
-    await saveRemoteProducerState(store);
-    const nextLogoUrl = logoFile ? await uploadProducerAsset(logoFile, store.business.id, 'logos') : logoUrl;
+    const nextLogoUrl = logoFile ? await imageFileToLocalDataUrl(logoFile) : logoUrl;
     const next: ProducerLocalState = {
       ...store,
       business: {
@@ -230,7 +226,6 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
     setUnitPrefix(preset.unitPrefix);
     setFields(preset.fields.map((field) => ({ ...field })));
     setStages([...preset.stages]);
-    setBatchCode(generateBatchCode(preset.defaultProductType || 'produto'));
     if (preset.defaultColor) setAccentColor(preset.defaultColor);
   };
 
@@ -252,7 +247,6 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
       onboardingStep: 3,
     };
     await persist(next);
-    setBatchCode(generateBatchCode(productTypeName));
     setStep(3);
   };
 
@@ -275,7 +269,7 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
     const next: ProducerLocalState = { ...store, units: storedUnits, onboardingStep: 4 };
     await persist(next);
     setUnits(source);
-    setSelectedUnitIds(storedUnits.map((unit) => unit.id));
+    setSelectedUnitId(storedUnits[0]?.id ?? '');
     setStep(4);
   };
 
@@ -315,12 +309,10 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
   const saveProductAndBatch = async () => {
     if (!store?.productType) throw new Error('Configuração incompleta.');
     if (!productName.trim()) throw new Error('Indica o nome do produto.');
-    if (!batchCode.trim()) throw new Error('Indica o código do lote.');
+    if (!store.units.length) throw new Error(`Cria pelo menos uma ${unitLabel.toLowerCase()} antes de continuar.`);
 
-    const nextImageUrl = productImageFile ? await uploadProducerAsset(productImageFile, store.business.id, 'produtos') : productImageUrl;
+    const nextImageUrl = productImageFile ? await imageFileToLocalDataUrl(productImageFile) : productImageUrl;
     const productId = store.products[0]?.id ?? makeLocalId('product');
-    const batchId = store.batches[0]?.id ?? makeLocalId('batch');
-
     const product = {
       id: productId,
       productTypeId: store.productType.id,
@@ -330,28 +322,36 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
       imageUrl: nextImageUrl || undefined,
     };
 
-    const batch = {
-      id: batchId,
-      productId,
-      code: batchCode.trim(),
-      startDate: batchStartDate,
-      status: 'active' as const,
-      unitIds: selectedUnitIds,
+    let next: ProducerLocalState = {
+      ...store,
+      products: [product, ...store.products.filter((item) => item.id !== productId)],
+      onboardingStep: 7,
     };
 
-    await persist({ ...store, products: [product, ...store.products.slice(1)], batches: [batch, ...store.batches.slice(1)], onboardingStep: 7 });
+    for (const unit of next.units.filter((item) => item.status === 'active')) {
+      next = createAutomaticBatchForUnit(next, unit.id, {
+        productId,
+        startDate: batchStartDate,
+      }).state;
+    }
+
+    await persist(next);
     setProductImageUrl(nextImageUrl);
+    setSelectedUnitId(next.units.find((item) => item.status === 'active')?.id ?? '');
     setStep(7);
   };
 
   const saveFirstRecord = async () => {
-    if (!store?.products[0] || !store.batches[0]) throw new Error('Produto ou lote em falta.');
+    if (!store?.products[0]) throw new Error('Produto em falta.');
+    const firstBatch = store.batches.find((batch) => batch.status === 'active' && batch.productionUnitId === selectedUnitId)
+      ?? store.batches.find((batch) => batch.status === 'active');
+    if (!firstBatch) throw new Error('Não existe um lote ativo para a unidade selecionada.');
 
     const hydratedValues = { ...recordValues };
     for (const field of fields) {
       const file = recordFiles[field.key];
       if (field.fieldType === 'image' && file) {
-        hydratedValues[field.key] = await uploadProducerAsset(file, store.business.id, `registos/${field.key}`);
+        hydratedValues[field.key] = await imageFileToLocalDataUrl(file);
       }
     }
 
@@ -361,9 +361,10 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
     const record = {
       id: makeLocalId('record'),
       productId: store.products[0].id,
-      batchId: store.batches[0].id,
+      batchId: firstBatch.id,
       stageId: recordStageId || store.stages[0]?.id,
-      productionUnitIds: selectedUnitIds,
+      productionUnitId: firstBatch.productionUnitId || undefined,
+      productionUnitIds: firstBatch.productionUnitId ? [firstBatch.productionUnitId] : [],
       data: parsed.data as Record<string, unknown>,
       createdAt: new Date().toISOString(),
     };
@@ -380,9 +381,9 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
       <section className={styles.hero} style={{ background: `linear-gradient(125deg, ${accentColor}, #10202e)` }}>
         <div>
           <h1>Configuração inicial do produtor</h1>
-          <p>Configura o negócio uma vez. Depois, o trabalho diário acontece em Produção.</p>
+          <p>Configura o negócio uma vez. Depois, o trabalho diário acontece em Produção. Cada lote fica ligado a uma estufa, colmeia, pipa ou outra unidade.</p>
         </div>
-        <div><strong>{Math.min(step + 1, 9)} / 9</strong><div className={styles.footerNote} style={{ color: '#dbeafe' }}>Supabase — sincronização ativa</div></div>
+        <div><strong>{Math.min(step + 1, 9)} / 9</strong><div className={styles.footerNote} style={{ color: '#dbeafe' }}>Modo local — sem base de dados</div></div>
       </section>
 
       <div className={styles.progress}>
@@ -411,7 +412,7 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
             <>
               <h2 className={styles.title}>Bem-vindo ao Azotrace</h2>
               <p className={styles.subtitle}>Vamos preparar o sistema para a forma real como produzes: estufas, colmeias, pipas, cubas, parcelas ou outra unidade.</p>
-              <div className={styles.notice}>Os dados são guardados no Supabase por negócio. O armazenamento local é usado apenas como cache e para migração automática dos testes anteriores.</div>
+              <div className={styles.notice}>Os dados ficam guardados neste browser para testes. Não é necessária base de dados nesta versão.</div>
               <div className={styles.summary}>
                 <div className={styles.summaryCard}><strong>1. Negócio</strong><div className={styles.muted}>Nome, cor e identificação deste espaço.</div></div>
                 <div className={styles.summaryCard}><strong>2. Produto</strong><div className={styles.muted}>Ananás, mel, vinho, carne ou outro.</div></div>
@@ -452,7 +453,7 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
               <div className={styles.presetGrid}>
                 {PRODUCER_PRESETS.map((preset) => (
                   <button key={preset.id} type="button" className={`${styles.preset} ${presetId === preset.id ? styles.presetSelected : ''}`} onClick={() => choosePreset(preset.id)}>
-                    <span className={styles.presetIcon}>{preset.icon}</span><strong>{preset.label}</strong><span className={styles.muted}>{preset.example}</span>
+                    <span className={styles.presetIcon} style={{ color: preset.defaultColor, background: `${preset.defaultColor}14` }}><ProductTypeIcon type={preset.id} /></span><strong>{preset.label}</strong><span className={styles.muted}>{preset.example}</span>
                   </button>
                 ))}
               </div>
@@ -469,7 +470,7 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
           {step === 3 ? (
             <>
               <h2 className={styles.title}>3. Unidades de produção</h2>
-              <p className={styles.subtitle}>Cria as unidades reais do negócio. Um lote poderá agregar várias destas unidades.</p>
+              <p className={styles.subtitle}>Cria as unidades reais do negócio. Cada lote ficará associado a uma única destas unidades.</p>
               <div className={styles.grid3}>
                 <div className={styles.field}><label>Tipo de unidade</label><input className={styles.input} value={unitLabel} onChange={(e) => setUnitLabel(e.target.value)} /></div>
                 <div className={styles.field}><label>Prefixo</label><input className={styles.input} value={unitPrefix} onChange={(e) => setUnitPrefix(e.target.value.toUpperCase())} /></div>
@@ -526,21 +527,17 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
 
           {step === 6 ? (
             <>
-              <h2 className={styles.title}>6. Criar primeiro produto e lote</h2>
-              <p className={styles.subtitle}>O lote pode ter origem numa ou em várias unidades de produção.</p>
+              <h2 className={styles.title}>6. Criar primeiro produto</h2>
+              <p className={styles.subtitle}>Os lotes são criados automaticamente: cada {unitLabel.toLowerCase()} ativa recebe o seu lote atual. Quando terminar um ciclo, o Azotrace cria o lote seguinte para reutilizar a mesma unidade.</p>
               <div className={styles.grid2}>
                 <div className={styles.field}><label>Nome do produto *</label><input className={styles.input} value={productName} onChange={(e) => setProductName(e.target.value)} /></div>
                 <div className={styles.field}><label>SKU</label><input className={styles.input} value={sku} onChange={(e) => setSku(e.target.value)} /></div>
                 <div className={styles.field}><label>Descrição</label><textarea className={styles.textarea} value={productDescription} onChange={(e) => setProductDescription(e.target.value)} /></div>
                 <div className={styles.field}><label>Imagem</label><input className={styles.input} type="file" accept="image/*" onChange={(e) => setProductImageFile(e.target.files?.[0] ?? null)} />{productImageUrl ? <img className={styles.thumb} src={productImageUrl} alt="Produto" /> : null}</div>
-                <div className={styles.field}><label>Código do lote *</label><input className={styles.input} value={batchCode} onChange={(e) => setBatchCode(e.target.value)} /></div>
-                <div className={styles.field}><label>Data de início</label><input className={styles.input} type="date" value={batchStartDate} onChange={(e) => setBatchStartDate(e.target.value)} /></div>
+                <div className={styles.field}><label>Data de início dos primeiros lotes</label><input className={styles.input} type="date" value={batchStartDate} onChange={(e) => setBatchStartDate(e.target.value)} /></div>
+                <div className={styles.notice}><strong>{units.length}</strong> {unitLabel.toLowerCase()}(s) → <strong>{units.length}</strong> lote(s) ativos criados automaticamente.</div>
               </div>
-              <h3 style={{ marginTop: 20 }}>Unidades de origem</h3>
-              <div className={styles.unitList}>
-                {units.map((unit) => <label key={unit.id} className={styles.unitRow}><input type="checkbox" checked={selectedUnitIds.includes(unit.id)} onChange={(e) => setSelectedUnitIds((current) => e.target.checked ? [...new Set([...current, unit.id])] : current.filter((id) => id !== unit.id))} /><strong>{unit.code}</strong><span>{unit.name}</span></label>)}
-              </div>
-              <div className={styles.actions}><button className={styles.buttonSecondary} onClick={() => setStep(5)}>← Voltar</button><button disabled={saving} className={styles.buttonPrimary} onClick={() => void runSave(saveProductAndBatch)}>Criar produto e lote →</button></div>
+              <div className={styles.actions}><button className={styles.buttonSecondary} onClick={() => setStep(5)}>← Voltar</button><button disabled={saving} className={styles.buttonPrimary} onClick={() => void runSave(saveProductAndBatch)}>Criar produto e lotes →</button></div>
             </>
           ) : null}
 
@@ -548,6 +545,7 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
             <>
               <h2 className={styles.title}>7. Primeiro registo de produção</h2>
               <p className={styles.subtitle}>Este é o mesmo formulário que ficará disponível em Produção → Inserir dados.</p>
+              <div className={styles.field} style={{ marginBottom: 14 }}><label>{unitLabel} / lote inicial</label><select className={styles.select} value={selectedUnitId} onChange={(e) => setSelectedUnitId(e.target.value)}>{store.units.filter((unit) => unit.status === 'active').map((unit) => { const batch = store.batches.find((item) => item.status === 'active' && item.productionUnitId === unit.id); return <option key={unit.id} value={unit.id}>{unit.code} · {unit.name}{batch ? ` · ${batch.code}` : ''}</option>; })}</select></div>
               <div className={styles.field} style={{ marginBottom: 14 }}><label>Etapa</label><select className={styles.select} value={recordStageId} onChange={(e) => setRecordStageId(e.target.value)}>{store.stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</select></div>
               <div className={styles.grid2}>
                 {fields.map((field) => (
@@ -567,12 +565,12 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
 
           {step === 8 ? (
             <>
-              <div className={styles.success}><h2 className={styles.title}>Configuração concluída ✓</h2><p>O teste local já tem empresa, produto, unidades, campos, etapas, lote e um primeiro registo.</p></div>
+              <div className={styles.success}><h2 className={styles.title}>Configuração concluída ✓</h2><p>O teste local já tem negócio, produto, unidades, lotes automáticos, campos, etapas e um primeiro registo.</p></div>
               <div className={styles.summary} style={{ marginTop: 18 }}>
                 <div className={styles.summaryCard}><strong>Negócio</strong><div><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: accentColor, marginRight: 6 }} />{companyName}</div></div>
                 <div className={styles.summaryCard}><strong>Produto</strong><div>{productName}</div></div>
                 <div className={styles.summaryCard}><strong>Unidades</strong><div>{units.length} {unitLabel.toLowerCase()}(s)</div></div>
-                <div className={styles.summaryCard}><strong>Lote</strong><div>{batchCode}</div></div>
+                <div className={styles.summaryCard}><strong>Lotes ativos</strong><div>{store.batches.filter((batch) => batch.status === 'active').length}</div></div>
               </div>
               <div className={styles.notice} style={{ marginTop: 18 }}>A partir de agora: <strong>Produção → Inserir dados</strong> (`/dashboard/producao/inserir-dados`).</div>
               <div className={styles.actions}><button className={styles.buttonSecondary} onClick={() => setStep(7)}>← Rever</button><div style={{ display: 'flex', gap: 8 }}><button className={styles.buttonSecondary} onClick={() => router.push('/dashboard/onboarding?new=1')}>+ Adicionar outro negócio</button><button className={styles.buttonPrimary} onClick={() => router.push('/dashboard')}>Ir para o Dashboard →</button></div></div>

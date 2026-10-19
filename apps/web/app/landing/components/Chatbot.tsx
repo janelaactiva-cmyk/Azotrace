@@ -108,7 +108,7 @@ export default function Chatbot() {
     const msg = userMessage.toLowerCase();
     
     if (msg.includes('preço') || msg.includes('custo') || msg.includes('valor') || msg.includes('€')) {
-      return '💰 Os planos da Azotrace começam em 19,99€/mês. Temos opções para produtores individuais e empresas. Posso ajudar-te a escolher o melhor plano?';
+      return '💰 Os planos Base, Essential e Pro estão disponíveis no preçário atualizado desta página, com opções para produtores individuais e empresas. Posso ajudar-te a escolher o melhor plano?';
     }
     
     if (msg.includes('qr code') || msg.includes('qr') || msg.includes('codigo')) {

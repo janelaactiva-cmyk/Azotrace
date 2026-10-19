@@ -6,10 +6,10 @@
   "sideEffects": false,
   "scripts": {
     "analyze": "ANALYZE=true pnpm run build",
-    "build": "pnpm with-env next build",
+    "build": "pnpm with-env next build --webpack",
     "build:test": "NODE_ENV=test pnpm with-env:test next build",
     "clean": "git clean -xdf .next .turbo node_modules",
-    "dev": "pnpm with-env next dev | pino-pretty -c",
+    "dev": "pnpm with-env next dev --webpack | pino-pretty -c",
     "start": "pnpm with-env next start",
     "start:test": "NODE_ENV=test pnpm with-env:test next start",
     "typecheck": "tsc --noEmit",

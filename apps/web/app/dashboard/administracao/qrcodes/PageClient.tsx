@@ -1,11 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '~/lib/supabase';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yzfyoboxiwvppbeptp.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6ZnlvYm94aXd2cHBiZXBpcHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5MjE2MTIsImV4cCI6MjEwMTQ5NzYxMn0.B8T29WNNN7VQY-5WGUatf4vkpBvhGQb0Gl4XpXT5wk4';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface NegocioItem {
   id: string;

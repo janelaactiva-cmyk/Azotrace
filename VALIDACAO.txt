@@ -1,0 +1,33 @@
+VALIDAÇÃO — 15/10/2026
+
+Compilação de produção do Next.js 16.3.0 com Webpack: CONCLUÍDA.
+Foram geradas 116 páginas durante a compilação.
+O processo terminou com código 0.
+
+A compilação usou as variáveis da instalação existente e um endereço HTTPS
+para NEXT_PUBLIC_SITE_URL apenas no processo de validação.
+As chaves dessa instalação não foram incluídas neste ZIP.
+
+A configuração existente next.config.mjs mantém ignoreBuildErrors=true:
+a compilação não equivale a uma validação completa de tipos TypeScript.
+
+Corrigido durante a preparação:
+- A página administracao/defenicoes chamava um componente com o nome errado.
+- Os ecrãs antigos de QR codes tinham chaves e endereço Supabase fixos como
+  alternativa. Agora usam a ligação partilhada configurada por variáveis.
+- Os comandos dev/build usam Webpack, como a compilação validada.
+
+O ZIP inclui código fonte e pacotes do monorepo. Dependências e ficheiros .next
+não são distribuídos: são instalados/recriados no ambiente onde vais testar.
+O script de verificação do repositório conserva a chave pública de demonstração
+do Supabase local (supabase-demo), que não é uma chave do teu projeto remoto.
+
+As migrações incluídas não foram executadas novamente na tua base de dados.
+Os testes reais de criação de conta/MFA e de pagamentos usam os serviços
+configurados no teu ambiente e devem ser feitos com os teus dados de teste.
+
+Atualização: páginas protegidas do dashboard configuradas com instant=false.
+As 17 páginas interativas passaram a ter uma página de entrada de servidor,
+conservando o conteúdo e a validação de sessão. Foram abrangidas 26 páginas
+que ainda não tinham configuração explícita, incluindo publicacao.
+

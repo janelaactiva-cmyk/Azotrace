@@ -2,6 +2,8 @@ import { Suspense } from 'react';
 
 import OnboardingPageClient from './_components/OnboardingPageClient';
 
+export const instant = false;
+
 function OnboardingLoading() {
   return (
     <div

@@ -1,0 +1,4 @@
+'use client';
+import { useEffect } from 'react';
+import PlanCards from '~/components/PlanCards';
+export default function EmbeddedPlans(){useEffect(()=>{const root=document.querySelector('[data-plans-embed]');if(!root)return;const send=()=>window.parent.postMessage({type:'azotrace-plans-height',height:Math.ceil(root.getBoundingClientRect().height)+32},'*');const observer=new ResizeObserver(send);observer.observe(root);send();return()=>observer.disconnect();},[]);return <main data-plans-embed style={{padding:16,background:'#f7f9fc',color:'#172033'}}><PlanCards embedded/><p style={{fontFamily:'system-ui',fontSize:12,lineHeight:1.6}}>Quotas partilhadas entre os negócios da empresa. Primeira resposta em dias úteis; o prazo não corresponde ao prazo de resolução. IVA acresce ao preço apresentado.</p></main>}

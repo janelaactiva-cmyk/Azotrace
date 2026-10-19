@@ -12,6 +12,7 @@ export type PublicTraceRecord = {
   id: string;
   createdAt: string;
   stage: string;
+  stageId?: string;
   units: Array<{ code: string; name: string }>;
   values: PublicTraceValue[];
 };
@@ -80,6 +81,7 @@ export function buildPublicationSnapshot(
     .map((record) => ({
       id: record.id,
       createdAt: record.createdAt,
+      stageId: record.stageId,
       stage: stageMap.get(record.stageId ?? '')?.name ?? 'Registo de produção',
       units: record.productionUnitIds
         .map((unitId) => unitMap.get(unitId))

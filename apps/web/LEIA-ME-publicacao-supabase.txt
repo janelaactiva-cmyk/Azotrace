@@ -1,0 +1,51 @@
+AZOTRACE — SUPABASE + GRÁFICOS DA PRODUÇÃO — 08/10/2026
+
+INSTALAR NO PROJETO EXISTENTE
+1. Executar SUPABASE-publicacao-graficos.sql no SQL Editor do projeto Supabase.
+   É apenas a atualização da publicação e respetivas permissões. A ligação Stripe
+   anterior e as tabelas de website/produção já existem no projeto configurado,
+   conforme verificação de leitura realizada em 08/10/2026.
+2. Extrair patch-publicacao-graficos-supabase.zip em Azotrace-main/apps/web,
+   substituindo os ficheiros. NÃO extrair dentro de app.
+   É cumulativo e substitui os bloqueios do modo local (lib/supabase.ts e proxy.ts).
+3. Confirmar na Vercel as variáveis do mesmo projeto:
+   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
+   SUPABASE_SERVICE_ROLE_KEY (só servidor), NEXT_PUBLIC_SITE_URL.
+   NEXT_PUBLIC_SITE_URL deve ser o URL público da Vercel, sem localhost.
+   Para pagamentos: STRIPE_SECRET_KEY e STRIPE_WEBHOOK_SECRET.
+4. Fazer novo deploy e iniciar sessão com uma conta real.
+5. No negócio, confirmar os registos e publicar o Website escolhido.
+   Em Publicação e QR, escolher o lote/campos públicos e Publicar e gerar QR.
+6. Abrir o QR noutro dispositivo, sem sessão. Depois de novas medições,
+   usar Atualizar publicação e gerar QR. O endereço mantém-se.
+
+COMPORTAMENTO
+- Os três templates apresentam gráficos das etapas do lote publicado, separados
+  por indicador/unidade/origem. Apenas campos públicos; sem curvas fictícias.
+- Produção é guardada no Supabase com permissões por operação. Conflitos são
+  recusados para não apagar alterações de outro utilizador. Se houver erro,
+  aparece um aviso; recarregar antes de continuar. Dados não enviados não são publicados.
+- Publicar aguarda as gravações e consulta os dados mais recentes no servidor.
+- A página pública usa o snapshot publicado, sem depender do browser do produtor.
+- Alterações só locais anteriores não são importadas automaticamente: preservam-se
+  os dados remotos. Confirma/exporta os dados locais antes de trocar de versão.
+- Mantém a ligação Stripe anterior: downgrade imediato sem reembolso e upgrade
+  ativado após confirmação de pagamento. A compra anual não tem renovação automática.
+- Os ficheiros de aplicação já foram aplicados no projeto do Ambiente de Trabalho,
+  com cópia de segurança em outputs/backup-antes-supabase-20261008.
+- Sem chaves neste pacote. A pedido do utilizador, SQL remoto e deploy ficam a seu cargo.
+
+VERIFICAÇÃO
+- TypeScript dos módulos envolvidos: aprovado.
+- 18 testes de gráficos, 9 de publicação SQL e 6 de permissões/conflitos: aprovados.
+- 34 testes da ligação de faturação anterior: aprovados.
+- Aplicação em execução: login respondeu, gravação sem sessão foi recusada e
+  a rota QR consultou o Supabase e devolveu 404 para lote ainda não publicado.
+- Foi corrigido o estado que ficava preso a validar sessão quando não havia login.
+- A compilação de produção passou; a conclusão do build foi bloqueada pelo ambiente
+  Windows com spawn EPERM ao criar os processos de recolha de páginas.
+- A ligação ao Supabase remoto respondeu e confirmou as tabelas existentes.
+  A leitura pública funciona; ainda não existem lotes publicados nesse projeto.
+  Não foi executado um teste completo na Vercel/Supabase remoto.
+
+Ficheiros app incluídos: 50

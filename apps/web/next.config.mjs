@@ -6,9 +6,6 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 const nextConfig = {
   devIndicators: false,
   cacheComponents: true,
-  typescript: {
-    ignoreBuildErrors: true, // <-- Ignora erros de TS no build da Vercel
-  },
   async redirects() {
     return [
       {

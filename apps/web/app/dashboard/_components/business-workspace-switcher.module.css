@@ -1,8 +1,8 @@
-:global(#dashboard-sidebar) {
+.sidebar {
   border-right-color: var(--azotrace-business-accent, #47B37D) !important;
 }
 
-:global(#dashboard-sidebar [aria-label^="Opções de"]) {
+.sidebar [aria-label^="Opções de"] {
   border-right-color: var(--azotrace-business-accent, #47B37D) !important;
 }
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { getPlanCatalog } from '~/lib/plan-catalog-server';
 import { createClient } from '@supabase/supabase-js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -17,10 +18,6 @@ export async function POST(request: Request) {
 
     const {
       plano,
-      plano_nome,
-      valor_base,
-      valor_iva,
-      valor_total,
       nome,
       email,
       telefone,
@@ -30,11 +27,16 @@ export async function POST(request: Request) {
       nif_empresa,
       morada,
       include_setup,
-      config_price,
-      config_iva,
-      config_total,
     } = body;
 
+    const catalog = await getPlanCatalog();
+    if(body.catalog_version!==catalog.version)return NextResponse.json({error:'Os preços foram atualizados. Recarrega a página para confirmar o novo valor.'},{status:409});
+    const catalogPlan = catalog.plans.find(plan=>plan.id.toLowerCase()===String(plano).toLowerCase());
+    const plan = catalogPlan ? {name:catalogPlan.id,base:catalogPlan.annualCents/100} : null;
+    if (!plan) return NextResponse.json({ error: 'Plano inválido.' }, { status: 400 });
+    const plano_nome = plan.name, valor_base = plan.base;
+    const valor_iva = Math.round(valor_base * 16) / 100, valor_total = Math.round(valor_base * 116) / 100;
+    const config_price = 100, config_iva = 16, config_total = 116;
     // ✅ VALIDAÇÃO BÁSICA DE CAMPOS
     if (!nome || !email || !telefone) {
       return NextResponse.json(
@@ -168,6 +170,7 @@ export async function POST(request: Request) {
         'multibanco',
       ],
       mode: 'payment',
+      expires_at: Math.floor(Date.now()/1000)+31*60,
       locale: 'pt',
       billing_address_collection: 'required',
       custom_fields: customFields,
@@ -175,6 +178,7 @@ export async function POST(request: Request) {
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/cancel`,
       metadata: {
+        azotrace_checkout: 'initial',
         plano,
         plano_nome,
         nome,
@@ -195,35 +199,7 @@ export async function POST(request: Request) {
       },
     });
 
-    // ✅ GUARDAR NO SUPABASE
-    const { error: checkoutError } = await supabase
-      .from('checkouts')
-      .insert([{
-        plano,
-        plano_nome,
-        valor_base,
-        valor_iva,
-        valor_total,
-        nome,
-        email,
-        telefone,
-        nif: nif || null,
-        morada: morada || null,
-        is_commercial: is_commercial || false,
-        nome_empresa: is_commercial ? nome_empresa : null,
-        nif_empresa: is_commercial ? nif_empresa : null,
-        include_setup: include_setup || false,
-        config_price: include_setup ? config_price : null,
-        config_iva: include_setup ? config_iva : null,
-        config_total: include_setup ? config_total : null,
-        stripe_session_id: session.id,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-      }]);
-
-    if (checkoutError) {
-      console.error('❌ Erro ao guardar checkout:', checkoutError);
-    }
+    // A compra só é guardada no webhook após o pagamento confirmado.
 
     return NextResponse.json({
       url: session.url,

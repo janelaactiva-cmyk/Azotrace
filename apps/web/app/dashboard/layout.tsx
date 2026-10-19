@@ -1,890 +1,252 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { supabase } from '~/lib/supabase';
+import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { ArrowLeft, ArrowRight, Lock, LogOut, Menu, Moon, Sun } from 'lucide-react';
 import { useTheme } from '~/lib/theme-context';
 import { useBusiness } from '~/lib/business-context';
-import { getBusinessIcon } from '~/lib/business-icons';
 import AccessibleSidebarAtualizado from './components/AccessibleSidebarAtualizado';
 import { BUSINESS_CHANGED_EVENT, BUSINESSES_UPDATED_EVENT, getActiveProducerState } from './onboarding/_lib/local-store';
-import { loadRemoteProducerState } from './onboarding/_lib/supabase-store';
+import { canAccessPath, clearCurrentLocalUserSession, roleLabel, setCurrentLocalUser } from './_lib/local-users';
+import { supabase } from '~/lib/supabase';
+import { onlineBusinesses, onlineError, onlineCanImpersonate } from './_lib/online-state';
+import { useLocalUser } from './_lib/use-local-user';
+import workspaceStyles from './_components/business-workspace-switcher.module.css';
+import SessionMfaGate from '~/components/SessionMfaGate';
+import { loadOnlineContext } from './_lib/online-billing';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return <SessionMfaGate><DashboardLayoutContent>{children}</DashboardLayoutContent></SessionMfaGate>;
+}
+
+function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
-  const { selectedBusinessId, selectedBusinessType, selectedBusinessName } = useBusiness();
-
+  const { selectedBusinessId, clearSelectedBusiness } = useBusiness();
+  const pathname = usePathname();
+  const localUser = useLocalUser();
   const [mounted, setMounted] = useState(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [sidebarPinned, setSidebarPinned] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [appUsers, setAppUsers] = useState<any[]>([]);
-  const [workspaceAccent, setWorkspaceAccent] = useState<string>('');
-
-  const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null);
-  const [selectedUserName, setSelectedUserName] = useState<string | null>(null);
-  const [directEmail, setDirectEmail] = useState<string>('admin@azotrace.com');
-
-  const [searchQuery, setSearchQuery] = useState('');
+  const [flyoutOpen, setFlyoutOpen] = useState(false);
+  const [closeMenus, setCloseMenus] = useState(0);
+  const [workspaceAccent, setWorkspaceAccent] = useState('#47B37D');
   const menuRef = useRef<HTMLElement>(null);
 
-  const handleLogout = useCallback(async () => {
-    localStorage.removeItem('is_super_admin');
-    localStorage.removeItem('user_email');
-    localStorage.removeItem('impersonate_user_email');
-    localStorage.removeItem('impersonate_user_name');
-    document.cookie = 'impersonate_user_id=; path=/; max-age=0';
-    document.cookie = 'impersonate_user_email=; path=/; max-age=0';
-    await supabase.auth.signOut();
-    window.location.href = '/';
-  }, []);
-
-  // --- SISTEMA DE INATIVIDADE (IDLE TIMEOUT) ---
-  useEffect(() => {
-    const IDLE_TIMEOUT_MS = 15 * 60 * 1000;
-    let inactivityTimer: ReturnType<typeof setTimeout>;
-
-    const resetTimer = () => {
-      clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(() => {
-        console.warn('Sessão terminada por inatividade.');
-        handleLogout();
-      }, IDLE_TIMEOUT_MS);
-    };
-
-    const events = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart', 'click'];
-    events.forEach((event) => {
-      window.addEventListener(event, resetTimer);
-    });
-
-    resetTimer();
-
-    return () => {
-      clearTimeout(inactivityTimer);
-      events.forEach((event) => {
-        window.removeEventListener(event, resetTimer);
-      });
-    };
-  }, [handleLogout]);
-  // ---------------------------------------------
-
-  const loadAppUsers = async () => {
-    try {
-      const { data, error } = await supabase.from('profiles').select('*');
-
-      if (error) {
-        console.error('Erro do Supabase ao carregar perfis:', error.message, error.details);
-        return;
-      }
-
-      if (data) {
-        console.log('Perfis carregados com sucesso:', data);
-        const formattedUsers = data.map((u) => ({
-          ...u,
-          email: u.email || u.mail || u.username || `Utilizador ${u.id?.slice(0, 6)}`,
-          name: u.name || u.full_name || u.nome || u.display_name || '',
-        }));
-        setAppUsers(formattedUsers);
-      } else {
-        console.warn('A tabela profiles devolveu dados vazios.');
-      }
-    } catch (err) {
-      console.error('Erro crítico ao ligar ao Supabase:', err);
-    }
-  };
-
-  useEffect(() => {
-    setMounted(true);
-    setSelectedUserEmail(localStorage.getItem('impersonate_user_email'));
-    setSelectedUserName(localStorage.getItem('impersonate_user_name'));
-    setDirectEmail(localStorage.getItem('user_email') || 'admin@azotrace.com');
-
-    const initAuth = async () => {
-      // 1. Esperar que a sessão esteja pronta
-      const { data } = await supabase.auth.getSession();
-
-      if (data.session?.user?.email) {
-        const email = data.session.user.email;
-        setDirectEmail(email);
-        localStorage.setItem('user_email', email);
-        if (email === 'admin@azotrace.com') {
-          localStorage.setItem('is_super_admin', 'true');
-        }
-      }
-
-      // 2. Só depois carregar os perfis
-      await loadAppUsers();
-    };
-
-    initAuth();
-
-    // 3. Reagir a mudanças de sessão (login sem reload, logout, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          if (session?.user?.email) {
-            setDirectEmail(session.user.email);
-            localStorage.setItem('user_email', session.user.email);
-            if (session.user.email === 'admin@azotrace.com') {
-              localStorage.setItem('is_super_admin', 'true');
-            }
-          }
-          loadAppUsers();
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 768px)');
-    const syncViewport = () => {
-      setIsMobile(media.matches);
+    const sync = () => {
+      const mobile = media.matches;
+      setIsMobile(mobile);
+      // Abre ao passar o rato no desktop ou pelo botão no mobile.
       setSidebarExpanded(false);
       setSidebarPinned(false);
     };
-
-    syncViewport();
-    media.addEventListener('change', syncViewport);
-    return () => media.removeEventListener('change', syncViewport);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
   }, []);
+
+  useEffect(() => {
+    const syncAccent = () => {
+      if (localUser.role === 'superadmin') {
+        setWorkspaceAccent('#6d28d9');
+        document.documentElement.style.setProperty('--azotrace-business-accent', '#6d28d9');
+        return;
+      }
+      const state = getActiveProducerState(selectedBusinessId ? String(selectedBusinessId) : null);
+      const valid = state?.business.companyId === localUser.companyId && onlineBusinesses.some((business) => business.id === state?.business.id && business.companyId === localUser.companyId);
+      const accent = valid ? state!.business.accentColor || '#47B37D' : '#47B37D';
+      setWorkspaceAccent(accent);
+      document.documentElement.style.setProperty('--azotrace-business-accent', accent);
+    };
+    syncAccent();
+    window.addEventListener('storage', syncAccent);
+    window.addEventListener(BUSINESS_CHANGED_EVENT, syncAccent as EventListener);
+    window.addEventListener(BUSINESSES_UPDATED_EVENT, syncAccent as EventListener);
+    return () => {
+      window.removeEventListener('storage', syncAccent);
+      window.removeEventListener(BUSINESS_CHANGED_EVENT, syncAccent as EventListener);
+      window.removeEventListener(BUSINESSES_UPDATED_EVENT, syncAccent as EventListener);
+    };
+  }, [selectedBusinessId, localUser.role, localUser.companyId]);
 
   useEffect(() => {
     if (!isMobile || !sidebarExpanded) return;
-    const previousOverflow = document.body.style.overflow;
+    const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
+    return () => { document.body.style.overflow = previous; };
   }, [isMobile, sidebarExpanded]);
 
-
+  const activeBusiness = onlineBusinesses.find((business) => business.id === String(selectedBusinessId) && business.companyId === localUser.companyId && (localUser.role === 'admin' || localUser.businessIds.includes(business.id)));
+  const selectedBusinessName = activeBusiness?.name || 'Sem negócio';
   useEffect(() => {
-    const syncBusinessAccent = async () => {
-      const businessId = selectedBusinessId ? String(selectedBusinessId) : '';
-      let state = getActiveProducerState(businessId || null);
-      if (!state && businessId) {
-        try {
-          state = await loadRemoteProducerState(businessId);
-        } catch (error) {
-          console.warn('Não foi possível carregar a cor do negócio do Supabase:', error);
-        }
-      }
-      const accent = state?.business.accentColor ?? '';
-      setWorkspaceAccent(accent);
-      if (accent) document.documentElement.style.setProperty('--azotrace-business-accent', accent);
-    };
-    void syncBusinessAccent();
-    const listener = () => void syncBusinessAccent();
-    window.addEventListener('storage', listener);
-    window.addEventListener(BUSINESS_CHANGED_EVENT, listener as EventListener);
-    window.addEventListener(BUSINESSES_UPDATED_EVENT, listener as EventListener);
-    return () => {
-      window.removeEventListener('storage', listener);
-      window.removeEventListener(BUSINESS_CHANGED_EVENT, listener as EventListener);
-      window.removeEventListener(BUSINESSES_UPDATED_EVENT, listener as EventListener);
-    };
-  }, [selectedBusinessId]);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setProfileMenuOpen(false);
-        setSearchQuery('');
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const isSuperAdmin =
-    directEmail === 'admin@azotrace.com' ||
-    (typeof window !== 'undefined' && localStorage.getItem('is_super_admin') === 'true');
-
+    if (localUser.active && selectedBusinessId && !activeBusiness) clearSelectedBusiness();
+  }, [localUser.id, localUser.companyId, selectedBusinessId, activeBusiness?.id]);
   const isDark = theme === 'dark';
-  const businessIcon = selectedBusinessType ? getBusinessIcon(selectedBusinessType) : null;
-  const businessColor = businessIcon?.color || '#6B7280';
-
   const sidebarBg = isDark ? '#1f2937' : '#ffffff';
   const sidebarTextColor = isDark ? '#ffffff' : '#111827';
   const sidebarSubtext = isDark ? '#9ca3af' : '#6b7280';
-  const sidebarActive = isDark ? '#374151' : '#e5e7eb';
-  const sidebarBorderColor = workspaceAccent || (selectedBusinessType
-    ? businessColor
-    : isDark
-      ? '#374151'
-      : '#e5e7eb');
+  const sidebarActive = isDark ? '#2b3544' : '#f5f7f8';
+  const expanded = isMobile ? sidebarExpanded : sidebarExpanded || sidebarPinned;
+  const dismissMenus = () => {
+    setSidebarExpanded(false);
+    setFlyoutOpen(false);
+    setCloseMenus((previous) => previous + 1);
+  };
+  useEffect(() => {
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') dismissMenus(); };
+    window.addEventListener('keydown', escape);
+    return () => window.removeEventListener('keydown', escape);
+  }, []);
+  const routeAllowed = canAccessPath(localUser, pathname, selectedBusinessId ? String(selectedBusinessId) : null);
 
-  const buttonBg = isDark ? '#374151' : '#f3f4f6';
-  const buttonText = isDark ? '#ffffff' : '#111827';
+  const handleSignOut = async () => {
+      await supabase.auth.signOut();
+      clearCurrentLocalUserSession();
+      window.location.replace('/landing');
+  };
 
-  const filteredAppUsers =
-    searchQuery.trim() === ''
-      ? []
-      : appUsers
-          .filter((dbUser) => dbUser.email !== 'admin@azotrace.com')
-          .filter((dbUser) => {
-            const query = searchQuery.toLowerCase();
-            const emailMatch = dbUser.email?.toLowerCase().includes(query);
-            const nameMatch = dbUser.name?.toLowerCase().includes(query);
-            return emailMatch || nameMatch;
-          });
+  if (!mounted || !localUser.active) return <div style={{ padding: 32 }}><p role={onlineError?'alert':'status'}>{onlineError || 'A validar sessão Supabase…'}</p>{onlineError ? <><button type="button" onClick={()=>void loadOnlineContext().catch(()=>undefined)}>Tentar novamente</button><button type="button" onClick={handleSignOut}>Encerrar sessão e voltar à landing</button></> : null}</div>;
+
+  if (mounted && !routeAllowed) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24, background: isDark ? '#111827' : '#f3f4f6', color: isDark ? '#fff' : '#111827' }}>
+        <section style={{ width: 'min(100%, 520px)', padding: 28, borderRadius: 14, background: sidebarBg, border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`, textAlign: 'center' }}>
+          <div style={{ width: 44, height: 44, margin: '0 auto 12px', display: 'grid', placeItems: 'center', borderRadius: 12, background: isDark ? '#273244' : '#f2f6f4', color: workspaceAccent }}><Lock size={21} strokeWidth={1.8} /></div>
+          <h1 style={{ margin: '0 0 8px', fontSize: 22 }}>Sem permissão</h1>
+          <p style={{ margin: '0 0 18px', color: sidebarSubtext, fontSize: 14 }}>O utilizador {localUser.name} não tem acesso a esta área.</p>
+          <a href="/dashboard" style={{ display: 'inline-flex', padding: '10px 14px', borderRadius: 8, background: '#2563eb', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 13 }}>Voltar ao Dashboard</a>
+        </section>
+      </div>
+    );
+  }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        minHeight: '100vh',
-        fontFamily: 'sans-serif',
-        background: isDark ? '#111827' : '#f3f4f6',
-        color: isDark ? '#e5e7eb' : '#111827',
-      }}
-    >
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'sans-serif', background: isDark ? '#111827' : '#f3f4f6', color: isDark ? '#e5e7eb' : '#111827' }}>
       {isMobile && !sidebarExpanded && (
-        <button
-          type="button"
-          aria-label="Abrir menu de navegação"
-          aria-controls="dashboard-sidebar"
-          aria-expanded={false}
-          onClick={() => setSidebarExpanded(true)}
-          style={{
-            position: 'fixed',
-            top: '12px',
-            left: '12px',
-            zIndex: 1450,
-            width: '44px',
-            height: '44px',
-            borderRadius: '10px',
-            border: `1px solid ${sidebarBorderColor}`,
-            background: sidebarBg,
-            color: sidebarTextColor,
-            boxShadow: '0 6px 18px rgba(15,23,42,.16)',
-            cursor: 'pointer',
-            fontSize: '22px',
-          }}
-        >
-          ☰
-        </button>
+        <button type="button" aria-label="Abrir menu" onClick={() => setSidebarExpanded(true)} style={{ position: 'fixed', top: 12, left: 12, zIndex: 1450, width: 42, height: 42, display: 'grid', placeItems: 'center', borderRadius: 11, border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`, background: sidebarBg, color: sidebarTextColor, cursor: 'pointer', boxShadow: '0 6px 18px rgba(15,23,42,.08)' }}><Menu size={20} strokeWidth={1.8} /></button>
       )}
 
-      {sidebarExpanded && !isMobile && !sidebarPinned && (
-        <button
-          type="button"
-          aria-label="Fechar menu"
-          onClick={() => {
-            setSidebarPinned(false);
-            setSidebarExpanded(false);
-          }}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: isMobile ? 1300 : 900,
-            border: 0,
-            padding: 0,
-            margin: 0,
-            background: isDark ? 'rgba(2, 6, 23, .58)' : 'rgba(15, 23, 42, .34)',
-            backdropFilter: 'blur(2px)',
-            WebkitBackdropFilter: 'blur(2px)',
-            cursor: isMobile ? 'pointer' : 'default',
-          }}
-        />
+      {(expanded && (!sidebarPinned || isMobile) || flyoutOpen) && (
+        <button type="button" aria-label="Fechar menu" onClick={dismissMenus} style={{ position: 'fixed', inset: 0, zIndex: 900, border: 0, background: isDark ? 'rgba(2,6,23,.48)' : 'rgba(15,23,42,.18)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }} />
       )}
 
       <aside
         id="dashboard-sidebar"
+        className={workspaceStyles.sidebar}
         ref={menuRef}
-        aria-label="Barra lateral do dashboard"
-        onMouseEnter={() => {
-          if (!isMobile) setSidebarExpanded(true);
-        }}
-        onMouseLeave={() => {
-          if (!isMobile && !sidebarPinned) {
-            setSidebarExpanded(false);
-            setProfileMenuOpen(false);
-            setSearchQuery('');
-          }
-        }}
-        onFocusCapture={() => {
-          if (!isMobile) setSidebarExpanded(true);
-        }}
-        onBlurCapture={(event) => {
-          if (
-            !isMobile &&
-            !sidebarPinned &&
-            !event.currentTarget.contains(event.relatedTarget as Node | null)
-          ) {
-            setSidebarExpanded(false);
-            setProfileMenuOpen(false);
-          }
-        }}
+        onMouseEnter={() => { if (!isMobile && !sidebarPinned) setSidebarExpanded(true); }}
+        onMouseLeave={() => { if (!isMobile) dismissMenus(); }}
         style={{
-          width: isMobile ? 'min(88vw, 320px)' : sidebarExpanded ? '248px' : '72px',
-          background: sidebarBg,
-          color: sidebarTextColor,
-          padding: isMobile ? '14px 12px' : '14px 8px',
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'fixed',
-          height: '100vh',
-          overflow: isMobile ? 'auto' : 'visible',
-          zIndex: isMobile ? 1400 : 1000,
-          left: 0,
-          top: 0,
-          transform: isMobile
-            ? sidebarExpanded
-              ? 'translateX(0)'
-              : 'translateX(-105%)'
-            : undefined,
-          transition:
-            'width 180ms ease, padding 180ms ease, transform 220ms ease, border-color 0.4s ease, background 0.3s ease, color 0.3s ease, box-shadow 180ms ease',
-          borderRight: `4px solid ${sidebarBorderColor}`,
-          boxShadow: sidebarExpanded && !sidebarPinned ? '8px 0 24px rgba(15, 23, 42, 0.18)' : 'none',
-          boxSizing: 'border-box',
+          width: isMobile ? 'min(88vw,320px)' : (expanded ? 240 : 68),
+          position: 'fixed', left: 0, top: 0, height: '100dvh', zIndex: isMobile ? 1400 : 1000,
+          transform: isMobile ? (sidebarExpanded ? 'translateX(0)' : 'translateX(-105%)') : undefined,
+          transition: 'width 180ms ease, transform 220ms ease',
+          background: sidebarBg, color: sidebarTextColor, borderRight: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+          boxShadow: expanded && !sidebarPinned ? '10px 0 28px rgba(15,23,42,.08)' : 'none',
+          padding: '12px 7px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', overflow: 'hidden'
         }}
       >
-        {isMobile && sidebarExpanded && (
-          <button
-            type="button"
-            aria-label="Fechar menu"
-            onClick={() => {
-              setSidebarPinned(false);
-              setSidebarExpanded(false);
-            }}
-            style={{
-              position: 'absolute',
-              top: '12px',
-              right: '12px',
-              zIndex: 1500,
-              width: '36px',
-              height: '36px',
-              borderRadius: '9px',
-              border: `1px solid ${isDark ? '#4b5563' : '#d1d5db'}`,
-              background: isDark ? '#111827' : '#f9fafb',
-              color: sidebarTextColor,
-              cursor: 'pointer',
-              fontSize: '22px',
-              lineHeight: 1,
-            }}
-          >
-            ×
-          </button>
-        )}
-
-        {/* PARTE SUPERIOR (Logo, Negócio + Links) */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div
-            style={{
-              width: '100%',
-              height: sidebarExpanded ? '92px' : '54px',
-              position: 'relative',
-              marginBottom: sidebarExpanded ? '4px' : '10px',
-              transition: 'height 180ms ease',
-            }}
-          >
-            <a
-              href="https://azotrace.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Abrir página inicial da Azotrace"
-              title="Azotrace.com"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                display: 'block',
-                borderRadius: '10px',
-                lineHeight: 0,
-              }}
-            >
-              <img
-                src="/assets/images/logo.png"
-                alt="Azotrace"
-                style={{
-                  width: sidebarExpanded ? '86px' : '44px',
-                  height: sidebarExpanded ? '86px' : '44px',
-                  objectFit: 'contain',
-                  display: 'block',
-                  transition: 'width 180ms ease, height 180ms ease',
-                }}
-              />
-            </a>
-          </div>
-
-          {sidebarExpanded && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px',
-                marginBottom: '12px',
-                marginTop: '2px',
-                minHeight: selectedBusinessName ? '32px' : '0',
-                alignItems: 'center',
-                textAlign: 'center',
-              }}
-            >
-              {selectedBusinessName && (
-                <div
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    color: workspaceAccent || businessColor,
-                    padding: '3px 8px',
-                    background: isDark ? `${workspaceAccent || businessColor}22` : `${workspaceAccent || businessColor}11`,
-                    borderRadius: '8px',
-                    width: 'fit-content',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {selectedBusinessName}
-                </div>
-              )}
-
-              {isMobile && mounted && selectedUserEmail && (
-                <div
-                  style={{
-                    padding: '3px 6px',
-                    background: '#2563eb22',
-                    color: '#2563eb',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    wordBreak: 'break-all',
-                  }}
-                >
-                  Conta: {selectedUserEmail}
-                </div>
-              )}
-            </div>
-          )}
-
-          <AccessibleSidebarAtualizado
-            isDark={isDark}
-            sidebarActive={sidebarActive}
-            sidebarTextColor={sidebarTextColor}
-            sidebarSubtext={sidebarSubtext}
-            isSidebarExpanded={sidebarExpanded}
-            accentColor={sidebarBorderColor}
-            isMobile={isMobile}
-            isPinned={sidebarPinned}
-            onPinnedChange={(pinned) => {
-              setSidebarPinned(pinned);
-              if (pinned) setSidebarExpanded(true);
-            }}
-            onNavigate={() => {
-              if (isMobile) {
-                setSidebarPinned(false);
-                setSidebarExpanded(false);
-                return;
-              }
-              if (!sidebarPinned) {
-                setSidebarExpanded(false);
-              }
-            }}
-          />
-        </div>
-
-        {/* PARTE INFERIOR (Perfil, Tema, Terminar Sessão) */}
         <div
           style={{
+            width: '100%',
+            height: 128,
+            flexShrink: 0,
+            padding: expanded ? '2px 8px 16px' : '2px 4px 14px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '6px',
-            paddingTop: '12px',
-            paddingBottom: '24px',
-            marginTop: 'auto',
-            borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-            position: 'relative',
+            alignItems: 'center',
+            boxSizing: 'border-box',
           }}
         >
-          {!isMobile && (
+          <a
+            href="https://azotrace.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Abrir página inicial da Azotrace"
+            title="Azotrace.com"
+            style={{
+              width: expanded ? 72 : 40,
+              height: expanded ? 72 : 40,
+              display: 'grid',
+              placeItems: 'center',
+              borderRadius: 10,
+              lineHeight: 0,
+              textDecoration: 'none',
+              flexShrink: 0,
+            }}
+          >
+            <img
+              src="/assets/images/logo.png"
+              alt="Azotrace"
+              style={{
+                width: expanded ? 72 : 40,
+                height: expanded ? 72 : 40,
+                objectFit: 'contain',
+                display: 'block',
+                transition: 'width 180ms ease, height 180ms ease',
+              }}
+            />
+          </a>
+
+          {expanded && (
             <div
               style={{
-                display: 'flex',
-                justifyContent: sidebarExpanded ? 'stretch' : 'center',
                 width: '100%',
-                padding: '0 0 8px',
-              }}
-            >
-              <button
-                type="button"
-                aria-label={sidebarPinned ? 'Reduzir menu lateral' : 'Expandir menu lateral'}
-                title={sidebarPinned ? 'Reduzir' : 'Expandir'}
-                aria-pressed={sidebarPinned}
-                onClick={() => {
-                  const next = !sidebarPinned;
-                  setSidebarPinned(next);
-                  setSidebarExpanded(next);
-                }}
-                style={{
-                  width: sidebarExpanded ? '100%' : '52px',
-                  minHeight: sidebarExpanded ? '36px' : '48px',
-                  padding: sidebarExpanded ? '8px 10px' : '5px 2px',
-                  display: 'inline-flex',
-                  flexDirection: sidebarExpanded ? 'row' : 'column',
-                  alignItems: 'center',
-                  justifyContent: sidebarExpanded ? 'flex-start' : 'center',
-                  gap: sidebarExpanded ? '8px' : '3px',
-                  borderRadius: '9px',
-                  border: `1px solid ${
-                    sidebarPinned ? sidebarBorderColor : isDark ? '#4b5563' : '#d1d5db'
-                  }`,
-                  background: sidebarPinned ? `${sidebarBorderColor}22` : 'transparent',
-                  color: sidebarPinned ? sidebarBorderColor : sidebarSubtext,
-                  cursor: 'pointer',
-                  fontSize: sidebarExpanded ? '12px' : '9px',
-                  fontWeight: '600',
-                  fontFamily: 'inherit',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <svg
-                  aria-hidden="true"
-                  width="15"
-                  height="15"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 17v5" />
-                  <path d="M5 17h14" />
-                  <path d="M6 3h12l-2 6 2 4H6l2-4-2-6Z" />
-                </svg>
-                <span>{sidebarPinned ? 'Reduzir' : 'Expandir'}</span>
-              </button>
-            </div>
-          )}
-
-          {profileMenuOpen && (
-            <section
-              aria-label="Gestão da sessão e da conta"
-              style={{
-                position: 'absolute',
-                bottom: 'calc(100% + 8px)',
-                left: '0',
-                right: '0',
-                background: isDark ? '#374151' : '#ffffff',
-                border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
-                borderRadius: '8px',
-                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+                marginTop: 8,
+                padding: '0 4px',
+                color: sidebarSubtext,
+                fontSize: 12,
+                fontWeight: 600,
+                textAlign: 'center',
                 overflow: 'hidden',
-                zIndex: 9999,
-                display: 'flex',
-                flexDirection: 'column',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                boxSizing: 'border-box',
               }}
+              title={localUser.role === 'superadmin' ? 'Plataforma Azotrace' : selectedBusinessName}
             >
-              <div
-                style={{
-                  padding: '8px 12px',
-                  borderBottom: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
-                }}
-              >
-                <p style={{ fontSize: '12px', color: sidebarSubtext, margin: 0, fontWeight: 'bold' }}>
-                  {isSuperAdmin ? 'GERIR CONTAS (SUPABASE)' : 'SESSÃO'}
-                </p>
-                <p
-                  style={{
-                    fontSize: '12px',
-                    color: sidebarTextColor,
-                    margin: '2px 0 0 0',
-                    wordBreak: 'break-all',
-                  }}
-                >
-                  {selectedUserEmail ? selectedUserEmail : directEmail || 'admin@azotrace.com'}
-                </p>
-              </div>
-
-              {isSuperAdmin && (
-                <>
-                  <div
-                    style={{
-                      padding: '6px 8px',
-                      borderBottom: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
-                    }}
-                  >
-                    <input
-                      type="text"
-                      placeholder="🔍 Pesquisar..."
-                      aria-label="Pesquisar utilizadores"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '5px 8px',
-                        fontSize: '12px',
-                        borderRadius: '4px',
-                        border: `1px solid ${isDark ? '#4b5563' : '#d1d5db'}`,
-                        background: isDark ? '#1f2937' : '#f9fafb',
-                        color: sidebarTextColor,
-                      }}
-                    />
-                  </div>
-
-                  {searchQuery.trim() !== '' && (
-                    <div style={{ maxHeight: '140px', overflowY: 'auto' }}>
-                      {filteredAppUsers.length > 0 ? (
-                        filteredAppUsers.map((dbUser, index) => {
-                          const userEmail = dbUser.email;
-                          const userName = dbUser.name;
-                          const isSelected = selectedUserEmail === userEmail;
-
-                          return (
-                            <button
-                              type="button"
-                              key={index}
-                              aria-label={`Usar conta ${userName || userEmail}`}
-                              onClick={() => {
-                                localStorage.setItem('impersonate_user_email', userEmail);
-                                localStorage.setItem('impersonate_user_name', userName || '');
-                                document.cookie = `impersonate_user_id=${dbUser.id}; path=/; max-age=86400`;
-                                document.cookie = `impersonate_user_email=${encodeURIComponent(
-                                  userEmail
-                                )}; path=/; max-age=86400`;
-                                setSelectedUserEmail(userEmail);
-                                setSelectedUserName(userName || null);
-                                setProfileMenuOpen(false);
-                                setSearchQuery('');
-                                window.location.reload();
-                              }}
-                              style={{
-                                padding: '6px 10px',
-                                fontSize: '12px',
-                                borderBottom: `1px solid ${isDark ? '#4b5563' : '#f3f4f6'}`,
-                                cursor: 'pointer',
-                                color: isSelected ? '#2563eb' : sidebarTextColor,
-                                background: isSelected
-                                  ? isDark
-                                    ? '#4b5563'
-                                    : '#e5e7eb'
-                                  : 'transparent',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                fontWeight: isSelected ? 'bold' : 'normal',
-                                width: '100%',
-                                border: 'none',
-                                textAlign: 'left',
-                                fontFamily: 'inherit',
-                              }}
-                            >
-                              <span style={{ fontWeight: '600' }}>
-                                {userName || 'Utilizador sem nome'}
-                              </span>
-                              <span style={{ fontSize: '12px', color: sidebarSubtext }}>
-                                {userEmail}
-                              </span>
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <p
-                          style={{
-                            padding: '8px',
-                            fontSize: '12px',
-                            color: sidebarSubtext,
-                            textAlign: 'center',
-                            margin: 0,
-                          }}
-                        >
-                          Nenhum encontrado.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-
-              {selectedUserEmail && (
-                <button
-                  onClick={() => {
-                    localStorage.removeItem('impersonate_user_email');
-                    localStorage.removeItem('impersonate_user_name');
-                    document.cookie = 'impersonate_user_id=; path=/; max-age=0';
-                    document.cookie = 'impersonate_user_email=; path=/; max-age=0';
-                    setSelectedUserEmail(null);
-                    setSelectedUserName(null);
-                    setProfileMenuOpen(false);
-                    setSearchQuery('');
-                    window.location.reload();
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '6px 10px',
-                    background: 'transparent',
-                    border: 'none',
-                    borderTop: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
-                    textAlign: 'center',
-                    color: '#eab308',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  Voltar à Minha Conta (Admin)
-                </button>
-              )}
-            </section>
-          )}
-
-          {/* Botão de Perfil */}
-          <button
-            type="button"
-            aria-expanded={profileMenuOpen}
-            aria-label="Abrir opções da conta"
-            onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: sidebarExpanded ? '8px' : '0',
-              padding: sidebarExpanded ? '8px 10px' : '8px 6px',
-              justifyContent: sidebarExpanded ? 'flex-start' : 'center',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              background: profileMenuOpen ? sidebarActive : 'transparent',
-              border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-              fontFamily: 'inherit',
-              textAlign: 'left',
-            }}
-          >
-            <div
-              style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '50%',
-                background: selectedUserEmail ? '#eab308' : '#2563eb',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
+              {localUser.role === 'superadmin' ? 'Plataforma Azotrace' : selectedBusinessName}
             </div>
+          )}
+        </div>
 
-            {sidebarExpanded && (
-              <>
-                <div style={{ overflow: 'hidden', flex: 1 }}>
-                  <p
-                    style={{
-                      fontSize: '12px',
-                      color: sidebarTextColor,
-                      fontWeight: '600',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      margin: 0,
-                    }}
-                  >
-                    {mounted
-                      ? selectedUserName
-                        ? selectedUserName
-                        : selectedUserEmail
-                          ? selectedUserEmail
-                          : directEmail
-                      : 'A carregar...'}
-                  </p>
-                </div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 2 }}>
+          <AccessibleSidebarAtualizado isDark={isDark} sidebarActive={sidebarActive} sidebarTextColor={sidebarTextColor} sidebarSubtext={sidebarSubtext} isSidebarExpanded={expanded} accentColor={workspaceAccent} businessId={localUser.role === 'superadmin' ? null : selectedBusinessId ? String(selectedBusinessId) : null} isMobile={isMobile} isPinned={sidebarPinned} closeRequest={closeMenus} onFlyoutChange={setFlyoutOpen} onNavigate={dismissMenus} />
+        </div>
 
-                <span
-                  style={{ fontSize: '12px', color: sidebarSubtext, flexShrink: 0 }}
-                  aria-hidden="true"
-                >
-                  {profileMenuOpen ? '▼' : '▲'}
-                </span>
-              </>
-            )}
-          </button>
-
-          {/* Botão Tema */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            style={{
-              width: '100%',
-              padding: sidebarExpanded ? '8px 10px' : '8px 6px',
-              background: buttonBg,
-              color: buttonText,
-              border: `1px solid ${sidebarBorderColor}`,
-              borderRadius: '6px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: sidebarExpanded ? 'flex-start' : 'center',
-              gap: '6px',
-              fontSize: '12px',
-              fontWeight: '500',
-            }}
-          >
-            <span aria-hidden="true">{isDark ? '☀️' : '🌙'}</span>
-            {sidebarExpanded && <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>}
-          </button>
-
-          {/* Botão Sair */}
-          <button
-            type="button"
-            onClick={handleLogout}
-            style={{
-              width: '100%',
-              padding: sidebarExpanded ? '8px 10px' : '8px 6px',
-              background: buttonBg,
-              border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-              borderRadius: '6px',
-              textAlign: 'center',
-              color: '#ef4444',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: sidebarExpanded ? 'flex-start' : 'center',
-              gap: '6px',
-            }}
-          >
-            <span aria-hidden="true">↪</span>
-            {sidebarExpanded && <span>Terminar Sessão</span>}
+        <div style={{ display: 'grid', gap: 8, paddingTop: 12, flexShrink: 0, borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}` }}>
+          {expanded && (
+            <div style={{ padding: '8px 10px', borderRadius: 8, background: isDark ? '#111827' : '#f9fafb' }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>{localUser.name}</div>
+              <div style={{ fontSize: 12, color: sidebarSubtext, overflow: 'hidden', textOverflow: 'ellipsis' }}>{localUser.email}</div>
+              <div style={{ fontSize: 12, color: sidebarSubtext, marginTop: 3 }}>{roleLabel(localUser.role)}</div>
+            </div>
+          )}
+          {!isMobile && (
+            <button type="button" aria-label={sidebarPinned ? 'Recolher menu' : 'Expandir menu'} title={sidebarPinned ? 'Recolher menu' : 'Expandir menu'} aria-controls="dashboard-sidebar" aria-expanded={expanded} onClick={() => { const next = !sidebarPinned; setSidebarPinned(next); setSidebarExpanded(next); }} style={footerButton(isDark)}>{sidebarPinned ? <ArrowLeft size={16} strokeWidth={1.8} /> : <ArrowRight size={16} strokeWidth={1.8} />}{expanded ? <span>{sidebarPinned ? 'Recolher menu' : 'Expandir menu'}</span> : null}</button>
+          )}
+          <button type="button" aria-label={isDark ? "Modo claro" : "Modo escuro"} onClick={toggleTheme} style={footerButton(isDark)}>{isDark ? <Sun size={16} strokeWidth={1.8} /> : <Moon size={16} strokeWidth={1.8} />}{expanded ? <span>{isDark ? 'Modo claro' : 'Modo escuro'}</span> : null}</button>
+          {localUser.role !== 'superadmin' && onlineCanImpersonate ? (
+            <button type="button" aria-label="Voltar ao Super Admin" onClick={() => { setCurrentLocalUser('local-owner'); window.location.href = '/dashboard'; }} style={{ ...footerButton(isDark), color: '#dc2626' }}><ArrowLeft size={16} strokeWidth={1.8} />{expanded ? <span>Voltar ao Super Admin</span> : null}</button>
+          ) : null}
+          <button type="button" onClick={handleSignOut} style={{ ...footerButton(isDark), color: '#dc2626' }} title="Encerrar sessão">
+            <LogOut size={16} strokeWidth={1.8} />
+            {expanded ? <span>Encerrar sessão</span> : null}
           </button>
         </div>
       </aside>
 
-      <main
-        id="dashboard-main"
-        tabIndex={-1}
-        style={{
-          marginLeft: isMobile ? '0' : sidebarPinned ? '248px' : '72px',
-          flex: 1,
-          padding: isMobile ? '72px 16px 24px' : '32px 40px',
-          background: isDark ? '#111827' : '#f3f4f6',
-          minHeight: '100vh',
-          color: isDark ? '#e5e7eb' : '#111827',
-          transition: 'margin-left 180ms ease, background 0.3s ease, color 0.3s ease',
-        }}
-      >
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>{children}</div>
+      <main style={{ marginLeft: isMobile ? 0 : (sidebarPinned ? 240 : 68), transition: 'margin-left 180ms ease', flex: 1, padding: isMobile ? '72px 16px 24px' : '32px 40px', minWidth: 0 }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto' }}>{children}</div>
       </main>
     </div>
   );
+}
+
+function footerButton(isDark: boolean): React.CSSProperties {
+  return { width: '100%', minHeight: 38, padding: '8px 9px', border: '1px solid transparent', borderRadius: 9, background: 'transparent', color: isDark ? '#d1d5db' : '#4b5563', cursor: 'pointer', fontSize: 12, fontWeight: 600, textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 9 };
 }

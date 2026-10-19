@@ -129,7 +129,7 @@ export default function PageClient() {
         // Fallback: primeiro campo de texto preenchido
         const firstFilled = fields.find((f) => f.type === 'text' && values[f.name]?.trim());
         if (firstFilled) {
-          payload.nome = values[firstFilled.name].trim();
+          payload.nome = values[firstFilled.name]?.trim() || '';
         } else {
           setMessage('O campo "Nome" é obrigatório.');
           setSubmitting(false);

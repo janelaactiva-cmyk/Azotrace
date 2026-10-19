@@ -23,6 +23,13 @@ export function batchCode(store: ProducerLocalState, id: string) {
 export function stageName(store: ProducerLocalState, id?: string) {
   return store.stages.find((item) => item.id === id)?.name ?? 'Sem etapa';
 }
+
+export function productionUnitName(store: ProducerLocalState, id?: string) {
+  if (!id) return 'Sem unidade';
+  const unit = store.units.find((item) => item.id === id);
+  return unit ? `${unit.code} · ${unit.name}` : 'Unidade removida';
+}
+
 export function statusPt(status: string) {
   return ({ active:'Ativo', finished:'Finalizado', approved:'Aprovado', rejected:'Rejeitado', pending:'Pendente', completed:'Concluído', partial:'Parcial', failed:'Falhou' } as Record<string,string>)[status] ?? status;
 }

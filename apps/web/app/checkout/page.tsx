@@ -3,36 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-const PLANS = {
-  base: {
-    id: 'base',
-    nome: 'Base',
-    preco: 19.99,
-    preco_anual: 239.88,
-    iva: 0.16,
-    features: ['1 Utilizador', 'Rastreabilidade Básica de Produtos', 'QR Codes Limitados', 'Actualizações Gratuitas', '1 Mês de Suporte']
-  },
-  essential: {
-    id: 'essential',
-    nome: 'Essential',
-    preco: 30.99,
-    preco_anual: 371.88,
-    iva: 0.16,
-    features: ['5 Utilizadores', 'Todos os Recursos Avançados', 'QR Codes Limitados', 'Actualizações Gratuitas', 'Utilização de um só projeto', '4 Meses de Suporte']
-  },
-  pro: {
-    id: 'pro',
-    nome: 'Pro',
-    preco: 70.99,
-    preco_anual: 851.88,
-    iva: 0.16,
-    features: ['Utilizadores Ilimitados', 'Recursos Premium e Prioritários', 'Lifetime access', 'Actualizações Gratuitas', 'Múltiplos projetos', 'Suporte Prioritário 24/7']
-  }
-};
+import { usePlanCatalog } from '~/lib/use-plan-catalog';
+import { planFeatures } from '~/lib/plan-catalog';
 
 const CONFIG_PRICE = 100.00;
 
 export default function CheckoutPage() {
+  const {catalog,error:catalogError}=usePlanCatalog();
+  const PLANS:Record<string,{id:string;nome:string;preco:number;preco_anual:number;iva:number;features:string[]}|undefined>=Object.fromEntries((catalog?.plans||[]).map(plan=>[plan.id.toLowerCase(),{id:plan.id.toLowerCase(),nome:plan.id,preco:plan.annualCents/1200,preco_anual:plan.annualCents/100,iva:0.16,features:planFeatures(plan)}]));
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [isCommercial, setIsCommercial] = useState(false);
@@ -52,11 +30,11 @@ export default function CheckoutPage() {
   });
 
   useEffect(() => {
-    const savedPlan = localStorage.getItem('selectedPlan');
+    const savedPlan = new URLSearchParams(window.location.search).get('plan') || localStorage.getItem('selectedPlan');
     if (savedPlan && PLANS[savedPlan as keyof typeof PLANS]) {
       setSelectedPlan(savedPlan);
     }
-  }, []);
+  }, [catalog?.version]);
 
   // ✅ Validar emails
   useEffect(() => {
@@ -135,9 +113,11 @@ export default function CheckoutPage() {
       }
 
       const plano = PLANS[selectedPlan as keyof typeof PLANS];
+      if(!plano||!catalog||catalogError){alert('Os preços não estão disponíveis. Atualiza a página antes de pagar.');setLoading(false);return;}
 
       const dadosCheckout = {
         plano: selectedPlan,
+        catalog_version: catalog.version,
         plano_nome: plano.nome,
         valor_base: base,
         valor_iva: iva,

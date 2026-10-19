@@ -38,6 +38,7 @@ export default function VerifyProductKeyPage() {
       // 1. Guardar o email retornado pela API no sessionStorage
       if (data.email) {
         sessionStorage.setItem('validated_email', data.email);
+        sessionStorage.setItem('validated_product_key', productKey.trim());
       }
 
       // 2. Redirecionar para a página de criar conta (SuccessPage) em vez do dashboard

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js'; 
 import { enviarEmailComChave } from '~/lib/email'; 
+import { persistConfirmedCheckout, deleteExpiredCheckout } from '~/lib/checkout-persistence';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: '2025-02-28.acacia' as any,
@@ -34,8 +35,18 @@ export async function POST(request: Request) {
   }
 
   // 1. EVENTO: Checkout Concluído com Sucesso
-  if (event.type === 'checkout.session.completed') {
+  if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
     const session = event.data.object as Stripe.Checkout.Session;
+    if (session.payment_status !== 'paid') return NextResponse.json({ received: true });
+    if (session.metadata?.azotrace_billing_order_id) {
+      const { data, error } = await supabaseAdmin.rpc('az_billing_apply', {
+        order_id: session.metadata.azotrace_billing_order_id, session_id: session.id,
+        paid_amount: session.amount_total, paid_currency: session.currency,
+      });
+      if (error) return NextResponse.json({ error: 'Não foi possível confirmar o upgrade.' }, { status: 500 });
+      if (data === 'conflict') console.error('Upgrade pago pendente de revisão:', session.metadata.azotrace_billing_order_id);
+      return NextResponse.json({ received: true });
+    }
     const customerEmail = session.customer_details?.email || session.customer_email;
     const sessionId = session.id;
 
@@ -47,6 +58,9 @@ export async function POST(request: Request) {
     }
 
     try {
+      // A compra e os contactos só entram no Supabase após confirmação Stripe.
+      // Executa antes da verificação da subscrição para recuperar reentregas.
+      if (session.metadata?.plano_nome) await persistConfirmedCheckout(supabaseAdmin,session);
       // 1. Verificar idempotência
       console.log('🔍 [PASSO 1] A verificar idempotência no Supabase...');
       const { data: existingSub, error: existingSubError } = await supabaseAdmin
@@ -55,9 +69,7 @@ export async function POST(request: Request) {
         .eq('stripe_session_id', sessionId)
         .maybeSingle();
 
-      if (existingSubError) {
-        console.error('⚠️ [PASSO 1] Erro na query de idempotência (não fatal):', existingSubError);
-      }
+      if (existingSubError) throw existingSubError;
 
       if (existingSub) {
         console.log(`ℹ️ A subscrição para a sessão ${sessionId} já tinha sido gerada anteriormente.`);
@@ -249,6 +261,18 @@ export async function POST(request: Request) {
     }
   }
 
+  if (event.type === 'checkout.session.expired' || event.type === 'checkout.session.async_payment_failed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    if (event.type === 'checkout.session.expired') {
+      try { await deleteExpiredCheckout(supabaseAdmin,session); }
+      catch { return NextResponse.json({ error: 'Não foi possível limpar a tentativa expirada.' }, { status: 500 }); }
+    }
+    if (session.metadata?.azotrace_billing_order_id) {
+      const { error } = await supabaseAdmin.from('azotrace_billing_orders').update({ status: 'expired' })
+        .eq('id', session.metadata.azotrace_billing_order_id).eq('stripe_session_id', session.id).eq('status', 'pending');
+      if (error) return NextResponse.json({ error: 'Não foi possível atualizar o pagamento.' }, { status: 500 });
+    }
+  }
   // 2. EVENTO: Subscrição Cancelada / Terminada (Inicia período de graça de 90 dias)
   if (event.type === 'customer.subscription.deleted') {
     const subscription = event.data.object as Stripe.Subscription;

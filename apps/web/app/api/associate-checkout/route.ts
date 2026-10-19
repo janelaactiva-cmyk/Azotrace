@@ -1,46 +1,23 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
+import Stripe from 'stripe';
+import { getSupabaseAdminClient } from '~/lib/supabase-admin';
 export async function POST(request: Request) {
-  try {
-    const { sessionId, userId } = await request.json();
-
-    if (!sessionId || !userId) {
-      return NextResponse.json(
-        { error: 'Session ID e User ID são obrigatórios' },
-        { status: 400 }
-      );
-    }
-
-    // Atualizar o checkout com o user_id
-    const { error } = await supabase
-      .from('checkouts')
-      .update({ 
-        user_id: userId,
-        status: 'completed'
-      })
-      .eq('stripe_session_id', sessionId);
-
-    if (error) {
-      console.error('Erro ao associar checkout:', error);
-      return NextResponse.json(
-        { error: 'Erro ao associar checkout' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ success: true });
-
-  } catch (error: any) {
-    console.error('Erro:', error);
-    return NextResponse.json(
-      { error: error.message || 'Erro interno' },
-      { status: 500 }
-    );
-  }
+ try {
+  const token=request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if(!token)return NextResponse.json({error:'Sessão em falta.'},{status:401});
+  const admin=getSupabaseAdminClient();const {data,error}=await admin.auth.getUser(token);
+  if(error||!data.user)return NextResponse.json({error:'Sessão inválida.'},{status:401});
+  const {sessionId,userId}=await request.json();
+  if(typeof sessionId!=='string'||(userId&&userId!==data.user.id))return NextResponse.json({error:'Pedido inválido.'},{status:400});
+  const session=await new Stripe(process.env.STRIPE_SECRET_KEY!).checkout.sessions.retrieve(sessionId);
+  const email=session.customer_details?.email||session.customer_email;
+  if(session.payment_status!=='paid'||!email||email.trim().toLowerCase()!==data.user.email?.trim().toLowerCase())return NextResponse.json({error:'A compra não está paga ou não pertence a esta conta.'},{status:403});
+  const updated=await admin.from('checkouts').update({user_id:data.user.id,status:'completed'})
+   .eq('stripe_session_id',sessionId).or(`user_id.is.null,user_id.eq.${data.user.id}`).select('id');
+  if(updated.error)throw updated.error;
+  if(!updated.data?.length)return NextResponse.json({error:'Checkout inexistente ou já associado a outra conta.'},{status:409});
+  const linked=await admin.rpc('az_backfill_subscription_companies');
+  if(linked.error)throw linked.error;
+  return NextResponse.json({success:true});
+ }catch(error){return NextResponse.json({error:error instanceof Error?error.message:'Não foi possível associar a compra.'},{status:400});}
 }

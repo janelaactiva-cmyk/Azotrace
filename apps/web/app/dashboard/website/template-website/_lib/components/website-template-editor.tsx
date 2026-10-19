@@ -367,7 +367,7 @@ export function WebsiteTemplateEditor(props: Props) {
   const initialTemplateId = props.initialTemplateId ?? 'template-1';
 
   const form = useForm<SaveWebsiteTemplateInput>({
-    resolver: zodResolver(SaveWebsiteTemplateSchema),
+    resolver: (values, context, options) => zodResolver(SaveWebsiteTemplateSchema)(values, context, { ...options, names: options.names?.map((name) => name) }),
     defaultValues: {
       businessId: props.businessId,
       templateId: initialTemplateId,

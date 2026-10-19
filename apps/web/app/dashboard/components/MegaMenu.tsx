@@ -238,10 +238,10 @@ export default function MegaMenu({ onItemClick }: { onItemClick?: (path: string)
 
   const menuStack = buildMenuStack();
 
-  const handleItemHover = (itemId: string, level: number) => {
+  const handleItemHover = (itemId: string | null, level: number) => {
     // Remove todos os itens após este nível
     const newStack = hoverStack.slice(0, level);
-    newStack.push(itemId);
+    if (itemId !== null) newStack.push(itemId);
     setHoverStack(newStack);
   };
 

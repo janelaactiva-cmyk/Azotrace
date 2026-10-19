@@ -43,7 +43,8 @@ export async function updateFormConfigFields(slug: string, fields: FieldConfig[]
   if (findError) return { data: null, error: findError };
 
   // 2. Se não existir, cria
-  if (!existing || existing.length === 0) {
+  const existingRow = existing?.[0];
+  if (!existingRow) {
     const { data, error } = await supabase
       .from('form_configs')
       .insert({ slug, nome: 'Formulário do Negócio', fields })
@@ -55,7 +56,7 @@ export async function updateFormConfigFields(slug: string, fields: FieldConfig[]
   const { data, error } = await supabase
     .from('form_configs')
     .update({ fields })
-    .eq('id', existing[0].id)
+    .eq('id', existingRow.id)
     .select();
 
   return { data: data?.[0] || null, error };

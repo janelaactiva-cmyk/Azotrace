@@ -38,7 +38,7 @@ export default function LandingPage() {
     // Smooth scroll
     document.querySelectorAll('a[href^="#"]').forEach((anchor: any) => {
       anchor.addEventListener('click', function (e: any) {
-        const targetId = this.getAttribute('href');
+        const targetId = anchor.getAttribute('href');
         if (targetId && targetId.startsWith('#')) {
           e.preventDefault();
           const targetElement = document.querySelector(targetId);

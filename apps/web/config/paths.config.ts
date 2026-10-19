@@ -27,7 +27,7 @@ const pathsConfig = PathsSchema.parse({
     signOut: '/', // <--- A apontar para a Landing Page (raiz)
   },
   app: {
-    home: '/home',
+    home: '/dashboard',
     profileSettings: '/home/settings',
   },
 } satisfies z.infer<typeof PathsSchema>);

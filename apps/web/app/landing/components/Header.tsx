@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Moon, Sun } from 'lucide-react';
 
-export default function Header({ isDark, toggleTheme }) {
+export default function Header({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -58,13 +59,18 @@ export default function Header({ isDark, toggleTheme }) {
 
             {/* Botão de Tema (Sol/Lua) AO LADO do Botão Entrar */}
             <button
+              type="button"
               onClick={toggleTheme}
+              aria-label={isDark ? 'Modo claro' : 'Modo escuro'}
               style={{
-                background: isDark ? '#374151' : '#f3f4f6',
-                color: isDark ? '#fbbf24' : '#1f2937',
-                border: '1px solid #d1d5db',
-                padding: '8px 12px',
-                borderRadius: '8px',
+                background: 'transparent',
+                color: isDark ? '#d1d5db' : '#4b5563',
+                border: `2px solid ${isDark ? '#234D87' : '#234D87'}`,
+                width: 38,
+                minHeight: 38,
+                padding: '8px 9px',
+                borderRadius: 9,
+                flexShrink: 0,
                 cursor: 'pointer',
                 fontSize: '18px',
                 display: 'flex',
@@ -72,9 +78,9 @@ export default function Header({ isDark, toggleTheme }) {
                 justifyContent: 'center',
                 transition: 'all 0.3s ease'
               }}
-              title="Alternar Modo Claro/Escuro"
+              title={isDark ? 'Modo claro' : 'Modo escuro'}
             >
-              {isDark ? '☀️' : '🌙'}
+              {isDark ? <Sun size={16} strokeWidth={1.8} /> : <Moon size={16} strokeWidth={1.8} />}
             </button>
 
             <button

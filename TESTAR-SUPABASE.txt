@@ -1,0 +1,78 @@
+AZOTRACE — PROJETO COMPLETO PARA TESTE COM SUPABASE
+Preparado em 15/10/2026
+
+Este ZIP inclui o código do projeto, apps/web, os pacotes do monorepo,
+pnpm-lock.yaml, as migrações SQL e as alterações de onboarding e gestão.
+Não inclui dependências instaladas, cache .next, histórico Git nem chaves reais.
+
+1. PREPARAR O PROJETO
+
+Extrai o ZIP para uma pasta nova. Usa Node.js 22 e pnpm 11.18.0, conforme as
+versões indicadas pelo projeto. Na pasta que contém package.json, executa:
+
+  pnpm install
+
+2. LIGAR AO TEU SUPABASE
+
+Copia apps/web/.env.example para apps/web/.env.local e preenche:
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY
+
+Se vais usar o mesmo projeto Supabase da instalação anterior, podes copiar
+localmente o teu .env.local existente para a nova pasta e manter os valores.
+As chaves não vêm neste ZIP e não devem ser colocadas no frontend.
+
+O Supabase fornece a base de dados e a autenticação. A aplicação Next.js corre
+localmente ou num alojamento compatível com Next.js; o ZIP não é carregado
+diretamente no Supabase como alojamento do site.
+
+3. CONFIGURAR O CATÁLOGO NO SUPABASE EXISTENTE
+
+No SQL Editor do Supabase, executa:
+  apps/web/supabase/migrations/20261014120000_azotrace_plan_catalog.sql
+
+Se esse catálogo já estiver instalado, o SQL preserva os preços existentes.
+Executa depois VERIFICAR-SUPABASE.sql para verificar as estruturas necessárias.
+Este passo pressupõe o esquema base Azotrace já instalado no Supabase atual.
+As migrações de base existentes estão em apps/web/supabase/migrations; não
+reapliques indiscriminadamente todas as migrações numa base que já esteja em uso.
+
+4. INICIAR OS TESTES
+
+Na raiz do projeto:
+  pnpm --filter web dev
+
+Abre:
+  http://localhost:3000/checkout/create-account?teste=1
+
+Se houver uma conta iniciada, escolhe Terminar sessão e criar outra conta.
+O teste local permite criar conta sem compra e usa o MFA normal do Supabase.
+Depois do MFA, prepara a empresa TESTE da própria conta e abre o onboarding.
+Os dados ficam efetivamente guardados no projeto Supabase configurado.
+O modo sem compra só é aceite em desenvolvimento no endereço local.
+
+5. ALTERAÇÕES INCLUÍDAS
+
+- Ícones uniformes no tipo de produto: Agricultura, Apicultura, Vinho, Carne,
+  Lacticínios, Pesca e Outro.
+- Menu lateral com Expandir menu e Recolher menu.
+- Primeiro acesso do Admin após MFA encaminhado para o onboarding.
+- Retoma da configuração incompleta e dashboard nos acessos seguintes.
+- Dashboard do Super Admin com clientes, novos clientes, pagamentos e renovações.
+- Editor do catálogo e cartões de planos com gravação no Supabase.
+- Comandos de desenvolvimento e produção preparados para Webpack.
+- Correções do CSS Modules e da validação instantânea do onboarding.
+
+6. COMPILAÇÃO DE PRODUÇÃO
+
+A configuração do projeto exige NEXT_PUBLIC_SITE_URL com HTTPS em produção.
+Antes de compilar para o teu alojamento, configura o domínio HTTPS real.
+Depois executa, na raiz:
+  pnpm --filter web build
+
+Para correr essa compilação:
+  pnpm --filter web start
+
+Os ficheiros gerados .next são recriados no ambiente de destino e não vêm no ZIP.
+O estado da validação deste pacote encontra-se em VALIDACAO.txt.

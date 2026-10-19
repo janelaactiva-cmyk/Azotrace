@@ -33,6 +33,7 @@
     "healthcheck": "oxlint --fix && oxfmt && pnpm run typecheck && manypkg fix"
   },
   "devDependencies": {
+    "@hookform/resolvers": "catalog:",
     "@manypkg/cli": "catalog:",
     "@supabase/ssr": "catalog:",
     "@supabase/supabase-js": "catalog:",
@@ -40,14 +41,11 @@
     "cross-env": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
+    "react-hook-form": "catalog:",
     "resend": "^6.22.1",
     "turbo": "catalog:",
-    "typescript": "catalog:"
-  },
-  "packageManager": "pnpm@11.18.0",
-  "dependencies": {
-    "@hookform/resolvers": "catalog:",
-    "react-hook-form": "catalog:",
+    "typescript": "catalog:",
     "zod": "catalog:"
-  }
+  },
+  "packageManager": "pnpm@11.18.0"
 }
