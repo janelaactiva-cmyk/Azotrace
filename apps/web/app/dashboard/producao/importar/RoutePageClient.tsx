@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useState } from 'react';
 
@@ -91,7 +93,7 @@ export default function ImportarPage() {
       persist({ ...store, records: newRecords, imports: [history, ...store.imports] });
       setMessage(`${created} registo(s) importado(s). A unidade de produção foi obtida automaticamente a partir de cada lote.`);
     } catch (cause) {
-      setMessage(cause instanceof Error ? cause.message : 'Erro ao importar o ficheiro.');
+      setMessage(uiMessagePt(cause instanceof Error ? cause.message : 'Erro ao importar o ficheiro.'));
     } finally {
       setBusy(false);
     }

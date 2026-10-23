@@ -1,8 +1,6 @@
-// Server Component
-import ConfiguracoesClient from './ConfiguracoesClient';
-
+import { redirect } from 'next/navigation';
+import { SETTINGS_ROOT } from './settings-navigation';
 export const instant = false;
-
 export default function ConfiguracoesPage() {
-  return <ConfiguracoesClient />;
+ redirect(SETTINGS_ROOT + '/multifator');
 }

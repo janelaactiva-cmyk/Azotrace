@@ -1,6 +1,8 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
 
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '~/lib/supabase';
 import Link from 'next/link';
@@ -14,25 +16,28 @@ export default function RedefinirPasswordPage() {
   const [success, setSuccess] = useState(false);
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
 
-  useEffect(() => {
-    // Verificar se o utilizador veio do link de reset
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-      }
-    };
-    checkSession();
-  }, [router]);
+  const recoveryToken=useRef('');
+  const [recoveryReady,setRecoveryReady]=useState(false),[awaitingVerification,setAwaitingVerification]=useState(false),[checkingLink,setCheckingLink]=useState(true);
+  useEffect(()=>{
+    let alive=true;const url=new URL(location.href),hash=new URLSearchParams(url.hash.slice(1));
+    if(url.searchParams.has('error')||hash.has('error')){setError('O link de recuperação é inválido ou expirou. Pede um novo link.');setCheckingLink(false);return}
+    const token=url.searchParams.get('token_hash')||hash.get('token_hash');
+    if(token&&((url.searchParams.get('type')||hash.get('type'))!=='recovery')){setError('Este link não é de recuperação de password.');setCheckingLink(false);return}
+    if(token){recoveryToken.current=token;history.replaceState(null,'',url.pathname)}
+    if(recoveryToken.current){setAwaitingVerification(true);setCheckingLink(false);return}
+    supabase.auth.getSession().then(({data,error})=>{if(!alive)return;if(error||!data.session)setError('O link não criou uma sessão de recuperação neste dispositivo. Pede um novo link.');else setRecoveryReady(true)}).catch(()=>{if(alive)setError('Não foi possível validar o link. Tenta novamente.')}).finally(()=>{if(alive)setCheckingLink(false)});
+    return()=>{alive=false};
+  },[]);
+  const verifyRecoveryLink=async()=>{if(loading||!recoveryToken.current)return;setLoading(true);setError('');try{const{data,error}=await supabase.auth.verifyOtp({token_hash:recoveryToken.current,type:'recovery'});if(error||!data.session)throw Error('O link de recuperação é inválido ou expirou. Pede um novo link.');recoveryToken.current='';setAwaitingVerification(false);setRecoveryReady(true)}catch(e){setError(uiMessagePt((e as Error).message))}finally{setLoading(false)}};
 
   const validatePassword = (password: string) => {
     const errors: string[] = [];
-    if (password.length < 8) errors.push('🔒 Mínimo 8 caracteres');
-    if (!/[A-Z]/.test(password)) errors.push('🔒 1 letra maiúscula');
-    if (!/[a-z]/.test(password)) errors.push('🔒 1 letra minúscula');
-    if (!/[0-9]/.test(password)) errors.push('🔒 1 número');
+    if (password.length < 8) errors.push('Mínimo 8 caracteres');
+    if (!/[A-Z]/.test(password)) errors.push('1 letra maiúscula');
+    if (!/[a-z]/.test(password)) errors.push('1 letra minúscula');
+    if (!/[0-9]/.test(password)) errors.push('1 número');
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(password)) {
-      errors.push('🔒 1 caractere especial');
+      errors.push('1 caracter especial');
     }
     return errors;
   };
@@ -41,6 +46,7 @@ export default function RedefinirPasswordPage() {
     e.preventDefault();
     setError('');
     setPasswordErrors([]);
+    if(!recoveryReady){setError('Valida primeiro o link de recuperação.');return}
 
     const errors = validatePassword(password);
     if (errors.length > 0) {
@@ -49,7 +55,7 @@ export default function RedefinirPasswordPage() {
     }
 
     if (password !== confirmPassword) {
-      setError('❌ As senhas não coincidem');
+      setError("As passwords não coincidem");
       return;
     }
 
@@ -67,7 +73,7 @@ export default function RedefinirPasswordPage() {
         router.push('/login');
       }, 3000);
     } catch (err: any) {
-      setError('❌ ' + (err.message || 'Erro ao atualizar password'));
+      setError(uiMessagePt('' + (err.message || 'Erro ao atualizar password')));
     } finally {
       setLoading(false);
     }
@@ -81,22 +87,24 @@ export default function RedefinirPasswordPage() {
       justifyContent: 'center',
       background: '#f3f4f6',
       fontFamily: 'sans-serif',
-      padding: '20px'
+      padding: '20px',
+      boxSizing: 'border-box'
     }}>
       <div style={{
         background: 'white',
-        padding: '40px',
+        padding: 'clamp(20px, 5vw, 40px)',
         borderRadius: '12px',
         boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
         width: '100%',
+                boxSizing: 'border-box',
         maxWidth: '440px'
       }}>
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
-            🔐 Redefinir Password
+            Redefinir password
           </h1>
           <p style={{ color: '#6b7280', fontSize: '14px' }}>
-            Define uma nova password para a tua conta
+            Define uma nova password para a sua conta
           </p>
         </div>
 
@@ -113,6 +121,9 @@ export default function RedefinirPasswordPage() {
           </div>
         )}
 
+        {checkingLink&&<p role="status">A verificar o link de recuperação…</p>}
+        {awaitingVerification&&<button type="button" disabled={loading} onClick={()=>void verifyRecoveryLink()} style={{padding:14,width:'100%',marginBottom:16}}>Validar link de recuperação</button>}
+        {!checkingLink&&!recoveryReady&&!awaitingVerification&&<p><Link href="/recuperar-password">Pedir novo link de recuperação</Link></p>}
         {success && (
           <div style={{
             background: '#dcfce7',
@@ -123,7 +134,7 @@ export default function RedefinirPasswordPage() {
             textAlign: 'center'
           }}>
             <p style={{ fontSize: '16px', fontWeight: '500', margin: 0 }}>
-              ✅ Password atualizada!
+               password atualizada!
             </p>
             <p style={{ fontSize: '14px', marginTop: '8px' }}>
               A ser redirecionado para o login...
@@ -140,7 +151,7 @@ export default function RedefinirPasswordPage() {
             marginBottom: '16px',
             fontSize: '13px'
           }}>
-            <strong>🔒 Regras da senha:</strong>
+            <strong> Regras da password:</strong>
             <ul style={{ marginTop: '6px', paddingLeft: '20px', marginBottom: '0' }}>
               {passwordErrors.map((err, i) => (
                 <li key={i}>{err}</li>
@@ -149,10 +160,10 @@ export default function RedefinirPasswordPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        {recoveryReady&&<form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontWeight: '500', marginBottom: '6px', fontSize: '14px' }}>
-              Nova Password
+              Nova password
             </label>
             <input
               type="password"
@@ -160,12 +171,13 @@ export default function RedefinirPasswordPage() {
               onChange={(e) => setPassword(e.target.value)}
               style={{
                 width: '100%',
+                boxSizing: 'border-box',
                 padding: '12px',
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
                 fontSize: '16px'
               }}
-              placeholder="••••••••"
+              placeholder=""
               autoComplete="new-password"
               required
             />
@@ -173,7 +185,7 @@ export default function RedefinirPasswordPage() {
 
           <div style={{ marginBottom: '24px' }}>
             <label style={{ display: 'block', fontWeight: '500', marginBottom: '6px', fontSize: '14px' }}>
-              Confirmar Password
+              Confirmar password
             </label>
             <input
               type="password"
@@ -181,12 +193,13 @@ export default function RedefinirPasswordPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               style={{
                 width: '100%',
+                boxSizing: 'border-box',
                 padding: '12px',
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
                 fontSize: '16px'
               }}
-              placeholder="••••••••"
+              placeholder=""
               autoComplete="new-password"
               required
             />
@@ -197,6 +210,7 @@ export default function RedefinirPasswordPage() {
             disabled={loading}
             style={{
               width: '100%',
+                boxSizing: 'border-box',
               padding: '14px',
               background: '#2563eb',
               color: 'white',
@@ -208,23 +222,10 @@ export default function RedefinirPasswordPage() {
               opacity: loading ? 0.7 : 1
             }}
           >
-            {loading ? 'A atualizar...' : '🔐 Atualizar Password'}
+            {loading ? 'A atualizar...' : "Atualizar password"}
           </button>
-        </form>
+        </form>}
 
-        <div style={{ marginTop: '16px', textAlign: 'center' }}>
-          <Link
-            href="/login"
-            style={{
-              color: '#2563eb',
-              textDecoration: 'none',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            ← Voltar ao login
-          </Link>
-        </div>
       </div>
     </div>
   );

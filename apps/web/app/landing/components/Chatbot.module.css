@@ -1,0 +1,15 @@
+.root {
+  --azoia-button-background: linear-gradient(135deg, #234D87 0%, #1a3a6b 100%);
+}
+
+/* Scope to the assistant so the support dashboard keeps its own styles. */
+.root button {
+  background: var(--azoia-button-background) !important;
+  border-color: #234D87 !important;
+  color: #fff !important;
+}
+
+.root button:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
+}

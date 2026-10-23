@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 
 interface BusinessContextType {
   selectedBusinessId: string | null;
@@ -22,7 +22,6 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     const savedType = localStorage.getItem('selectedBusinessType');
     const savedName = localStorage.getItem('selectedBusinessName');
     
-    console.log('🔵 BusinessProvider - Carregado do localStorage:', { savedId, savedType, savedName });
     
     if (savedId && savedType) {
       setSelectedBusinessId(savedId);
@@ -31,8 +30,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const setSelectedBusiness = (id: string, type: string, name: string) => {
-    console.log('🟢 BusinessProvider - setSelectedBusiness:', { id, type, name });
+  const setSelectedBusiness = useCallback((id: string, type: string, name: string) => {
     
     setSelectedBusinessId(id);
     setSelectedBusinessType(type);
@@ -41,9 +39,9 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('selectedBusinessId', id);
     localStorage.setItem('selectedBusinessType', type);
     localStorage.setItem('selectedBusinessName', name);
-  };
+  }, []);
 
-  const clearSelectedBusiness = () => {
+  const clearSelectedBusiness = useCallback(() => {
     setSelectedBusinessId(null);
     setSelectedBusinessType(null);
     setSelectedBusinessName(null);
@@ -51,16 +49,14 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('selectedBusinessId');
     localStorage.removeItem('selectedBusinessType');
     localStorage.removeItem('selectedBusinessName');
-  };
+  }, []);
+
+  const value = useMemo(() => ({ selectedBusinessId, selectedBusinessType, selectedBusinessName,
+    setSelectedBusiness, clearSelectedBusiness }),
+  [selectedBusinessId, selectedBusinessType, selectedBusinessName, setSelectedBusiness, clearSelectedBusiness]);
 
   return (
-    <BusinessContext.Provider value={{
-      selectedBusinessId,
-      selectedBusinessType,
-      selectedBusinessName,
-      setSelectedBusiness,
-      clearSelectedBusiness
-    }}>
+    <BusinessContext.Provider value={value}>
       {children}
     </BusinessContext.Provider>
   );

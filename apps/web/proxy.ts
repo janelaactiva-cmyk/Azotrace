@@ -3,51 +3,30 @@ import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
-
+  // The application uses localStorage + bearer tokens. Only legacy SSR
+  // cookie sessions need refreshing here. API routes enforce their own auth.
+  const cookies = request.cookies.getAll();
+  const hasSessionCookie = cookies.some(cookie => /^sb-.+-auth-token(?:\.\d+)?$/.test(cookie.name));
+  if (!hasSessionCookie) return NextResponse.next({ request: { headers: request.headers } });
+  let response = NextResponse.next({ request: { headers: request.headers } });
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+    process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-            path: '/',
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7,
-          });
-        },
-        remove(name: string, options: any) {
-          response.cookies.set({
-            name,
-            value: '',
-            path: '/',
-            maxAge: 0,
-          });
+        getAll() { return request.cookies.getAll(); },
+        setAll(values) {
+          for (const { name, value } of values) request.cookies.set(name, value);
+          const previousCookies = response.cookies.getAll();
+          response = NextResponse.next({ request });
+          for (const cookie of previousCookies) response.cookies.set(cookie);
+          for (const { name, value, options } of values) response.cookies.set(name, value, options);
         },
       },
-    }
+    },
   );
-
   await supabase.auth.getUser();
-
+  response.headers.set('Cache-Control', 'private, no-store');
   return response;
 }
-
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 };

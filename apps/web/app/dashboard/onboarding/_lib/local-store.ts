@@ -258,13 +258,14 @@ function migrateBatches(parsed: any, units: LocalProductionUnit[]): BatchMigrati
     destination.set(String(rawBatch.id), perUnit);
   }
 
+  const batchById = new Map(batches.map((batch) => [batch.id, batch]));
   const records: LocalProductionRecord[] = rawRecords.map((record: any) => {
     const legacyIds = Array.isArray(record.productionUnitIds) ? record.productionUnitIds.filter(Boolean) : [];
     const rawUnitId = record.productionUnitId || legacyIds[0] || '';
     const mappedBatchId = destination.get(String(record.batchId))?.get(String(rawUnitId))
       ?? firstId.get(String(record.batchId))
       ?? String(record.batchId ?? '');
-    const mappedBatch = batches.find((batch) => batch.id === mappedBatchId);
+    const mappedBatch = batchById.get(mappedBatchId);
     const productionUnitId = rawUnitId || mappedBatch?.productionUnitId || undefined;
 
     return {
@@ -324,12 +325,23 @@ export function normalizeProducerState(parsed: any): ProducerLocalState | null {
   return ensureActiveBatchForEveryUnit(normalized);
 }
 
+// Raw storage remains the source of truth: a write in another tab invalidates this
+// small cache on the next read without parsing the whole history again.
+const parsedStates = new Map<string, { raw: string; state: ProducerLocalState }>();
+function rememberParsedState(businessId: string, raw: string, state: ProducerLocalState) {
+  parsedStates.delete(businessId);
+  parsedStates.set(businessId, { raw, state });
+  if (parsedStates.size > 4) parsedStates.delete(parsedStates.keys().next().value!);
+}
+
 export function loadProducerState(preferredBusinessId?: string | null): ProducerLocalState | null {
   if (typeof window === 'undefined') return null;
   const businessId = preferredBusinessId || getCurrentLocalBusinessId();
   if (!businessId) return null;
   const raw = window.localStorage.getItem(stateKey(businessId));
-  if (!raw) return null;
+  if (!raw) { parsedStates.delete(businessId); return null; }
+  const cached = parsedStates.get(businessId);
+  if (cached?.raw === raw) return cached.state;
   try {
     const parsed = JSON.parse(raw);
     const normalized = normalizeProducerState(parsed);
@@ -338,6 +350,7 @@ export function loadProducerState(preferredBusinessId?: string | null): Producer
       if (parsed.version !== 7 || serialized !== raw) {
         window.localStorage.setItem(stateKey(businessId), serialized);
       }
+      rememberParsedState(businessId, serialized, normalized);
     }
     return normalized;
   } catch {
@@ -395,6 +408,7 @@ export function cacheProducerState(
   options: { makeCurrent?: boolean; emit?: boolean } = {},
 ) {
   if (typeof window === 'undefined') return;
+  const batchById = new Map(state.batches.map((batch) => [batch.id, batch]));
   const baseNormalized: ProducerLocalState = {
     ...state,
     version: 7,
@@ -411,7 +425,7 @@ export function cacheProducerState(
       autoCreated: batch.autoCreated !== false,
     })),
     records: state.records.map((record) => {
-      const batch = state.batches.find((item) => item.id === record.batchId);
+      const batch = batchById.get(record.batchId);
       const productionUnitId = record.productionUnitId || record.productionUnitIds?.[0] || batch?.productionUnitId || undefined;
       return {
         ...record,
@@ -423,7 +437,9 @@ export function cacheProducerState(
     publications: state.publications ?? [],
   };
   const normalized = ensureActiveBatchForEveryUnit(baseNormalized);
-  window.localStorage.setItem(stateKey(normalized.business.id), JSON.stringify(normalized));
+  const serialized = JSON.stringify(normalized);
+  window.localStorage.setItem(stateKey(normalized.business.id), serialized);
+  rememberParsedState(normalized.business.id, serialized, normalized);
   updateRegistry(normalized.business.id);
   if (options.makeCurrent) setCurrentLocalBusinessId(normalized.business.id);
   if (options.emit !== false) {
@@ -533,9 +549,14 @@ export function createAutomaticBatchForUnit(
 
 export function ensureActiveBatchForEveryUnit(state: ProducerLocalState): ProducerLocalState {
   if (!state.products[0]) return state;
+  const activeUnits = new Set(state.batches
+    .filter(batch => batch.productId === state.products[0]!.id && batch.status === 'active')
+    .map(batch => batch.productionUnitId));
   let next = state;
   for (const unit of state.units.filter((item) => item.status === 'active')) {
+    if (activeUnits.has(unit.id)) continue;
     next = createAutomaticBatchForUnit(next, unit.id).state;
+    activeUnits.add(unit.id);
   }
   return next;
 }
@@ -583,6 +604,7 @@ export function getActiveProducerState(preferredBusinessId?: string | null) {
 export function deleteLocalBusiness(businessId: string) {
   if (typeof window === 'undefined') return;
   window.localStorage.removeItem(stateKey(businessId));
+  parsedStates.delete(businessId);
   const ids = listLocalBusinesses().map((business) => business.id).filter((id) => id !== businessId);
   window.localStorage.setItem(BUSINESS_REGISTRY_KEY, JSON.stringify(ids));
   if (getCurrentLocalBusinessId() === businessId) {

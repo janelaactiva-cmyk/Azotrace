@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '~/lib/supabase';
@@ -20,7 +22,7 @@ export function AdminDashboardEntry() {
     setReady(false); setError('');
     async function enter() {
       try {
-        const context = await loadOnlineContext();
+        const context = await loadOnlineContext({ reuse: true });
         if (cancelled) return;
         const destination = firstAccessDestination(context, selectedBusinessId);
         if (destination.path === '/dashboard/onboarding') {
@@ -38,7 +40,7 @@ export function AdminDashboardEntry() {
           router.replace(destination.path);
         } else setReady(true);
       } catch (cause) {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Não foi possível verificar a configuração da conta.');
+        if (!cancelled) setError(uiMessagePt(cause instanceof Error ? cause.message : 'Não foi possível verificar a configuração da conta.'));
       }
     }
     void enter();

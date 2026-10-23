@@ -1,4 +1,7 @@
 'use client';
+import LotReceiptEntry from '~/components/LotReceiptEntry';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
@@ -180,7 +183,7 @@ export default function PublicTracePage() {
         if (!cancelled) setDocumentHtml(html);
       } catch (cause) {
         console.error(cause);
-        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Não foi possível carregar a rastreabilidade.');
+        if (!cancelled) setError(uiMessagePt(cause instanceof Error ? cause.message : 'Não foi possível carregar a rastreabilidade.'));
       }
     }
 
@@ -190,12 +193,15 @@ export default function PublicTracePage() {
 
   const srcDoc = useMemo(() => documentHtml, [documentHtml]);
 
+  const reception = <LotReceiptEntry key={`${businessId}:${batchId}`} businessId={businessId} batchId={batchId}/>;
+
   if (error) {
     return (
       <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24, fontFamily: 'system-ui,sans-serif', background: '#f4f6f5' }}>
         <section style={{ maxWidth: 620, width: '100%', background: '#fff', border: '1px solid #dde5e1', borderRadius: 18, padding: 28 }}>
-          <h1 style={{ margin: '0 0 10px', fontSize: 24 }}>Página indisponível</h1>
+          <h1 style={{ margin: '0 0 10px', fontSize: 24 }}>{error === 'Esta página de rastreabilidade ainda não foi publicada.' ? 'Dados públicos ainda não publicados' : 'Dados públicos indisponíveis'}</h1>
           <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: '#64736c' }}>{error}</p>
+          {reception}
         </section>
       </main>
     );
@@ -206,10 +212,13 @@ export default function PublicTracePage() {
   }
 
   return (
+    <>
+    {reception}
     <iframe
       title="Rastreabilidade do produto"
       srcDoc={srcDoc}
       style={{ width: '100%', minHeight: '100vh', border: 0, display: 'block', background: '#fff' }}
     />
+    </>
   );
 }

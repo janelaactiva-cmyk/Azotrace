@@ -1,4 +1,7 @@
 'use client';
+import { showMessage } from '~/lib/app-messages';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -29,10 +32,10 @@ export default function PageClient() {
     try {
       const { error } = await supabase.from('subcategorias').insert([{ ...form, user_id: user?.id }]);
       if (error) throw error;
-      alert('✅ Subcategoria criada!');
+      (await showMessage('✅ Subcategoria criada!'));
       router.push('/dashboard/administracao/subcategorias');
     } catch (error: any) {
-      alert('❌ Erro: ' + error.message);
+      (await showMessage(uiMessagePt('❌ Erro: ' + error.message)));
     } finally {
       setLoading(false);
     }

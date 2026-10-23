@@ -36,7 +36,7 @@ const menuConfig: MenuItem[] = [
     label: 'Utilizadores',
     icon: '👥',
     children: [
-      { id: 'users-list', label: 'Listar Utilizadores', icon: '📋', path: '/dashboard/administracao/utilizadores' },
+      { id: 'users-list', label: 'Lista de utilizadores', icon: '📋', path: '/dashboard/administracao/utilizadores' },
       { id: 'users-create', label: 'Criar Utilizador', icon: '➕', path: '/dashboard/administracao/utilizadores/criar' },
       { id: 'users-edit', label: 'Editar Utilizador', icon: '✏️', path: '/dashboard/administracao/utilizadores/editar' },
       { id: 'users-perfis', label: 'Perfis e Permissões', icon: '👤', path: '/dashboard/administracao/perfis' },

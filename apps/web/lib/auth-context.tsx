@@ -23,14 +23,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
-        console.log('🔴 Erro ao obter sessão:', sessionError.message);
+        console.log('Erro ao obter sessão:', sessionError.message);
         setUser(null);
         return;
       }
 
       if (!sessionData.session) {
         // Sem sessão — não é erro, é só um utilizador não autenticado
-        console.log('ℹ️ Sem sessão ativa.');
+        console.log('Sem sessão ativa.');
         setUser(null);
         return;
       }
@@ -39,14 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: userData, error: userError } = await supabase.auth.getUser();
 
       if (userError) {
-        console.log('🔴 Erro ao obter utilizador:', userError.message);
+        console.log('Erro ao obter utilizador:', userError.message);
         setUser(null);
         return;
       }
 
       setUser(userData.user);
       if (userData.user) {
-        console.log('👤 Utilizador autenticado:', userData.user.email);
+        console.log('Utilizador autenticado:', userData.user.email);
       }
     } catch (error) {
       console.error('Erro ao obter utilizador:', error);
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Ouvir mudanças na autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔔 Evento de autenticação:', event);
+        console.log('Evento de autenticação:', event);
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
           setUser(session?.user || null);
         } else if (event === 'SIGNED_OUT') {

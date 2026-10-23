@@ -1,4 +1,5 @@
 'use client';
+import { confirmMessage, showMessage } from '~/lib/app-messages';
 
 import { useState } from 'react';
 
@@ -19,7 +20,7 @@ export default function ClientActions({ stripeSessionId, currentPlanName }: Clie
   const [loading, setLoading] = useState(false);
 
   const handleAlterarPlano = async () => {
-    if (!confirm(`Pretendes alterar o plano deste cliente para o plano selecionado?`)) return;
+    if (!(await confirmMessage(`Pretendes alterar o plano deste cliente para o plano selecionado?`))) return;
 
     setLoading(true);
     try {
@@ -35,14 +36,14 @@ export default function ClientActions({ stripeSessionId, currentPlanName }: Clie
       const data = await response.json();
 
       if (data.success) {
-        alert('✅ Plano alterado com sucesso!');
+        (await showMessage('✅ Plano alterado com sucesso!'));
         window.location.reload();
       } else {
-        alert('❌ Erro: ' + (data.error || 'Erro desconhecido'));
+        (await showMessage('❌ Erro: ' + (data.error || 'Erro desconhecido')));
       }
     } catch (err) {
       console.error(err);
-      alert('❌ Erro de ligação ao servidor.');
+      (await showMessage('❌ Erro de ligação ao servidor.'));
     } finally {
       setLoading(false);
     }

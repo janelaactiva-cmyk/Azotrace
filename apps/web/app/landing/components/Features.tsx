@@ -1,12 +1,7 @@
-export default function Features() {
-  const features = [
-    { icon: 'bi-box-seam', title: '1. Registar o Produto', desc: 'Adicione os seus produtos na plataforma.' },
-    { icon: 'bi-qr-code', title: '2. Gerar QR Code', desc: 'Gerar QR Codes únicos para cada lote ou produto.' },
-    { icon: 'bi-tag', title: '3. Aplicar no Produto', desc: 'Imprima e aplique os códigos nas embalagens.' },
-    { icon: 'bi-phone', title: '4. Cliente descobre', desc: 'O consumidor digitaliza o código e acede a informações detalhadas.' },
-  ];
+import { landingSteps as features } from '~/lib/landing-content';
 
-  return (
+export default function Features() {
+return (
     <section id="feature" className="feature">
       <div className="container">
         <div className="row">

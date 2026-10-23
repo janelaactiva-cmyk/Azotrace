@@ -1,4 +1,7 @@
 'use client';
+import { confirmMessage, showMessage } from '~/lib/app-messages';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useState, useEffect } from 'react';
 import { supabase } from '~/lib/supabase';
@@ -48,21 +51,21 @@ export default function PageClient() {
       setForm({ nome: '', categoria_id: '', descricao: '' });
       setEditing(null);
       await loadData();
-      alert(editing ? '✅ Subcategoria atualizada!' : '✅ Subcategoria criada!');
+      (await showMessage(editing ? '✅ Subcategoria atualizada!' : '✅ Subcategoria criada!'));
     } catch (error: any) {
-      alert('❌ Erro: ' + error.message);
+      (await showMessage(uiMessagePt('❌ Erro: ' + error.message)));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza?')) return;
+    if (!(await confirmMessage('Tem certeza?'))) return;
     try {
       const { error } = await supabase.from('subcategorias').delete().eq('id', id);
       if (error) throw error;
       await loadData();
-      alert('🗑️ Subcategoria eliminada!');
+      (await showMessage('🗑️ Subcategoria eliminada!'));
     } catch (error: any) {
-      alert('❌ Erro: ' + error.message);
+      (await showMessage(uiMessagePt('❌ Erro: ' + error.message)));
     }
   };
 

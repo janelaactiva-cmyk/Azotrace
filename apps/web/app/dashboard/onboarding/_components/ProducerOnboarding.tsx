@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -81,8 +83,8 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
   const [fields, setFields] = useState<FieldDefinition[]>(getPreset('agriculture').fields.map((field) => ({ ...field })));
   const [stages, setStages] = useState<string[]>([...getPreset('agriculture').stages]);
 
-  const [productName, setProductName] = useState('Ananás dos Açores');
-  const [sku, setSku] = useState('ANA-001');
+  const [productName, setProductName] = useState('');
+  const [sku, setSku] = useState('');
   const [productDescription, setProductDescription] = useState('');
   const [productImageFile, setProductImageFile] = useState<File | null>(null);
   const [productImageUrl, setProductImageUrl] = useState('');
@@ -187,7 +189,7 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
       setError('');
       await fn();
     } catch (e: any) {
-      setError(e?.message ?? 'Não foi possível guardar os dados.');
+      setError(uiMessagePt(e?.message ?? 'Não foi possível guardar os dados.'));
     } finally {
       setSaving(false);
     }
@@ -278,7 +280,7 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
       ...current,
       {
         key: `campo_${current.length + 1}`,
-        label: `Novo campo ${current.length + 1}`,
+        label: '',
         fieldType: 'text',
         required: false,
         public: true,
@@ -288,7 +290,10 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
 
   const saveFields = async () => {
     if (!store) return;
-    const normalized = fields.map((field) => ({ ...field, key: field.key || makeKey(field.label) }));
+    if (fields.some((field) => !field.label.trim())) {
+      throw new Error('Preenche o nome de cada campo ou remove as linhas que não vais usar.');
+    }
+    const normalized = fields.map((field, index) => ({ ...field, key: makeKey(field.label) || `campo_${index + 1}` }));
     await persist({ ...store, fields: normalized, onboardingStep: 5 });
     setFields(normalized);
     setStep(5);
@@ -497,8 +502,8 @@ export default function ProducerOnboarding({ forceNew = false }: { forceNew?: bo
               <div className={styles.tableWrap}>
                 <table className={styles.table}><thead><tr><th>Campo</th><th>Tipo</th><th>Unidade</th><th>Obrigatório</th><th>Público QR</th><th /></tr></thead><tbody>
                   {fields.map((field, index) => (
-                    <tr key={`${field.key}-${index}`}>
-                      <td><input className={styles.input} value={field.label} onChange={(e) => setFields((current) => current.map((item, i) => i === index ? { ...item, label: e.target.value, key: makeKey(e.target.value) } : item))} /></td>
+                    <tr key={index}>
+                      <td><input className={styles.input} value={field.label} onChange={(e) => setFields((current) => current.map((item, i) => i === index ? { ...item, label: e.target.value } : item))} /></td>
                       <td><select className={styles.select} value={field.fieldType} onChange={(e) => setFields((current) => current.map((item, i) => i === index ? { ...item, fieldType: e.target.value as FieldType } : item))}>{['text','textarea','number','date','datetime','select','boolean','image'].map((type) => <option key={type} value={type}>{type}</option>)}</select></td>
                       <td><input className={styles.input} value={field.unit ?? ''} onChange={(e) => setFields((current) => current.map((item, i) => i === index ? { ...item, unit: e.target.value } : item))} /></td>
                       <td><input type="checkbox" checked={field.required} onChange={(e) => setFields((current) => current.map((item, i) => i === index ? { ...item, required: e.target.checked } : item))} /></td>

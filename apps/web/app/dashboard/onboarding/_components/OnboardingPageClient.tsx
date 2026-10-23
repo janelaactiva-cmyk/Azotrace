@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -24,7 +26,7 @@ export default function OnboardingPageClient() {
       if (!response.ok || !result.allowed) throw new Error(result.error || 'O pagamento ainda não foi confirmado.');
       if (!cancelled) setAllowed(true);
     }
-    void check().catch(cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'Não foi possível verificar o pagamento.'); });
+    void check().catch(cause => { if (!cancelled) setError(uiMessagePt(cause instanceof Error ? cause.message : 'Não foi possível verificar o pagamento.')); });
     return () => { cancelled = true; };
   }, [attempt]);
   if (error) return <section role="alert" style={{ padding: 24 }}><h1>Pagamento necessário</h1><p>{error}</p><button onClick={() => setAttempt(value => value + 1)}>Verificar novamente</button><p><a href="/dashboard/subscricoes">Consultar pagamentos e subscrições</a></p></section>;

@@ -1,7 +1,7 @@
 'use client';
 import { supabase } from '~/lib/supabase';
 import { withAuthTimeout } from '~/lib/auth-navigation';
-import { setOnlineContext, invalidateOnlineContext, targetUserId, type OnlineContext } from './online-state';
+import { setOnlineContext, invalidateOnlineContext, targetUserId, onlineUser, type OnlineContext } from './online-state';
 import type { LocalSubscription, LocalPlan } from './local-subscriptions';
 export const ONLINE_BILLING_EVENT = 'azotrace:online-billing';
 export async function onlineRpc<T>(name: string, args: Record<string, unknown> = {}): Promise<T> {
@@ -11,9 +11,15 @@ export async function onlineRpc<T>(name: string, args: Record<string, unknown> =
 }
 let pending: Promise<OnlineContext> | null = null;
 let generation = 0;
-export function resetOnlineSession() { generation++; pending = null; invalidateOnlineContext(); }
-export function loadOnlineContext(): Promise<OnlineContext> {
+let recent: { context: OnlineContext; target: string | null; expires: number } | null = null;
+export function resetOnlineSession() { generation++; pending = null; recent = null; invalidateOnlineContext(); }
+// Only read-only entry points opt in. Saves and explicit refreshes remain fresh.
+export function loadOnlineContext({ reuse = false }: { reuse?: boolean } = {}): Promise<OnlineContext> {
   if (pending) return pending;
+  const target = targetUserId();
+  if (reuse && recent && recent.expires > Date.now() && recent.target === target && onlineUser === recent.context.user) {
+    return Promise.resolve(recent.context);
+  }
   const currentGeneration = generation;
   const operation = withAuthTimeout((async () => {
     const { data, error } = await supabase.auth.getSession();
@@ -22,9 +28,11 @@ export function loadOnlineContext(): Promise<OnlineContext> {
     return onlineRpc<OnlineContext>('az_online_context');
   })(), 'A validação da conta demorou demasiado. Tenta novamente.').then((context) => {
     if (generation !== currentGeneration) throw new Error('A sessão mudou.');
-    setOnlineContext(context); return context;
+    setOnlineContext(context);
+    recent = { context, target, expires: Date.now() + 15_000 };
+    return context;
   }).catch((error) => {
-    if (generation === currentGeneration) invalidateOnlineContext(error.message);
+    if (generation === currentGeneration) { recent = null; invalidateOnlineContext(error.message); }
     throw error;
   }).finally(() => { if (pending === operation) pending = null; });
   pending = operation; return operation;

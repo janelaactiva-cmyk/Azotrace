@@ -1,24 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { landingProducerFaq as produtores, landingConsumerFaq as consumidores } from '~/lib/landing-content';
 
 export default function FAQ() {
   const [openProd, setOpenProd] = useState<string | null>(null);
   const [openCons, setOpenCons] = useState<string | null>(null);
 
-  const produtores = [
-    { id: 'prod1', q: 'O que é a Azotrace?', a: 'A AzoTrace é uma plataforma de rastreabilidade digital que permite gerir e valorizar os seus produtos através de QR Codes únicos.' },
-    { id: 'prod2', q: 'Como funciona a plataforma?', a: 'Registe os produtos, gere QR Codes exclusivos e disponibilize aos consumidores toda a informação sobre a origem e autenticidade.' },
-    { id: 'prod3', q: 'Posso gerir vários produtos ou marcas?', a: 'Sim. A plataforma permite gerir vários produtos, lotes e marcas a partir de uma única conta.' },
-  ];
-
-  const consumidores = [
-    { id: 'cons1', q: 'Como posso consultar um produto?', a: 'Basta apontar a câmara do telemóvel para o QR Code presente no produto.' },
-    { id: 'cons2', q: 'Que informação posso consultar?', a: 'Pode consultar a origem, autenticidade, processo de produção, certificações e outras informações disponibilizadas pelo produtor.' },
-    { id: 'cons3', q: 'Preciso de instalar alguma aplicação?', a: 'Não. Basta utilizar a câmara do seu smartphone ou qualquer leitor de QR Codes.' },
-  ];
-
-  return (
+return (
     <section id="faq" style={{ padding: '80px 0', background: '#fff' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
         

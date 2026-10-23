@@ -1,68 +1,24 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '~/lib/supabase/server';
-
+import { getSupabaseAdminClient } from '~/lib/supabase-admin';
+import { authorizeChatbot, chatbotPayload, chatbotFailure } from '~/lib/chatbot-server';
 export async function GET(request: Request) {
+  const publicOnly = new URL(request.url).searchParams.get('active') === 'true';
+  if (!publicOnly) { const denied = await authorizeChatbot(request); if (denied) return denied; }
   try {
-    const { searchParams } = new URL(request.url);
-    const active = searchParams.get('active');
-
-    const supabase = await createClient();
-    let query = supabase
-      .from('chatbot_questions')
-      .select('*')
-      .order('order_position', { ascending: true });
-
-    if (active === 'true') {
-      query = query.eq('is_active', true);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('❌ Erro na query:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(data || []);
-  } catch (error: any) {
-    console.error('❌ Erro no GET:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+    let query = getSupabaseAdminClient().from('chatbot_questions').select('id,question,answer,category,is_active,order_position').order('order_position',{ascending:true}).order('id',{ascending:true});
+    if (publicOnly) query = query.eq('is_active',true);
+    const {data,error} = await query;
+    if (error) return chatbotFailure(error);
+    return Response.json(data || [],{headers:{'Cache-Control':'no-store'}});
+  } catch { return chatbotFailure(null); }
 }
-
 export async function POST(request: Request) {
+  const denied = await authorizeChatbot(request); if (denied) return denied;
+  let payload;
+  try { payload = chatbotPayload(await request.json()); }
+  catch (cause) { return Response.json({error:cause instanceof Error ? cause.message : 'Dados inválidos.'},{status:400}); }
   try {
-    const body = await request.json();
-    const { question, answer, category, order_position } = body;
-
-    if (!question || !answer) {
-      return NextResponse.json(
-        { error: 'Pergunta e resposta são obrigatórias' },
-        { status: 400 }
-      );
-    }
-
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from('chatbot_questions')
-      .insert([{
-        question,
-        answer,
-        category: category || 'Geral',
-        order_position: order_position || 0,
-        is_active: true,
-      }])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('❌ Erro ao criar:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(data);
-  } catch (error: any) {
-    console.error('❌ Erro no POST:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+    const {data,error} = await getSupabaseAdminClient().from('chatbot_questions').insert(payload).select().single();
+    if (error) return chatbotFailure(error);
+    return Response.json(data,{status:201});
+  } catch { return chatbotFailure(null); }
 }

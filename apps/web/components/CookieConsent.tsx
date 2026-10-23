@@ -1,43 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '~/lib/supabase';
+import { useAuth } from '~/lib/auth-context';
 
 export default function CookieConsent() {
   const [show, setShow] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  const { user } = useAuth();
+  const userId = user?.id;
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setIsLoggedIn(true);
-        const consent = localStorage.getItem('cookie-consent');
-        if (!consent) {
-          setTimeout(() => setShow(true), 1000);
-        }
-      }
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN') {
-          setIsLoggedIn(true);
-          const consent = localStorage.getItem('cookie-consent');
-          if (!consent) {
-            setTimeout(() => setShow(true), 1000);
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setIsLoggedIn(false);
-          setShow(false);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
+    setIsLoggedIn(Boolean(userId));
+    setShow(false);
+    if (!userId) return;
+    if (!localStorage.getItem('cookie-consent')) {
+      const timer = window.setTimeout(() => setShow(true), 1000);
+      return () => window.clearTimeout(timer);
+    }
+  }, [userId]);
 
   const handleAccept = () => {
     localStorage.setItem('cookie-consent', 'accepted');

@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Building2, CalendarClock, RefreshCw, TrendingUp, UserPlus, Wallet } from 'lucide-react';
@@ -31,7 +33,7 @@ export function PlatformDashboard() {
       if (!response.ok) throw new Error(result.error || 'Não foi possível atualizar os indicadores.');
       if (current === generation.current) { setData(result); setError(''); }
     } catch (cause) {
-      if (current === generation.current) { setData(null); setError(cause instanceof Error ? cause.message : 'Não foi possível carregar o dashboard.'); }
+      if (current === generation.current) { setData(null); setError(uiMessagePt(cause instanceof Error ? cause.message : 'Não foi possível carregar o dashboard.')); }
     } finally { if (current === generation.current) setLoading(false); }
   }
   useEffect(() => {

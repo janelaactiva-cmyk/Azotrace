@@ -1,4 +1,5 @@
 'use client';
+import { showMessage } from '~/lib/app-messages';
 
 import { useState } from 'react';
 
@@ -15,11 +16,11 @@ export default function FeedbackButton() {
     try {
       // Simular envio
       await new Promise(resolve => setTimeout(resolve, 1000));
-      alert('✅ Feedback enviado! Obrigado.');
+      (await showMessage('✅ Feedback enviado! Obrigado.'));
       setMessage('');
       setIsOpen(false);
     } catch (error) {
-      alert('❌ Erro ao enviar feedback');
+      (await showMessage('❌ Erro ao enviar feedback'));
     } finally {
       setLoading(false);
     }

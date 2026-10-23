@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -58,7 +60,7 @@ export default function PageClient() {
     setBusinessIds(user.businessIds);
     setPermissions(user.permissions.filter((permission) => allowedPermissions.some((item) => item.id === permission)));
     setLoaded(true);
-    } catch (cause) { if (!cancelled) { setError(cause instanceof Error ? cause.message : 'Não foi possível ler a conta.'); setLoaded(true); } }
+    } catch (cause) { if (!cancelled) { setError(uiMessagePt(cause instanceof Error ? cause.message : 'Não foi possível ler a conta.')); setLoaded(true); } }
     }; void load(); return () => { cancelled = true; };
   }, [id, actor.id]);
 
@@ -86,7 +88,7 @@ export default function PageClient() {
 
     });
     router.push('/dashboard/administracao/utilizadores');
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível guardar.'); } finally { setSaving(false); }
+    } catch (cause) { setError(uiMessagePt(cause instanceof Error ? cause.message : 'Não foi possível guardar.')); } finally { setSaving(false); }
   };
 
   if (!loaded) return <p style={{ fontSize: 14 }}>A carregar utilizador…</p>;

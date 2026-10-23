@@ -1,5 +1,5 @@
 
-export const instant = false; // 👈 Adicione esta linha
+export const instant = false;
 import AdminChatbot from '~/components/AdminChatbot';
 
 export default function ChatbotPage() {

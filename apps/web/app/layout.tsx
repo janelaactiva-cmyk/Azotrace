@@ -7,6 +7,8 @@ import { BusinessProvider } from '~/lib/business-context';
 import { AuthProvider } from '~/lib/auth-context';
 import { Providers } from './providers';
 import CookieConsent from '~/components/CookieConsent';
+import GlobalChatbot from '~/components/GlobalChatbot';
+import MessageDialogHost from '~/components/MessageDialogHost';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="pt">
       <body className={inter.className}>
+        <MessageDialogHost />
         <Suspense fallback={null}>
           <ThemeProvider>
             <AuthProvider>
@@ -33,6 +36,7 @@ export default function RootLayout({
                 <Providers>
                   {children}
                   <CookieConsent />
+                  <GlobalChatbot />
                 </Providers>
               </BusinessProvider>
             </AuthProvider>

@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
 
     if (!name) return jsonError('Indique o nome do utilizador.');
     if (!/^\S+@\S+\.\S+$/.test(email)) return jsonError('Indique um endereço de email válido.');
-    if (password.length < 8) return jsonError('A palavra-passe temporária deve ter pelo menos 8 caracteres.');
+    if (password.length < 8) return jsonError("A password temporária deve ter pelo menos 8 caracteres.");
     if (role === 'superadmin') return jsonError('Não é possível criar outro Super Admin por esta área.', 403);
     if (role === 'admin' && actor.role !== 'superadmin') return jsonError('Só o Super Admin pode criar Admins.', 403);
     if (role !== 'admin' && !STAFF_ROLES.has(role)) return jsonError('Perfil inválido.');
@@ -315,7 +315,7 @@ export async function PATCH(request: NextRequest) {
 
     const authUpdates: Record<string, unknown> = { email, user_metadata: { name } };
     if (password) {
-      if (password.length < 8) return jsonError('A nova palavra-passe deve ter pelo menos 8 caracteres.');
+      if (password.length < 8) return jsonError("A nova password deve ter pelo menos 8 caracteres.");
       authUpdates.password = password;
     }
     const { error: authError } = await admin.auth.admin.updateUserById(userId, authUpdates as any);

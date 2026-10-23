@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -45,7 +47,7 @@ export default function VerifyProductKeyPage() {
       router.push('/checkout/create-account'); // Ajusta '/success' se a rota da tua página de criar conta for diferente
 
     } catch (err: any) {
-      setError(err.message || 'Erro ao verificar a chave.');
+      setError(uiMessagePt(err.message || 'Erro ao verificar a chave.'));
     } finally {
       setLoading(false);
     }
@@ -104,7 +106,7 @@ export default function VerifyProductKeyPage() {
               onChange={(e) => setProductKey(e.target.value)}
               placeholder="Insira a chave de licença"
               style={{
-                width: '100%',
+                width: '90%',
                 padding: '14px 16px',
                 background: '#f9fafb',
                 border: '1px solid #d1d5db',
@@ -140,30 +142,10 @@ export default function VerifyProductKeyPage() {
                 gap: '8px'
               }}
             >
-              🔑 {loading ? 'Verificando...' : 'Verifica'}
+              {loading ? 'Verificando...' : 'Verifica'}
             </button>
 
-            {/* Botão Back to homepage */}
-            <Link
-              href="/"
-              style={{
-                flex: 1,
-                padding: '12px',
-                background: 'transparent',
-                color: '#374151',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '500',
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
-              }}
-            >
-              ← Voltar ao inicio
-            </Link>
+           
           </div>
         </form>
       </div>

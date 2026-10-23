@@ -1,4 +1,5 @@
 'use client';
+import { showMessage } from '~/lib/app-messages';
 
 import { useState } from 'react';
 
@@ -51,7 +52,7 @@ export default function FeedbackButtonSimple() {
             }}
           />
           <button
-            onClick={() => { alert('✅ Feedback enviado! Obrigado.'); setIsOpen(false); }}
+            onClick={async () => { (await showMessage('✅ Feedback enviado! Obrigado.')); setIsOpen(false); }}
             style={{
               width: '100%',
               marginTop: '12px',

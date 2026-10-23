@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import {withPlatformRequestLog} from '~/lib/platform-log-writer';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js'; 
 import { enviarEmailComChave } from '~/lib/email'; 
@@ -15,7 +16,7 @@ const supabaseAdmin = createClient(
 
 const KEYINVOICE_API_KEY = process.env.KEYINVOICE_API_KEY as string;
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   console.log('🔔 [WEBHOOK] Pedido HTTP recebido do Stripe...');
   
   const body = await request.text();
@@ -332,3 +333,5 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ received: true });
 }
+
+export const POST=withPlatformRequestLog('stripe.webhook',handlePost);

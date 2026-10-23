@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { landingContact } from '~/lib/landing-content';
 
 export default function Footer() {
   return (
@@ -25,12 +26,13 @@ export default function Footer() {
             <h5>Contactos</h5>
             <p className="mb-2">
               <i className="bi bi-envelope-fill me-2"></i>
-              geral@azotrace.pt
+              {landingContact.email}
             </p>
             <p className="mb-2">
               <i className="bi bi-telephone-fill me-2"></i>
-              +351 296 286 288
+              {landingContact.phone}
             </p>
+            <p className="mb-2">{landingContact.hours}</p>
             <p>
               <i className="bi bi-geo-alt-fill me-2"></i>
               Rua Eng. Deodato Magalhaes, 12 - 1Esq <br />

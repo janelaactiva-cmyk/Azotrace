@@ -1,12 +1,13 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { withAuthTimeout } from '~/lib/auth-navigation';
+import {recoveryQrOrigin} from '~/lib/qr-origin';
 import { supabase } from '~/lib/supabase';
-import Link from 'next/link';
 
 export default function RecuperarPasswordPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -14,19 +15,25 @@ export default function RecuperarPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
+    setSuccess(false);
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/redefinir-password`,
-      });
+      const origin=recoveryQrOrigin(window.location.origin);
+      if(!origin)throw new Error('Abre a Azotrace pelo endereço oficial para pedir a recuperação da password.');
+      const { error } = await withAuthTimeout(
+        supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: `${origin}/redefinir-password` }),
+        'O envio demorou demasiado. Verifica a ligação e tenta novamente.',
+        15000,
+      );
 
       if (error) throw error;
 
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao enviar email de recuperação');
+    } catch (err: unknown) {
+      setError(uiMessagePt(err, 'Não foi possível enviar o pedido de recuperação. Tenta novamente.'));
     } finally {
       setLoading(false);
     }
@@ -40,27 +47,29 @@ export default function RecuperarPasswordPage() {
       justifyContent: 'center',
       background: '#f3f4f6',
       fontFamily: 'sans-serif',
-      padding: '20px'
+      padding: '20px',
+      boxSizing: 'border-box'
     }}>
       <div style={{
         background: 'white',
-        padding: '40px',
+        padding: 'clamp(20px, 5vw, 40px)',
         borderRadius: '12px',
         boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
         width: '100%',
+                boxSizing: 'border-box',
         maxWidth: '440px'
       }}>
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
-            🔑 Recuperar Password
+            Recuperar password
           </h1>
           <p style={{ color: '#6b7280', fontSize: '14px' }}>
-            Enviaremos um link para redefinir a tua password
+            Enviaremos um link para redefinir a sua password
           </p>
         </div>
 
         {error && (
-          <div style={{
+          <div role="alert" style={{
             background: '#fee2e2',
             color: '#dc2626',
             padding: '12px',
@@ -83,31 +92,17 @@ export default function RecuperarPasswordPage() {
               textAlign: 'center'
             }}>
               <p style={{ fontSize: '16px', fontWeight: '500', margin: 0 }}>
-                ✅ Email enviado!
+                Pedido de recuperação enviado.
               </p>
               <p style={{ fontSize: '14px', marginTop: '8px' }}>
-                Verifica a tua caixa de correio (inclui spam).
+                Se existir uma conta com este email, receberá o link de recuperação. Verifica também a pasta de spam.
               </p>
             </div>
-            <button
-              onClick={() => router.push('/login')}
-              style={{
-                width: '100%',
-                padding: '12px',
-                background: '#2563eb',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: '500'
-              }}
-            >
-              ← Voltar ao Login
-            </button>
+            
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
+           
             <div style={{ marginBottom: '24px' }}>
               <label style={{ display: 'block', fontWeight: '500', marginBottom: '6px', fontSize: '14px' }}>
                 Email
@@ -118,13 +113,17 @@ export default function RecuperarPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 style={{
                   width: '100%',
+                boxSizing: 'border-box',
                   padding: '12px',
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
                   fontSize: '16px'
                 }}
-                placeholder="seu@email.com"
+                placeholder=""
                 autoComplete="email"
+                inputMode="email"
+                autoCapitalize="none"
+                spellCheck={false}
                 required
               />
             </div>
@@ -134,6 +133,7 @@ export default function RecuperarPasswordPage() {
               disabled={loading}
               style={{
                 width: '100%',
+                boxSizing: 'border-box',
                 padding: '14px',
                 background: '#2563eb',
                 color: 'white',
@@ -145,24 +145,12 @@ export default function RecuperarPasswordPage() {
                 opacity: loading ? 0.7 : 1
               }}
             >
-              {loading ? 'A enviar...' : '📧 Enviar link'}
+              {loading ? 'A enviar...' : 'Enviar link'}
             </button>
           </form>
         )}
 
-        <div style={{ marginTop: '16px', textAlign: 'center' }}>
-          <Link
-            href="/login"
-            style={{
-              color: '#2563eb',
-              textDecoration: 'none',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            ← Voltar ao login
-          </Link>
-        </div>
+       
       </div>
     </div>
   );

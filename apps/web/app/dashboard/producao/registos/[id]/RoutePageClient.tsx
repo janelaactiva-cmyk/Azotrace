@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -119,7 +121,7 @@ export default function EditarRegistoPage() {
       setMessage('Registo atualizado com sucesso. Os restantes registos históricos não foram alterados.');
     } catch (cause) {
       console.error(cause);
-      setError(cause instanceof Error && cause.message ? cause.message : 'Não foi possível atualizar o registo. Tente novamente.');
+      setError(uiMessagePt(cause instanceof Error && cause.message ? cause.message : 'Não foi possível atualizar o registo. Tente novamente.'));
     } finally {
       setSaving(false);
     }

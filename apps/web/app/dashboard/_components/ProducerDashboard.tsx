@@ -360,25 +360,6 @@ export function ProducerDashboard() {
         </section>
       </div>
 
-      <section className={styles.healthPanel}>
-        <div>
-          <span className={styles.healthBadge}>Configuração concluída</span>
-          <h2>O teu Azotrace está pronto para trabalhar</h2>
-          <p>
-            Tens {stats.products} produto(s), {stats.units} unidade(s), {stats.stages} etapa(s) e {stats.fields} campo(s) configurados.
-          </p>
-        </div>
-        <Link href="/dashboard/onboarding" className={styles.secondaryButton}>
-          Rever configuração
-        </Link>
-      </section>
-
-      <div className={styles.previewStats}>
-        <div><strong>Local</strong><span>Modo de teste</span></div>
-        <div><strong>Browser</strong><span>Armazenamento</span></div>
-        <div><strong>Ativo</strong><span>Supabase</span></div>
-        <div><strong>✓</strong><span>Pronto a testar</span></div>
-      </div>
     </div>
   );
 }

@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -57,7 +59,7 @@ export function SuperAdminDashboard() {
         if (!response.ok) throw new Error(body.error || 'Não foi possível carregar a visão global.');
         if (!cancelled) setPayload(body);
       } catch (cause) {
-        if (!cancelled) { setPayload(null); setError(cause instanceof Error ? cause.message : 'Não foi possível carregar a visão global.'); }
+        if (!cancelled) { setPayload(null); setError(uiMessagePt(cause instanceof Error ? cause.message : 'Não foi possível carregar a visão global.')); }
       } finally {
         if (!cancelled) setLoading(false);
       }

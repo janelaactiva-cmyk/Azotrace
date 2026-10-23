@@ -1,6 +1,10 @@
 'use client';
+import { confirmMessage } from '~/lib/app-messages';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
 
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useRef } from 'react';
+import { chatbotRequest } from '~/lib/chatbot-request';
 
 interface ChatbotQuestion {
   id: number;
@@ -12,6 +16,10 @@ interface ChatbotQuestion {
 }
 
 export default function AdminChatbot() {
+  const [notice, setNotice] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+  const pending = useRef(false);
   const [questions, setQuestions] = useState<ChatbotQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -27,88 +35,51 @@ export default function AdminChatbot() {
   }, []);
 
   const fetchQuestions = async () => {
-    setLoading(true);
     try {
-      const response = await fetch('/api/chatbot');
-      const data = await response.json();
+      const data = await chatbotRequest<ChatbotQuestion[]>();
+      if (!Array.isArray(data)) throw new Error('O servidor devolveu uma lista inválida.');
       setQuestions(data);
     } catch (error) {
-      console.error('Erro ao buscar perguntas:', error);
-    } finally {
-      setLoading(false);
-    }
+      setErrorMessage(uiMessagePt(error instanceof Error ? error.message : 'Não foi possível carregar as perguntas.'));
+    } finally { setLoading(false); }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await fetch('/api/chatbot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      if (response.ok) {
-        setFormData({ question: '', answer: '', category: 'Geral', is_active: true });
-        fetchQuestions();
-        alert('✅ Pergunta criada com sucesso!');
-      }
-    } catch (error) {
-      console.error('Erro ao criar:', error);
-      alert('❌ Erro ao criar pergunta.');
-    }
+  const mutate = async (action: () => Promise<void>, message: string) => {
+    if (pending.current) return;
+    pending.current = true;
+    setBusy(true); setErrorMessage(''); setNotice('');
+    try { await action(); setNotice(message); }
+    catch (error) { setErrorMessage(uiMessagePt(error instanceof Error ? error.message : 'Não foi possível guardar. Tenta novamente.')); }
+    finally { pending.current = false; setBusy(false); }
   };
-
-  const handleEdit = async (id: number) => {
-    try {
-      const response = await fetch(`/api/chatbot/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      if (response.ok) {
-        setEditingId(null);
-        setFormData({ question: '', answer: '', category: 'Geral', is_active: true });
-        fetchQuestions();
-        alert('✅ Pergunta atualizada com sucesso!');
-      }
-    } catch (error) {
-      console.error('Erro ao editar:', error);
-      alert('❌ Erro ao editar pergunta.');
-    }
+  const resetForm = () => {
+    setEditingId(null);
+    setFormData({question:'',answer:'',category:'Geral',is_active:true});
   };
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('Tens a certeza que queres eliminar esta pergunta?')) return;
-    try {
-      const response = await fetch(`/api/chatbot/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        fetchQuestions();
-        alert('🗑️ Pergunta eliminada com sucesso!');
-      }
-    } catch (error) {
-      console.error('Erro ao eliminar:', error);
-      alert('❌ Erro ao eliminar pergunta.');
-    }
+  const saveQuestion = async () => {
+    if (!formData.question.trim() || !formData.answer.trim()) { setErrorMessage('Preenche a pergunta e a resposta.'); return; }
+    const editing = editingId !== null;
+    await mutate(async () => {
+      const saved = await chatbotRequest<ChatbotQuestion>(editing ? '/' + editingId : '',editing ? 'PUT' : 'POST',formData);
+      setQuestions(current => editing ? current.map(q => q.id === editingId ? saved : q) : [...current,saved].sort((a,b) => a.order_position-b.order_position || a.id-b.id));
+      resetForm();
+    },editing ? 'Pergunta atualizada com sucesso.' : 'Pergunta adicionada com sucesso.');
   };
-
-  const toggleActive = async (id: number, currentStatus: boolean) => {
-    const question = questions.find(q => q.id === id);
-    if (!question) return;
-
-    try {
-      const response = await fetch(`/api/chatbot/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...question, is_active: !currentStatus }),
-      });
-      if (response.ok) {
-        fetchQuestions();
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error);
-    }
+  const handleDelete = async (id:number) => {
+    if (pending.current || !(await confirmMessage('Tens a certeza que queres eliminar esta pergunta?'))) return;
+    await mutate(async () => {
+      await chatbotRequest('/' + id,'DELETE');
+      setQuestions(current => current.filter(q => q.id !== id));
+      if (editingId === id) resetForm();
+    },'Pergunta eliminada com sucesso.');
+  };
+  const toggleActive = async (id:number,currentStatus:boolean) => {
+    const question = questions.find(q => q.id === id); if (!question) return;
+    await mutate(async () => {
+      const saved = await chatbotRequest<ChatbotQuestion>('/' + id,'PUT',{...question,is_active:!currentStatus});
+      setQuestions(current => current.map(q => q.id === id ? saved : q));
+      if (editingId === id) setFormData(current => ({...current,is_active:saved.is_active}));
+    },currentStatus ? 'Pergunta desativada.' : 'Pergunta ativada.');
   };
 
   if (loading) {
@@ -126,13 +97,15 @@ export default function AdminChatbot() {
         {/* Cabeçalho */}
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 4px 0' }}>
-            💬 Gestão do Chatbot
+            Gestão do Chatbot
           </h1>
           <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
             Configura e gere as perguntas e respostas automáticas do teu assistente.
           </p>
         </div>
 
+        {errorMessage && <div role="alert" style={{color:'#b91c1c',background:'#fef2f2',padding:16,borderRadius:8}}>{errorMessage} <button type="button" disabled={busy} onClick={() => { setErrorMessage(''); void fetchQuestions(); }}>Atualizar lista</button></div>}
+        {notice && <p role="status" style={{color:'#166534',margin:0}}>{notice}</p>}
         {/* Cartão do Formulário */}
         <div style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '16px', padding: '32px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 20px 0', paddingBottom: '12px', borderBottom: '1px solid #f3f4f6' }}>
@@ -140,21 +113,14 @@ export default function AdminChatbot() {
           </h2>
           
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (editingId) {
-                handleEdit(editingId);
-              } else {
-                handleCreate(e);
-              }
-            }}
+            onSubmit={(e) => { e.preventDefault(); void saveQuestion(); }}
             style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
           >
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>
                 Pergunta *
               </label>
-              <input
+              <input disabled={busy}
                 type="text"
                 value={formData.question}
                 onChange={(e) => setFormData({ ...formData, question: e.target.value })}
@@ -168,7 +134,7 @@ export default function AdminChatbot() {
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>
                 Categoria
               </label>
-              <select
+              <select disabled={busy}
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 style={{ width: '100%', padding: '10px 14px', backgroundColor: '#ffffff', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
@@ -186,7 +152,7 @@ export default function AdminChatbot() {
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>
                 Resposta *
               </label>
-              <textarea
+              <textarea disabled={busy}
                 value={formData.answer}
                 onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
                 style={{ width: '100%', padding: '10px 14px', backgroundColor: '#ffffff', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', outline: 'none', resize: 'vertical', minHeight: '80px', boxSizing: 'border-box' }}
@@ -197,7 +163,7 @@ export default function AdminChatbot() {
 
             <div>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                <input
+                <input disabled={busy}
                   type="checkbox"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
@@ -210,6 +176,7 @@ export default function AdminChatbot() {
             <div style={{ paddingTop: '16px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: '12px', alignItems: 'center' }}>
               {editingId && (
                 <button
+                  disabled={busy}
                   type="button"
                   onClick={() => {
                     setEditingId(null);
@@ -221,10 +188,11 @@ export default function AdminChatbot() {
                 </button>
               )}
               <button
+                  disabled={busy}
                 type="submit"
                 style={{ padding: '12px 24px', backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '14px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
               >
-                {editingId ? '💾 Atualizar Pergunta' : '➕ Adicionar Pergunta'}
+                {busy ? 'A guardar…' : editingId !== null ? 'Atualizar Pergunta' : 'Adicionar Pergunta'}
               </button>
             </div>
           </form>
@@ -257,12 +225,14 @@ export default function AdminChatbot() {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     <button
+                  disabled={busy}
                       onClick={() => toggleActive(q.id, q.is_active)}
                       style={{ fontSize: '12px', padding: '6px 10px', borderRadius: '6px', fontWeight: '500', cursor: 'pointer', border: '1px solid', backgroundColor: q.is_active ? '#ecfdf5' : '#fff1f2', color: q.is_active ? '#047857' : '#be123c', borderColor: q.is_active ? '#a7f3d0' : '#fecdd3' }}
                     >
                       {q.is_active ? 'Ativo' : 'Inativo'}
                     </button>
                     <button
+                  disabled={busy}
                       onClick={() => {
                         setEditingId(q.id);
                         setFormData({
@@ -275,9 +245,10 @@ export default function AdminChatbot() {
                       }}
                       style={{ padding: '6px 10px', fontSize: '12px', fontWeight: '500', backgroundColor: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', borderRadius: '6px', cursor: 'pointer' }}
                     >
-                      ✏️ Editar
+                      ✏️
                     </button>
                     <button
+                  disabled={busy}
                       onClick={() => handleDelete(q.id)}
                       style={{ padding: '6px 10px', fontSize: '12px', fontWeight: '500', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '6px', cursor: 'pointer' }}
                     >

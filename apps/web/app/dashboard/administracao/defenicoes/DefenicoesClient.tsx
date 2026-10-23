@@ -1,4 +1,5 @@
 'use client';
+import { showMessage } from '~/lib/app-messages';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '~/lib/supabase';
@@ -25,9 +26,9 @@ export default function DefenicoesClient() {
     setLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      alert('✅ Defenições guardadas com sucesso!');
+      (await showMessage('✅ Defenições guardadas com sucesso!'));
     } catch (error) {
-      alert('❌ Erro ao guardar defenições');
+      (await showMessage('❌ Erro ao guardar defenições'));
     } finally {
       setLoading(false);
     }

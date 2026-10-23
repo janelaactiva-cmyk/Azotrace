@@ -92,7 +92,7 @@ export default function MfaSettings({ onContinue }: { onContinue?: () => void | 
   const canContinue = !busy && (!enabled || assured);
   return <section aria-labelledby="mfa-heading" style={{ padding: '16px 0' }}>
     <h2 id="mfa-heading" style={{ fontSize: 21 }}>Autenticação de dois fatores (MFA)</h2>
-    <p>{enabled ? 'MFA ativo. A conta requer um código da aplicação de autenticação ao iniciar sessão.' : 'A ativação é opcional. Podes fazê-la agora ou mais tarde no menu Configurações.'}</p>
+    <p>{enabled ? 'MFA ativo. A conta requer um código da aplicação de autenticação ao iniciar sessão.' : 'A ativação é opcional. Pode fazer agora ou mais tarde no menu Configurações.'}</p>
     {error ? <div role="alert"><p style={{ color: '#b91c1c' }}>{error}</p><Link href={onContinue ? '/login?next=%2Fcheckout%2Fcreate-account' : '/login?next=%2Fdashboard%2Fconfiguracoes'}>Voltar a iniciar sessão</Link></div> : null}
     {notice ? <p role="status">{notice}</p> : null}
     {busy ? <p role="status">A verificar…</p> : null}

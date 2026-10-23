@@ -1,4 +1,9 @@
 'use client';
+import { showMessage } from '~/lib/app-messages';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+import CheckoutNifField from '~/components/CheckoutNifField';
+import {portugueseNifError} from '~/lib/portuguese-nif';
+
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -36,7 +41,7 @@ export default function CheckoutPage() {
     }
   }, [catalog?.version]);
 
-  // ✅ Validar emails
+  // Validar emails
   useEffect(() => {
     if (form.confirmEmail && form.email !== form.confirmEmail) {
       setEmailError('Os emails não coincidem');
@@ -74,46 +79,48 @@ export default function CheckoutPage() {
 
     try {
       if (!form.nome || !form.email || !form.telefone || (!isCommercial && !form.morada)) {
-        alert('❌ Preencha todos os campos obrigatórios (incluindo a morada)');
+        (await showMessage('Preencha todos os campos obrigatórios (incluindo a morada)'));
         setLoading(false);
         return;
       }
 
       if (form.email !== form.confirmEmail) {
-        alert('❌ Os emails não coincidem');
+        (await showMessage('Os emails não coincidem'));
         setLoading(false);
         return;
       }
 
       // 🔒 Validação rigorosa de 9 dígitos para o Telemóvel
       if (form.telefone.length !== 9) {
-        alert('❌ O número de telemóvel tem de ter obrigatoriamente 9 dígitos');
+        (await showMessage('O número de telemóvel tem de ter obrigatoriamente 9 dígitos'));
         setLoading(false);
         return;
       }
 
-      // 🔒 Validação de 9 dígitos para o NIF Pessoal (caso seja preenchido)
-      if (form.nif && form.nif.length !== 9) {
-        alert('❌ O NIF pessoal tem de ter obrigatoriamente 9 dígitos');
+      // NIF pessoal obrigatório quando não é usado o NIF da empresa.
+      const personalNifError = portugueseNifError(form.nif, 'O NIF pessoal', !isCommercial);
+      if (personalNifError) {
+        (await showMessage(personalNifError));
         setLoading(false);
         return;
       }
 
       if (isCommercial && (!form.nomeEmpresa || !form.nifEmpresa || !form.moradaEmpresa)) {
-        alert('❌ Preencha o Nome da Empresa, NIF e Morada da empresa');
+        (await showMessage('Preencha o Nome da Empresa, NIF e Morada da empresa'));
         setLoading(false);
         return;
       }
 
       // 🔒 Validação de 9 dígitos para o NIF da Empresa
-      if (isCommercial && form.nifEmpresa.length !== 9) {
-        alert('❌ O NIF da empresa tem de ter obrigatoriamente 9 dígitos');
+      const companyNifError = isCommercial ? portugueseNifError(form.nifEmpresa, 'O NIF da empresa') : '';
+      if (companyNifError) {
+        (await showMessage(companyNifError));
         setLoading(false);
         return;
       }
 
       const plano = PLANS[selectedPlan as keyof typeof PLANS];
-      if(!plano||!catalog||catalogError){alert('Os preços não estão disponíveis. Atualiza a página antes de pagar.');setLoading(false);return;}
+      if(!plano||!catalog||catalogError){(await showMessage('Os preços não estão disponíveis. Atualiza a página antes de pagar.'));setLoading(false);return;}
 
       const dadosCheckout = {
         plano: selectedPlan,
@@ -125,18 +132,18 @@ export default function CheckoutPage() {
         nome: form.nome,
         email: form.email,
         telefone: form.telefone,
-        nif: form.nif || '',
+        nif: form.nif.trim(),
         morada: isCommercial ? form.moradaEmpresa : form.morada, 
         is_commercial: isCommercial,
         nome_empresa: isCommercial ? form.nomeEmpresa : '',
-        nif_empresa: isCommercial ? form.nifEmpresa : '',
+        nif_empresa: isCommercial ? form.nifEmpresa.trim() : '',
         include_setup: includeSetup,
         config_price: CONFIG_PRICE,
         config_iva: setupIva,
         config_total: setupTotal,
       };
 
-      console.log('📝 Enviando dados:', dadosCheckout);
+      console.log('Enviando dados:', dadosCheckout);
 
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
@@ -150,12 +157,12 @@ export default function CheckoutPage() {
       try {
         data = JSON.parse(responseText);
       } catch (e) {
-        console.error("🔍 A resposta da API não é um JSON válido:", responseText);
+        console.error("A resposta da API não é um JSON válido:", responseText);
         throw new Error(`Erro do Servidor (${response.status}): ${responseText.slice(0, 100) || 'Resposta vazia'}`);
       }
 
       if (!response.ok) {
-        console.error("🔍 ERRO DETALHADO DA API:", data);
+        console.error("ERRO DETALHADO DA API:", data);
         throw new Error(data.message || data.error || 'Erro ao criar checkout');
       }
 
@@ -164,8 +171,8 @@ export default function CheckoutPage() {
       }
 
     } catch (error: any) {
-      console.error('❌ Erro:', error);
-      alert('❌ Erro: ' + error.message);
+      console.error('Erro:', error);
+      (await showMessage(uiMessagePt('Erro: ' + error.message)));
     } finally {
       setLoading(false);
     }
@@ -175,7 +182,7 @@ export default function CheckoutPage() {
     const { name, value } = e.target;
     
     let newValue = value;
-    if (name === 'telefone' || name === 'nif' || name === 'nifEmpresa') {
+    if (name === 'telefone') {
       newValue = value.replace(/\D/g, '').slice(0, 9);
     }
 
@@ -294,7 +301,7 @@ export default function CheckoutPage() {
   return (
     <div style={styles.container}>
       <div style={styles.wrapper}>
-        <h1 style={styles.title}>🛒 Finalizar Compra</h1>
+        <h1 style={styles.title}>Finalizar Compra</h1>
         <p style={styles.subtitle}>
           Preenche os dados para finalizar a compra do plano {PLANS[selectedPlan as keyof typeof PLANS]?.nome}
         </p>
@@ -302,7 +309,7 @@ export default function CheckoutPage() {
         <div style={styles.grid}>
           <div style={styles.card}>
             <form onSubmit={handleSubmit}>
-              <h2 style={styles.cardTitle}>👤 Dados Pessoais</h2>
+              <h2 style={styles.cardTitle}>Dados Pessoais</h2>
 
               <div style={styles.formGroup}>
                 <label style={styles.label}>Nome Completo *</label>
@@ -337,10 +344,9 @@ export default function CheckoutPage() {
                   onChange={handleChange}
                   style={emailError ? styles.inputError : styles.input}
                   required
-                  disabled={!form.email}
                 />
                 {emailError && (
-                  <p style={styles.errorText}>⚠️ {emailError}</p>
+                  <p style={styles.errorText}>{emailError}</p>
                 )}
               </div>
 
@@ -358,18 +364,7 @@ export default function CheckoutPage() {
                 />
               </div>
 
-              <div style={styles.formGroup}>
-                <label style={styles.label}>NIF (Opcional)</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  name="nif"
-                  maxLength={9}
-                  value={form.nif}
-                  onChange={handleChange}
-                  style={styles.input}
-                />
-              </div>
+              <CheckoutNifField id="checkout-nif" name="nif" label={isCommercial ? 'NIF pessoal' : 'NIF *'} validationLabel="O NIF pessoal" value={form.nif} required={!isCommercial} onValueChange={value=>setForm(current=>({...current,nif:value}))} groupStyle={styles.formGroup} labelStyle={styles.label} inputStyle={styles.input}/>
 
               {!isCommercial && (
                 <div style={styles.formGroup}>
@@ -413,19 +408,7 @@ export default function CheckoutPage() {
                       required={isCommercial}
                     />
                   </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>NIF da Empresa *</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      name="nifEmpresa"
-                      maxLength={9}
-                      value={form.nifEmpresa}
-                      onChange={handleChange}
-                      style={styles.input}
-                      required={isCommercial}
-                    />
-                  </div>
+                  <CheckoutNifField id="checkout-nif-company" name="nifEmpresa" label="NIF da Empresa *" validationLabel="O NIF da empresa" value={form.nifEmpresa} required={isCommercial} onValueChange={value=>setForm(current=>({...current,nifEmpresa:value}))} groupStyle={styles.formGroup} labelStyle={styles.label} inputStyle={styles.input}/>
                   <div style={styles.formGroup}>
                     <label style={styles.label}>Morada da Empresa *</label>
                     <input
@@ -450,7 +433,7 @@ export default function CheckoutPage() {
                   />
                   <div>
                     <span style={styles.checkboxLabel}>
-                      Extras: Formação e apoio na configuração
+                      Formação e apoio na configuração
                     </span>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
                       +€{(CONFIG_PRICE * 1.16).toFixed(2)} (Valor com IVA incluído)
@@ -468,11 +451,11 @@ export default function CheckoutPage() {
                   cursor: loading || !!emailError ? 'not-allowed' : 'pointer'
                 }}
               >
-                {loading ? '🔄 A processar...' : 'Pagar Agora'}
+                {loading ? 'A processar...' : 'Pagar Agora'}
               </button>
               {emailError && (
                 <p style={{ ...styles.errorText, marginTop: '8px', textAlign: 'center' }}>
-                  ⚠️ Corrige o erro antes de continuar
+                  Corrige o erro antes de continuar
                 </p>
               )}
             </form>
@@ -480,7 +463,7 @@ export default function CheckoutPage() {
 
           <div>
             <div style={{ ...styles.card, ...styles.sticky }}>
-              <h2 style={styles.cardTitle}>📋 Resumo do Plano e Extras</h2>
+              <h2 style={styles.cardTitle}>Resumo do Plano e Extra</h2>
 
               <div style={{
                 background: '#f0f7ff',
@@ -505,7 +488,7 @@ export default function CheckoutPage() {
                       alignItems: 'center',
                       gap: '8px'
                     }}>
-                      <span>✅</span> {feature}
+                      {feature}
                     </li>
                   ))}
                 </ul>
@@ -555,7 +538,7 @@ export default function CheckoutPage() {
                 border: '1px solid #bbf7d0'
               }}>
                 <p style={{ fontSize: '14px', color: '#16a34a', margin: 0, textAlign: 'center' }}>
-                  🔒 Pagamento seguro via Stripe
+                  Pagamento seguro via Stripe
                 </p>
               </div>
             </div>
@@ -565,3 +548,4 @@ export default function CheckoutPage() {
     </div>
   );
 }
+

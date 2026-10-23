@@ -1,4 +1,7 @@
 'use client';
+import { confirmMessage, showMessage } from '~/lib/app-messages';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '~/lib/supabase';
@@ -45,18 +48,18 @@ export default function PageClient() {
       .update({ fields: newFields })
       .eq('slug', 'negocio');
     setSaving(false);
-    if (error) alert('Erro: ' + error.message);
+    if (error) (await showMessage(uiMessagePt('Erro: ' + error.message)));
     setFields(newFields);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.title.trim()) {
-      alert('Preenche nome técnico e título.');
+      (await showMessage('Preenche nome técnico e título.'));
       return;
     }
     if (editingIdx === null && fields.some((f) => f.name === form.name.trim())) {
-      alert('Já existe um campo com esse nome técnico.');
+      (await showMessage('Já existe um campo com esse nome técnico.'));
       return;
     }
 
@@ -84,7 +87,7 @@ export default function PageClient() {
   };
 
   const handleDelete = async (i: number) => {
-    if (!confirm('Remover este campo?')) return;
+    if (!(await confirmMessage('Remover este campo?'))) return;
     await persist(fields.filter((_, idx) => idx !== i));
   };
 

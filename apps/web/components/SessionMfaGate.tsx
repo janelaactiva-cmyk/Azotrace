@@ -1,17 +1,22 @@
 'use client';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { supabase } from '~/lib/supabase';
+import { loadOnlineContext } from '~/app/dashboard/_lib/online-billing';
 import { FirstAccessMfa } from '~/app/dashboard/_components/FirstAccessMfa';
 
 export default function SessionMfaGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<'loading' | 'ready' | 'challenge' | 'error'>('loading');
   const [attempt, setAttempt] = useState(0);
+  const checkedToken = useRef<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     setState('loading');
     async function check() {
       const { data: session, error } = await supabase.auth.getSession();
       if (error || !session.session) { if (!cancelled) setState('error'); return; }
+      checkedToken.current = session.session.access_token;
+      // Fetch account data while MFA is being checked; children stay gated.
+      void loadOnlineContext({ reuse: true }).catch(() => undefined);
       const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       if (cancelled) return;
       if (assurance.error) setState('error');
@@ -21,7 +26,11 @@ export default function SessionMfaGate({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, [attempt]);
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange(() => setAttempt(value => value + 1));
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') return;
+      if (event === 'SIGNED_IN' && session?.access_token === checkedToken.current) return;
+      setAttempt(value => value + 1);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
   if (state === 'loading') return <p role="status" style={{ padding: 24 }}>A verificar a segurança da sessão…</p>;

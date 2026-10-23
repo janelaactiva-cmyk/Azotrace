@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useEffect, useMemo, useState } from 'react';
 
@@ -11,6 +13,17 @@ import { imageFileToLocalDataUrl, makeLocalId } from '../../onboarding/_lib/loca
 import { uploadProducerAsset } from '../../onboarding/_lib/supabase-store';
 
 const STEPS = ['Produto e lote', 'Etapa', 'Dados', 'Confirmar'];
+const DRAFT_KEY_PREFIX = 'azotrace:production-record-draft:';
+
+type ProductionRecordDraft = {
+  step: number;
+  productId: string;
+  batchId: string;
+  stageId: string;
+  recordedAt: string;
+  values: Record<string, unknown>;
+  savedAt: string;
+};
 
 function nowForDateTimeInput() {
   const date = new Date();
@@ -31,6 +44,8 @@ export default function InserirDadosPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState('');
+  const [savedRecord, setSavedRecord] = useState(false);
 
   const batches = useMemo(
     () => store?.batches.filter((batch) => batch.status === 'active' && (!productId || batch.productId === productId)) ?? [],
@@ -56,6 +71,27 @@ export default function InserirDadosPage() {
     setError('');
     setMessage('');
     setStep(0);
+    setDraftSavedAt('');
+    setSavedRecord(false);
+
+    try {
+      const draftRaw = window.localStorage.getItem(`${DRAFT_KEY_PREFIX}${store.business.id}`);
+      if (!draftRaw) return;
+      const draft = JSON.parse(draftRaw) as Partial<ProductionRecordDraft>;
+      const draftProduct = store.products.find((product) => product.id === draft.productId);
+      const draftBatch = store.batches.find((batch) => batch.id === draft.batchId && batch.status === 'active');
+      const draftStage = store.stages.find((stage) => stage.id === draft.stageId);
+      if (draftProduct) setProductId(draftProduct.id);
+      if (draftBatch && (!draftProduct || draftBatch.productId === draftProduct.id)) setBatchId(draftBatch.id);
+      if (draftStage) setStageId(draftStage.id);
+      if (typeof draft.recordedAt === 'string' && draft.recordedAt) setRecordedAt(draft.recordedAt);
+      if (draft.values && typeof draft.values === 'object') setValues(draft.values);
+      if (typeof draft.step === 'number') setStep(Math.max(0, Math.min(draft.step, STEPS.length - 1)));
+      if (typeof draft.savedAt === 'string') setDraftSavedAt(draft.savedAt);
+      setMessage('Rascunho recuperado. Podes continuar sem perder os dados guardados.');
+    } catch {
+      window.localStorage.removeItem(`${DRAFT_KEY_PREFIX}${store.business.id}`);
+    }
   }, [store?.business.id]);
 
   useEffect(() => {
@@ -124,9 +160,26 @@ export default function InserirDadosPage() {
     return true;
   }
 
-  function nextStep() {
-    if (!validateCurrentStep()) return;
-    setStep((current) => Math.min(current + 1, STEPS.length - 1));
+  function saveDraftAndContinue() {
+    if (!store || !validateCurrentStep()) return;
+    const savedAt = new Date().toISOString();
+    const draft: ProductionRecordDraft = {
+      step: Math.min(step + 1, STEPS.length - 1),
+      productId,
+      batchId,
+      stageId,
+      recordedAt,
+      values,
+      savedAt,
+    };
+    try {
+      window.localStorage.setItem(`${DRAFT_KEY_PREFIX}${store.business.id}`, JSON.stringify(draft));
+      setDraftSavedAt(savedAt);
+      setMessage('Rascunho guardado neste dispositivo. Podes continuar sem perder os dados.');
+      setStep(draft.step);
+    } catch {
+      setError('Não foi possível guardar o rascunho neste dispositivo. Liberta espaço no armazenamento e tenta novamente.');
+    }
   }
 
   function previousStep() {
@@ -182,22 +235,42 @@ export default function InserirDadosPage() {
         ],
       });
 
-      setValues({});
-      setFiles({});
-      setRecordedAt(nowForDateTimeInput());
-      setMessage('Registo de produção guardado com sucesso.');
-      setStep(0);
+      window.localStorage.removeItem(`${DRAFT_KEY_PREFIX}${store.business.id}`);
+      setDraftSavedAt('');
+      setSavedRecord(true);
+      setMessage('Registo de produção guardado com sucesso. Os dados continuam visíveis neste ecrã.');
     } catch (cause) {
       console.error(cause);
-      setError(cause instanceof Error && cause.message ? cause.message : 'Não foi possível guardar o registo de produção. Tente novamente.');
+      setError(uiMessagePt(cause instanceof Error && cause.message ? cause.message : 'Não foi possível guardar o registo de produção. Tente novamente.'));
     } finally {
       setSaving(false);
     }
   }
 
+  function startNewRecord() {
+    if (!store) return;
+    const firstProduct = store.products[0];
+    const firstBatch = firstProduct ? store.batches.find((batch) => batch.productId === firstProduct.id && batch.status === 'active') : undefined;
+    setProductId(firstProduct?.id ?? '');
+    setBatchId(firstBatch?.id ?? '');
+    setStageId(store.stages[0]?.id ?? '');
+    setRecordedAt(nowForDateTimeInput());
+    setValues({});
+    setFiles({});
+    setFieldErrors({});
+    setError('');
+    setMessage('');
+    setDraftSavedAt('');
+    setSavedRecord(false);
+    setStep(0);
+  }
+
+  const recordTitle = selectedStage?.name ? `Registo de ${selectedStage.name}` : 'Novo registo de produção';
+
   return (
-    <TraceabilityShell eyebrow="Produção · Inserir dados" title="Novo registo de produção" description={`Selecione o lote ativo da ${unitLabel.toLowerCase()} que pretende atualizar. A unidade é reutilizada ao longo do tempo; cada ciclo mantém o seu próprio histórico semanal.`}>
+    <TraceabilityShell eyebrow="Produção · Inserir dados" title={recordTitle} description={`Registe a atividade${selectedStage?.name ? ` “${selectedStage.name}”` : ''} no lote selecionado. A unidade é reutilizada ao longo do tempo e cada ciclo mantém o seu próprio histórico.`}>
       {message ? <div className={styles.success} style={{ marginBottom: 14 }}>{message}</div> : null}
+      {draftSavedAt && !savedRecord ? <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: 13 }}>Rascunho guardado às {new Date(draftSavedAt).toLocaleString('pt-PT')}.</p> : null}
       <section className={styles.card}>
         <div className={styles.cardPad}>
           <div className={styles.tabs} aria-label="Etapas do registo de produção" style={{ marginBottom: 20 }}>
@@ -207,8 +280,8 @@ export default function InserirDadosPage() {
                 key={label}
                 className={`${styles.tab} ${step === index ? styles.tabActive : ''}`}
                 onClick={() => { if (index <= step) { setError(''); setFieldErrors({}); setStep(index); } }}
-                disabled={index > step}
-                style={{ opacity: index <= step ? 1 : 0.5, cursor: index <= step ? 'pointer' : 'not-allowed' }}
+                disabled={index > step || savedRecord}
+                style={{ opacity: index <= step && !savedRecord ? 1 : 0.5, cursor: index <= step && !savedRecord ? 'pointer' : 'not-allowed' }}
               >
                 {index + 1} {label}
               </button>
@@ -262,8 +335,8 @@ export default function InserirDadosPage() {
           ) : null}
 
           <div className={styles.actions} style={{ justifyContent: 'space-between', marginTop: 24 }}>
-            <button className={styles.secondary} type="button" disabled={step === 0 || saving} onClick={previousStep}>← Anterior</button>
-            {step < STEPS.length - 1 ? <button className={styles.primary} type="button" disabled={saving} onClick={nextStep}>Seguinte →</button> : <button className={styles.primary} type="button" disabled={saving} onClick={() => void save()}>{saving ? 'A guardar…' : 'Guardar registo'}</button>}
+            <button className={styles.secondary} type="button" disabled={step === 0 || saving || savedRecord} onClick={previousStep}>← Anterior</button>
+            {savedRecord ? <button className={styles.primary} type="button" onClick={startNewRecord}>+ Novo registo</button> : step < STEPS.length - 1 ? <button className={styles.primary} type="button" disabled={saving} onClick={saveDraftAndContinue}>Guardar e seguinte →</button> : <button className={styles.primary} type="button" disabled={saving} onClick={() => void save()}>{saving ? 'A guardar…' : 'Guardar registo'}</button>}
           </div>
         </div>
       </section>

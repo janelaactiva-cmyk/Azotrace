@@ -16,11 +16,15 @@ export async function POST(request: Request) {
       const { data: claims, error: claimsError } = await admin.auth.getClaims(token);
       if (claimsError || claims?.claims?.aal !== 'aal2') return Response.json({ error: 'Confirma o código do MFA já ativo nesta conta.' }, { status: 403, headers });
     }
-    const { data: profile, error: profileError } = await admin.from('profiles').select('id,name,active,platform_role').eq('id', user.id).single();
+    const [profileResult, membershipResult] = await Promise.all([
+      admin.from('profiles').select('id,name,active,platform_role').eq('id', user.id).single(),
+      admin.from('azotrace_company_members').select('company_id,active,role').eq('user_id', user.id),
+    ]);
+    const { data: profile, error: profileError } = profileResult;
     if (profileError || !profile) throw new Error('Não foi possível carregar o perfil da conta.');
     if (!profile.active) return Response.json({ error: 'A conta está inativa. Contacta o administrador.' }, { status: 403, headers });
     if (profile.platform_role === 'superadmin') return Response.json({ ready: true }, { headers });
-    const { data: memberships, error: membershipError } = await admin.from('azotrace_company_members').select('company_id,active,role').eq('user_id', user.id);
+    const { data: memberships, error: membershipError } = membershipResult;
     if (membershipError) throw new Error('Não foi possível verificar a empresa da conta.');
     const activeMembership = memberships?.find(row => row.active);
     if (activeMembership) {
@@ -44,7 +48,7 @@ export async function POST(request: Request) {
     if (permissionsError) throw new Error('Não foi possível preparar as permissões da conta. Tenta novamente.');
     const { error: memberError } = await admin.from('azotrace_company_members').upsert({ user_id: user.id, company_id: companyId, role: 'admin', app_role: 'admin', active: true }, { onConflict: 'company_id,user_id', ignoreDuplicates: true });
     if (memberError) throw new Error('Não foi possível associar a conta à empresa. Tenta novamente.');
-    return Response.json({ ready: true }, { headers });
+    return Response.json({ ready: true, next: '/dashboard/onboarding' }, { headers });
   } catch (cause) {
     return Response.json({ error: cause instanceof Error ? cause.message : 'Não foi possível preparar a conta.' }, { status: 503, headers });
   }

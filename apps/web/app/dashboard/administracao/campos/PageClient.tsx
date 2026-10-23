@@ -1,4 +1,7 @@
 'use client';
+import { confirmMessage, showMessage } from '~/lib/app-messages';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useState, useEffect } from 'react';
 import { supabase } from '~/lib/supabase';
@@ -42,21 +45,21 @@ export default function PageClient() {
       setForm({ nome: '', tipo: 'texto', obrigatorio: false });
       setEditing(null);
       await loadCampos();
-      alert(editing ? '✅ Campo atualizado!' : '✅ Campo criado!');
+      (await showMessage(editing ? '✅ Campo atualizado!' : '✅ Campo criado!'));
     } catch (error: any) {
-      alert('❌ Erro: ' + error.message);
+      (await showMessage(uiMessagePt('❌ Erro: ' + error.message)));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza?')) return;
+    if (!(await confirmMessage('Tem certeza?'))) return;
     try {
       const { error } = await supabase.from('campos_produtos').delete().eq('id', id);
       if (error) throw error;
       await loadCampos();
-      alert('🗑️ Campo eliminado!');
+      (await showMessage('🗑️ Campo eliminado!'));
     } catch (error: any) {
-      alert('❌ Erro: ' + error.message);
+      (await showMessage(uiMessagePt('❌ Erro: ' + error.message)));
     }
   };
 

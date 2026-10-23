@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -49,7 +51,27 @@ function LoginForm() {
         router.refresh();
       }
     } catch (err: any) {
-      setError('❌ ' + (err.message || 'Erro ao fazer login'));
+      const invalidCredentials = err?.code === 'invalid_credentials' ||
+        /invalid login credentials|invalid credentials|invalid email or password/i.test(err?.message || '');
+      if (invalidCredentials) {
+        try {
+          const response = await fetch('/api/auth/account-exists', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+          if (response.ok) {
+            const result = await response.json();
+            if (typeof result.exists === 'boolean') {
+              setError(result.exists ? 'A password está incorreta.' : 'Conta inexistente.');
+              return;
+            }
+          }
+        } catch {
+          // Se a consulta falhar, mantém o aviso genérico devolvido pela autenticação.
+        }
+      }
+      setError(uiMessagePt('❌ ' + (err.message || 'Erro ao fazer login')));
     } finally {
       setLoading(false);
     }
@@ -79,7 +101,7 @@ function LoginForm() {
     } catch (err: any) {
       googlePending.current = false;
       setLoading(false);
-      setError('❌ ' + (err.message || 'Erro ao entrar com o Google'));
+      setError(uiMessagePt('❌ ' + (err.message || 'Erro ao entrar com o Google')));
     }
   };
 
@@ -95,9 +117,7 @@ function LoginForm() {
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
         <Logo width={180} height={60} />
       </div>
-      <h1 style={{ fontSize: '28px', fontWeight: 'bold', textAlign: 'center', marginBottom: '8px' }}>
-        🔐 Entrar
-      </h1>
+     
       {fromCheckout && (
         <div style={{
           background: '#dbeafe',
@@ -108,12 +128,12 @@ function LoginForm() {
           border: '1px solid #93c5fd'
         }}>
           <p style={{ margin: 0, color: '#1e40af', fontSize: '14px' }}>
-            🛒 Faz login para aceder ao teu plano
+            🛒 Faz login para aceder ao seu plano
           </p>
         </div>
       )}
       <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '24px' }}>
-        Acessa a tua conta
+        Aceda à sua conta
       </p>
 
       {error && (
@@ -187,7 +207,7 @@ function LoginForm() {
         </div>
 
         <div style={{ marginBottom: '24px' }}>
-          <label style={{ display: 'block', fontWeight: '500', marginBottom: '6px', fontSize: '14px' }}>Senha</label>
+          <label style={{ display: 'block', fontWeight: '500', marginBottom: '6px', fontSize: '14px' }}>password</label>
           <input
             type="password"
             value={password}

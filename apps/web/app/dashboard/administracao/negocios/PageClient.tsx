@@ -1,4 +1,7 @@
 'use client';
+import { confirmMessage, showMessage } from '~/lib/app-messages';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -48,14 +51,14 @@ export default function PageClient() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza?')) return;
+    if (!(await confirmMessage('Tem certeza?'))) return;
     try {
       const { error } = await supabase.from('negocios').delete().eq('id', id);
       if (error) throw error;
       await loadNegocios();
-      alert('🗑️ Negócio eliminado!');
+      (await showMessage('🗑️ Negócio eliminado!'));
     } catch (error: any) {
-      alert('❌ Erro: ' + error.message);
+      (await showMessage(uiMessagePt('❌ Erro: ' + error.message)));
     }
   };
 

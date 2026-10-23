@@ -57,7 +57,7 @@ export const administrationItem: NavigationItem = {
       "children": [
         {
           "id": "users-list",
-          "label": "Listar Utilizadores",
+          "label": "Lista de utilizadores",
           "icon": Users,
           "path": "/dashboard/administracao/utilizadores",
           "permission": "users.manage"

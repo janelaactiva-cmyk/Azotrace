@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import {withPlatformRequestLog} from '~/lib/platform-log-writer';
+import {portugueseNifError} from '~/lib/portuguese-nif';
 import Stripe from 'stripe';
 import { getPlanCatalog } from '~/lib/plan-catalog-server';
 import { createClient } from '@supabase/supabase-js';
@@ -12,7 +14,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   try {
     const body = await request.json();
 
@@ -21,13 +23,21 @@ export async function POST(request: Request) {
       nome,
       email,
       telefone,
-      nif,
+      nif: nifInput,
       is_commercial,
       nome_empresa,
-      nif_empresa,
+      nif_empresa: nifEmpresaInput,
       morada,
       include_setup,
     } = body;
+
+    if (is_commercial !== undefined && typeof is_commercial !== 'boolean') return NextResponse.json({error:'Tipo de cliente inválido.'},{status:400});
+    const nif = typeof nifInput === 'string' ? nifInput.trim() : '';
+    const nif_empresa = typeof nifEmpresaInput === 'string' ? nifEmpresaInput.trim() : '';
+    const personalNifError = portugueseNifError(nifInput, 'O NIF pessoal', !is_commercial);
+    if (personalNifError) return NextResponse.json({error:personalNifError},{status:400});
+    const companyNifError = is_commercial ? portugueseNifError(nifEmpresaInput, 'O NIF da empresa') : '';
+    if (companyNifError) return NextResponse.json({error:companyNifError},{status:400});
 
     const catalog = await getPlanCatalog();
     if(body.catalog_version!==catalog.version)return NextResponse.json({error:'Os preços foram atualizados. Recarrega a página para confirmar o novo valor.'},{status:409});
@@ -96,7 +106,7 @@ export async function POST(request: Request) {
     if (is_commercial) {
       customFields.push({
         key: 'nome_empresa',
-        label: { type: 'custom', custom: '🏢 Nome da empresa' },
+        label: { type: 'custom', custom: 'Nome da empresa' },
         type: 'text',
         optional: false,
         text: { default_value: nome_empresa },
@@ -104,7 +114,7 @@ export async function POST(request: Request) {
 
       customFields.push({
         key: 'nif_empresa',
-        label: { type: 'custom', custom: '📄 NIF da empresa' },
+        label: { type: 'custom', custom: 'NIF da empresa' },
         type: 'numeric',
         optional: false,
         numeric: { default_value: nif_empresa },
@@ -214,3 +224,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export const POST=withPlatformRequestLog('checkout.create',handlePost);

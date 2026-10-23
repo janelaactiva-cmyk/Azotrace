@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '~/lib/supabase';
@@ -27,7 +29,7 @@ export default function GoogleCallbackPage() {
       if (!cancelled) router.replace(safeAuthNext(parameters.get('next')));
     }
     void withAuthTimeout(complete(),'Não foi possível concluir a validação a tempo. Tenta novamente.',30000)
-      .catch(cause=>{if(!cancelled){cancelled=true;setError(cause instanceof Error?cause.message:'Não foi possível validar a conta.');}});
+      .catch(cause=>{if(!cancelled){cancelled=true;setError(uiMessagePt(cause instanceof Error?cause.message:'Não foi possível validar a conta.'));}});
     return()=>{cancelled=true;};
   },[router,attempt]);
   async function leave() {

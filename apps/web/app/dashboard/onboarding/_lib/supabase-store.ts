@@ -7,9 +7,11 @@ import {
   cacheProducerState,
   listLocalBusinesses,
   normalizeProducerState,
+  loadProducerState,
   type LocalBusinessSummary,
   type ProducerLocalState,
 } from './local-store';
+import { targetUserId } from '../../_lib/online-state';
 
 const PRODUCER_BUCKET = 'producer-assets';
 
@@ -39,9 +41,24 @@ async function requireSession() {
   return data.session;
 }
 
-export async function loadRemoteProducerState(businessId: string): Promise<ProducerLocalState | null> {
+const pendingReads = new Map<string, Promise<ProducerLocalState | null>>();
+const recentReads = new Map<string, number>();
+function markFresh(key: string) {
+  recentReads.delete(key);
+  recentReads.set(key, Date.now());
+  if (recentReads.size > 16) recentReads.delete(recentReads.keys().next().value!);
+}
+
+export async function loadRemoteProducerState(businessId: string, { maxAgeMs = 0 }: { maxAgeMs?: number } = {}): Promise<ProducerLocalState | null> {
   if (!businessId) return null;
-  await requireSession();
+  const session = await requireSession();
+  const key = JSON.stringify([session.user.id, targetUserId(), businessId]);
+  const pending = pendingReads.get(key);
+  if (pending) return pending;
+  const cached = loadProducerState(businessId);
+  if (cached && maxAgeMs > 0 && Date.now() - (recentReads.get(key) ?? 0) < maxAgeMs) return cached;
+
+  const operation = (async () => {
 
   const { data, error } = await (supabase as any)
     .from('producer_workspaces')
@@ -53,8 +70,17 @@ export async function loadRemoteProducerState(businessId: string): Promise<Produ
   if (!data?.state) return null;
 
   const normalized = normalizeProducerState(data.state);
-  if (normalized) cacheProducerState(normalized, { makeCurrent: false, emit: false });
+  // A local edit made while the request was travelling is newer than this read.
+  if (loadProducerState(businessId) !== cached) return loadProducerState(businessId);
+  if (normalized) {
+    cacheProducerState(normalized, { makeCurrent: false, emit: false });
+    markFresh(key);
+  }
   return normalized;
+  })();
+  pendingReads.set(key, operation);
+  try { return await operation; }
+  finally { if (pendingReads.get(key) === operation) pendingReads.delete(key); }
 }
 
 export async function listRemoteProducerStates(): Promise<ProducerLocalState[]> {
@@ -118,6 +144,7 @@ export async function saveRemoteProducerState(state: ProducerLocalState) {
   }
 
   cacheProducerState(normalized, { makeCurrent: false, emit: false });
+  markFresh(JSON.stringify([session.user.id, targetUserId(), normalized.business.id]));
 }
 
 export async function deleteRemoteProducerState(businessId: string) {

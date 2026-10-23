@@ -35,6 +35,7 @@ import {
   LayoutDashboard,
 
   Link2,
+  Mail,
 
   Lock,
 
@@ -235,8 +236,15 @@ const SUPERADMIN_ITEMS: NavigationItem[] = [
     roles: ['superadmin'],
     children: [
       { id: 'superadmin-logs-metricas', label: 'Logs e métricas', icon: BarChart3, path: '/dashboard/super-admin/logs-metricas', description: 'Histórico de ações, erros e indicadores da plataforma.' },
+      { id: 'superadmin-blockchain', label: 'Blockchain', icon: Link2, path: '/dashboard/super-admin/blockchain', description: 'Monitorização da cadeia, verificação dos registos e participantes.', roles: ['superadmin'] },
       ...(administrationItem.children?.filter((item) => item.label === 'RGPD / Privacidade').map((item) => ({ ...item, label: 'RGPD' })) ?? []),
-      { id: 'superadmin-configuracoes', label: 'Configurações', icon: Settings, path: '/dashboard/administracao/configuracoes', description: 'Configurações gerais e autenticação de dois fatores.' },
+      { id: 'superadmin-configuracoes', label: 'Configurações', icon: Settings, description: 'Segurança, dados da plataforma, preferências, emails e integrações.', children: [
+        { id: 'superadmin-config-mfa', label: 'Autenticação multifator', icon: Shield, path: '/dashboard/administracao/configuracoes/multifator' },
+        { id: 'superadmin-config-platform', label: 'Dados da plataforma', icon: Building2, path: '/dashboard/administracao/configuracoes/plataforma' },
+        { id: 'superadmin-config-preferences', label: 'Preferências', icon: Settings, path: '/dashboard/administracao/configuracoes/preferencias' },
+        { id: 'superadmin-config-emails', label: 'Emails e notificações', icon: Mail, path: '/dashboard/administracao/configuracoes/emails' },
+        { id: 'superadmin-config-integrations', label: 'Integrações', icon: Link2, path: '/dashboard/administracao/configuracoes/integracoes' },
+      ] },
     ],
   },
 ];
@@ -255,7 +263,11 @@ const ALL_ITEMS: NavigationItem[] = [
 
   administrationItem,
   { id: 'controlo-sistema', label: 'Controlo e sistema', icon: Settings, children: [
-    { id: 'configuracoes', label: 'Configurações', icon: Settings, path: '/dashboard/administracao/configuracoes', description: 'Configurações gerais e autenticação de dois fatores.' },
+    { id: 'configuracoes', label: 'Configurações', icon: Settings, description: 'Segurança e preferências da conta.', children: [
+      { id: 'config-empresa', label: 'Dados da empresa', icon: Building2, path: '/dashboard/administracao/empresa', roles: ['admin'] },
+      { id: 'config-mfa', label: 'Autenticação multifator', icon: Shield, path: '/dashboard/administracao/configuracoes/multifator' },
+      { id: 'config-preferencias', label: 'Preferências', icon: Settings, path: '/dashboard/administracao/configuracoes/preferencias' },
+    ] },
   ] },
 
 ];
@@ -312,9 +324,9 @@ function filterItem(item: NavigationItem, user: ReturnType<typeof useLocalUser>,
 
 
 
-const EXTENDED_WIDTH = 240;
+const EXTENDED_WIDTH = 204;
 
-const CONTEXT_WIDTH = 320;
+const CONTEXT_WIDTH = 276;
 
 
 
@@ -328,11 +340,11 @@ function IconBox({ icon: Icon, active, accentColor, size = 18 }: { icon: LucideI
 
       style={{
 
-        width: 30,
+        width: 26,
 
-        minWidth: 30,
+        minWidth: 26,
 
-        height: 30,
+        height: 26,
 
         display: 'grid',
 
@@ -414,9 +426,9 @@ function AccordionItem({
 
   const rowStyle: CSSProperties = {
 
-    width: '100%', minHeight: 42, display: 'flex', alignItems: 'center', gap: 10,
+    width: '100%', minHeight: 35, display: 'flex', alignItems: 'center', gap: 7,
 
-    padding: '8px 10px', borderRadius: 8, borderWidth: 1, borderStyle: 'solid', borderColor: 'transparent',
+    padding: '5px 7px', borderRadius: 8, borderWidth: 1, borderStyle: 'solid', borderColor: 'transparent',
 
     background: active ? sidebarActive : 'transparent', color: active ? sidebarTextColor : sidebarSubtext,
 
@@ -604,7 +616,7 @@ export default function AccessibleSidebarAtualizado({
 
       <nav aria-label="Navegação principal do dashboard" style={{ width: '100%' }}>
 
-        <ul style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: 0, padding: 0 }}>
+        <ul style={{ display: 'flex', flexDirection: 'column', gap: 2, margin: 0, padding: 0 }}>
 
           {mainItems.map((item) => (
 
@@ -626,7 +638,7 @@ export default function AccessibleSidebarAtualizado({
 
     <nav aria-label="Navegação principal do dashboard" style={{ position: 'relative', width: '100%' }}>
 
-      <ul style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: 0, padding: 0 }}>
+      <ul style={{ display: 'flex', flexDirection: 'column', gap: 2, margin: 0, padding: 0 }}>
 
         {mainItems.map((item) => {
 
@@ -640,11 +652,11 @@ export default function AccessibleSidebarAtualizado({
 
           const base: CSSProperties = {
 
-            width: '100%', height: 44, display: 'flex', alignItems: 'center',
+            width: '100%', height: 36, display: 'flex', alignItems: 'center',
 
             justifyContent: isSidebarExpanded ? 'flex-start' : 'center', gap: isSidebarExpanded ? 10 : 0,
 
-            padding: isSidebarExpanded ? '8px 10px' : '8px 6px', borderRadius: 9,
+            padding: isSidebarExpanded ? '5px 7px' : '5px 4px', borderRadius: 9,
 
             borderWidth: 1, borderStyle: 'solid', borderColor: selected ? (isDark ? '#4b5563' : '#d1d5db') : 'transparent',
 
@@ -708,7 +720,7 @@ export default function AccessibleSidebarAtualizado({
 
       {isSidebarExpanded && selectedRoot?.children?.length ? (
 
-        <aside aria-label={`Opções de ${selectedRoot.label}`} style={{ position: 'fixed', left: EXTENDED_WIDTH, top: 0, bottom: 0, width: CONTEXT_WIDTH, height: '100vh', padding: '18px 12px 16px', boxSizing: 'border-box', background: isDark ? '#1f2937' : '#fff', borderLeft: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`, borderRight: `4px solid ${accentColor}`, boxShadow: isDark ? '12px 0 28px rgba(0,0,0,.28)' : '12px 0 28px rgba(15,23,42,.16)', zIndex: 1190, overflowY: 'auto' }}>
+        <aside aria-label={`Opções de ${selectedRoot.label}`} style={{ position: 'fixed', left: EXTENDED_WIDTH, top: 0, bottom: 0, width: CONTEXT_WIDTH, height: '100dvh', padding: '12px 9px 10px', boxSizing: 'border-box', background: isDark ? '#1f2937' : '#fff', borderLeft: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`, borderRight: `4px solid ${accentColor}`, boxShadow: isDark ? '12px 0 28px rgba(0,0,0,.28)' : '12px 0 28px rgba(15,23,42,.16)', zIndex: 1190, overflowY: 'auto' }}>
 
           <header style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '4px 8px 15px', marginBottom: 9, borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}` }}>
 

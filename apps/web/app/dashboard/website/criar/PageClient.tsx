@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useEffect, useState, type CSSProperties } from 'react';
 import { useAuth } from '~/lib/auth-context';
@@ -146,7 +148,7 @@ export default function PageClient() {
       setSuccess(true);
       setMessage('Negócio guardado com sucesso!');
     } catch (err: any) {
-      setMessage(err?.message ? `Erro: ${err.message}` : 'Erro ao guardar.');
+      setMessage(uiMessagePt(err?.message ? `Erro: ${err.message}` : 'Erro ao guardar.'));
     } finally {
       setSubmitting(false);
     }

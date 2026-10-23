@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -271,7 +273,7 @@ export default function PublicationPage() {
       setStep(3);
     } catch (cause) {
       console.error(cause);
-      setError(cause instanceof Error ? cause.message : 'Não foi possível publicar a página do lote.');
+      setError(uiMessagePt(cause instanceof Error ? cause.message : 'Não foi possível publicar a página do lote.'));
     } finally {
       setPublishing(false);
     }

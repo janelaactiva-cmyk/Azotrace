@@ -1,4 +1,5 @@
 'use client';
+import { confirmMessage, showMessage } from '~/lib/app-messages';
 
 import { useState, useEffect } from 'react';
 
@@ -48,15 +49,15 @@ export default function CookieChecker() {
     console.log('🍪 Cookies atualizados:', document.cookie);
   };
 
-  const handleClearCookies = () => {
-    if (confirm('Tem certeza que deseja limpar todos os cookies?')) {
+  const handleClearCookies = async () => {
+    if ((await confirmMessage('Tem certeza que deseja limpar todos os cookies?'))) {
       document.cookie.split(';').forEach(c => {
         document.cookie = c
           .replace(/^ +/, '')
           .replace(/=.*/, '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/');
       });
       checkCookies();
-      alert('🍪 Cookies limpos! Recarregue a página.');
+      (await showMessage('🍪 Cookies limpos! Recarregue a página.'));
       window.location.reload();
     }
   };

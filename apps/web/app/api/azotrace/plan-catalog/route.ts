@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache';
 import { verifiedOnlineUser } from '../_lib/online-auth';
 import { getSupabaseAdminClient } from '~/lib/supabase-admin';
 import { CatalogDataSchema } from '~/lib/plan-catalog';
@@ -48,6 +49,7 @@ export async function PATCH(request: Request) {
       }
       throw new Error(result.error.message);
     }
+    revalidateTag('azotrace-public-plans', { expire: 0 });
     return Response.json(result.data, { headers: { 'Cache-Control': 'no-store' } });
   } catch (cause) {
     return Response.json({ error: cause instanceof Error ? cause.message : 'Não foi possível guardar os planos.' }, { status: 400 });

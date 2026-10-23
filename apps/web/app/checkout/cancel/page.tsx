@@ -20,7 +20,7 @@ export default function CancelPage() {
         textAlign: 'center',
         maxWidth: '500px'
       }}>
-        <div style={{ fontSize: '64px', marginBottom: '16px' }}>⏸️</div>
+        <div style={{ fontSize: '64px', marginBottom: '16px' }}></div>
         <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '8px' }}>
           Pagamento Cancelado
         </h1>

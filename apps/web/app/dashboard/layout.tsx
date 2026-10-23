@@ -13,6 +13,7 @@ import { onlineBusinesses, onlineError, onlineCanImpersonate } from './_lib/onli
 import { useLocalUser } from './_lib/use-local-user';
 import workspaceStyles from './_components/business-workspace-switcher.module.css';
 import SessionMfaGate from '~/components/SessionMfaGate';
+import CompanyDataNotice from '~/components/CompanyDataNotice';
 import { loadOnlineContext } from './_lib/online-billing';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -141,21 +142,21 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         onMouseEnter={() => { if (!isMobile && !sidebarPinned) setSidebarExpanded(true); }}
         onMouseLeave={() => { if (!isMobile) dismissMenus(); }}
         style={{
-          width: isMobile ? 'min(88vw,320px)' : (expanded ? 240 : 68),
+          width: isMobile ? 'min(88vw,280px)' : (expanded ? 204 : 56),
           position: 'fixed', left: 0, top: 0, height: '100dvh', zIndex: isMobile ? 1400 : 1000,
           transform: isMobile ? (sidebarExpanded ? 'translateX(0)' : 'translateX(-105%)') : undefined,
           transition: 'width 180ms ease, transform 220ms ease',
           background: sidebarBg, color: sidebarTextColor, borderRight: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
           boxShadow: expanded && !sidebarPinned ? '10px 0 28px rgba(15,23,42,.08)' : 'none',
-          padding: '12px 7px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', overflow: 'hidden'
+          padding: isMobile ? '7px 6px' : '7px 5px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', overflow: 'hidden'
         }}
       >
         <div
           style={{
             width: '100%',
-            height: 128,
+            height: expanded ? 91 : 55,
             flexShrink: 0,
-            padding: expanded ? '2px 8px 16px' : '2px 4px 14px',
+            padding: expanded ? '0 4px 5px' : '0 2px 3px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -169,8 +170,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             aria-label="Abrir página inicial da Azotrace"
             title="Azotrace.com"
             style={{
-              width: expanded ? 72 : 40,
-              height: expanded ? 72 : 40,
+              width: expanded ? 49 : 37,
+              height: expanded ? 49 : 37,
               display: 'grid',
               placeItems: 'center',
               borderRadius: 10,
@@ -183,8 +184,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
               src="/assets/images/logo.png"
               alt="Azotrace"
               style={{
-                width: expanded ? 72 : 40,
-                height: expanded ? 72 : 40,
+                width: expanded ? 49 : 37,
+                height: expanded ? 49 : 37,
                 objectFit: 'contain',
                 display: 'block',
                 transition: 'width 180ms ease, height 180ms ease',
@@ -196,11 +197,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             <div
               style={{
                 width: '100%',
-                marginTop: 8,
+                marginTop: 3,
                 padding: '0 4px',
                 color: sidebarSubtext,
-                fontSize: 12,
-                fontWeight: 600,
+                fontSize: 11,
+                fontWeight: 700,
                 textAlign: 'center',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -214,39 +215,44 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           )}
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 2 }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', paddingRight: 2 }}>
           <AccessibleSidebarAtualizado isDark={isDark} sidebarActive={sidebarActive} sidebarTextColor={sidebarTextColor} sidebarSubtext={sidebarSubtext} isSidebarExpanded={expanded} accentColor={workspaceAccent} businessId={localUser.role === 'superadmin' ? null : selectedBusinessId ? String(selectedBusinessId) : null} isMobile={isMobile} isPinned={sidebarPinned} closeRequest={closeMenus} onFlyoutChange={setFlyoutOpen} onNavigate={dismissMenus} />
         </div>
 
-        <div style={{ display: 'grid', gap: 8, paddingTop: 12, flexShrink: 0, borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}` }}>
+        <div style={{ display: 'grid', gap: 2, paddingTop: 4, flexShrink: 0, borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}` }}>
           {expanded && (
-            <div style={{ padding: '8px 10px', borderRadius: 8, background: isDark ? '#111827' : '#f9fafb' }}>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>{localUser.name}</div>
-              <div style={{ fontSize: 12, color: sidebarSubtext, overflow: 'hidden', textOverflow: 'ellipsis' }}>{localUser.email}</div>
-              <div style={{ fontSize: 12, color: sidebarSubtext, marginTop: 3 }}>{roleLabel(localUser.role)}</div>
+            <div title={`${localUser.name} · ${localUser.email} · ${roleLabel(localUser.role)}`}
+              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 7px', minWidth: 0 }}>
+              <div aria-hidden="true" style={{ width: 25, height: 25, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 700, background: isDark ? '#374151' : '#e5e7eb' }}>
+                {(localUser.name || 'U').trim().charAt(0).toUpperCase()}
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{localUser.name}</div>
+                <div style={{ fontSize: 10, color: sidebarSubtext, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{roleLabel(localUser.role)}</div>
+              </div>
             </div>
           )}
           {!isMobile && (
-            <button type="button" aria-label={sidebarPinned ? 'Recolher menu' : 'Expandir menu'} title={sidebarPinned ? 'Recolher menu' : 'Expandir menu'} aria-controls="dashboard-sidebar" aria-expanded={expanded} onClick={() => { const next = !sidebarPinned; setSidebarPinned(next); setSidebarExpanded(next); }} style={footerButton(isDark)}>{sidebarPinned ? <ArrowLeft size={16} strokeWidth={1.8} /> : <ArrowRight size={16} strokeWidth={1.8} />}{expanded ? <span>{sidebarPinned ? 'Recolher menu' : 'Expandir menu'}</span> : null}</button>
+            <button type="button" aria-label={sidebarPinned ? 'Recolher menu' : 'Expandir menu'} title={sidebarPinned ? 'Recolher menu' : 'Expandir menu'} aria-controls="dashboard-sidebar" aria-expanded={expanded} onClick={() => { const next = !sidebarPinned; setSidebarPinned(next); setSidebarExpanded(next); }} style={footerButton(isDark)}>{sidebarPinned ? <ArrowLeft size={16} strokeWidth={1.8} /> : <ArrowRight size={16} strokeWidth={1.8} />}{expanded ? <span>{sidebarPinned ? 'Recolher' : 'Expandir'}</span> : null}</button>
           )}
           <button type="button" aria-label={isDark ? "Modo claro" : "Modo escuro"} onClick={toggleTheme} style={footerButton(isDark)}>{isDark ? <Sun size={16} strokeWidth={1.8} /> : <Moon size={16} strokeWidth={1.8} />}{expanded ? <span>{isDark ? 'Modo claro' : 'Modo escuro'}</span> : null}</button>
           {localUser.role !== 'superadmin' && onlineCanImpersonate ? (
-            <button type="button" aria-label="Voltar ao Super Admin" onClick={() => { setCurrentLocalUser('local-owner'); window.location.href = '/dashboard'; }} style={{ ...footerButton(isDark), color: '#dc2626' }}><ArrowLeft size={16} strokeWidth={1.8} />{expanded ? <span>Voltar ao Super Admin</span> : null}</button>
+            <button type="button" aria-label="Voltar ao Super Admin" onClick={() => { setCurrentLocalUser('local-owner'); window.location.href = '/dashboard'; }} style={{ ...footerButton(isDark), color: '#dc2626' }}><ArrowLeft size={16} strokeWidth={1.8} />{expanded ? <span>Super Admin</span> : null}</button>
           ) : null}
           <button type="button" onClick={handleSignOut} style={{ ...footerButton(isDark), color: '#dc2626' }} title="Encerrar sessão">
             <LogOut size={16} strokeWidth={1.8} />
-            {expanded ? <span>Encerrar sessão</span> : null}
+            {expanded ? <span>Sair</span> : null}
           </button>
         </div>
       </aside>
 
-      <main style={{ marginLeft: isMobile ? 0 : (sidebarPinned ? 240 : 68), transition: 'margin-left 180ms ease', flex: 1, padding: isMobile ? '72px 16px 24px' : '32px 40px', minWidth: 0 }}>
-        <div style={{ maxWidth: 1400, margin: '0 auto' }}>{children}</div>
+      <main style={{ marginLeft: isMobile ? 0 : (sidebarPinned ? 204 : 56), transition: 'margin-left 180ms ease', flex: 1, padding: isMobile ? '72px 16px 24px' : '32px 40px', minWidth: 0 }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto' }}><CompanyDataNotice userId={localUser.id} companyId={localUser.companyId} enabled={localUser.active && localUser.role === 'admin' && pathname !== '/dashboard/administracao/empresa'}/>{children}</div>
       </main>
     </div>
   );
 }
 
 function footerButton(isDark: boolean): React.CSSProperties {
-  return { width: '100%', minHeight: 38, padding: '8px 9px', border: '1px solid transparent', borderRadius: 9, background: 'transparent', color: isDark ? '#d1d5db' : '#4b5563', cursor: 'pointer', fontSize: 12, fontWeight: 600, textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 9 };
+  return { width: '100%', minHeight: 29, padding: '4px 7px', border: '1px solid transparent', borderRadius: 9, background: 'transparent', color: isDark ? '#d1d5db' : '#4b5563', cursor: 'pointer', fontSize: 12, fontWeight: 600, textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8 };
 }

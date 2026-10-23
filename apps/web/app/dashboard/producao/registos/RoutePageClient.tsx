@@ -1,7 +1,8 @@
 'use client';
+import { confirmMessage } from '~/lib/app-messages';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 
 import { EmptyWorkspace, TraceabilityShell } from '../../_components/TraceabilityShell';
 import styles from '../../_components/traceability.module.css';
@@ -19,39 +20,54 @@ import {
 } from '../../_lib/producer-utils';
 
 export default function RegistosPage() {
-  const { store, loading } = useProducerWorkspace();
+  const { store, persist, loading } = useProducerWorkspace();
   const localUser = useLocalUser();
   const [query, setQuery] = useState('');
   const [productId, setProductId] = useState('');
   const [stageId, setStageId] = useState('');
   const [unitId, setUnitId] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const deferredQuery = useDeferredValue(query);
+  const [pagination, setPagination] = useState({ key: '', page: 1 });
 
-  const rows = useMemo(() => {
+  const searchableRows = useMemo(() => {
     if (!store) return [];
-
+    const products = new Map(store.products.map(item => [item.id, item.name]));
+    const batches = new Map(store.batches.map(item => [item.id, item.code]));
+    const stages = new Map(store.stages.map(item => [item.id, item.name]));
+    const units = new Map(store.units.map(item => [item.id, `${item.code} · ${item.name}`]));
     return [...store.records]
       .sort((a, b) => (b.recordedAt || b.createdAt).localeCompare(a.recordedAt || a.createdAt))
-      .filter((record) => {
+      .map((record) => {
         const primaryUnitId = record.productionUnitId || record.productionUnitIds[0] || '';
         const searchText = [
-          productName(store, record.productId),
-          batchCode(store, record.batchId),
-          stageName(store, record.stageId),
-          productionUnitName(store, primaryUnitId),
+          products.get(record.productId) || 'Produto',
+          batches.get(record.batchId) ?? 'Sem lote',
+          stages.get(record.stageId || '') ?? 'Sem etapa',
+          primaryUnitId ? units.get(primaryUnitId) ?? 'Unidade removida' : 'Sem unidade',
         ].join(' ').toLowerCase();
-
+        return { record, searchText };
+      });
+  }, [store]);
+  const rows = useMemo(() => {
+    const search = deferredQuery.toLowerCase();
+    return searchableRows.filter(({ record, searchText }) => {
         return (
           (!productId || record.productId === productId) &&
           (!stageId || record.stageId === stageId) &&
           (!unitId || record.productionUnitIds.includes(unitId) || record.productionUnitId === unitId) &&
-          (!query || searchText.includes(query.toLowerCase()))
+          (!search || searchText.includes(search))
         );
-      });
-  }, [store, query, productId, stageId, unitId]);
+      }).map(({ record }) => record);
+  }, [searchableRows, deferredQuery, productId, stageId, unitId]);
+  const pageKey = JSON.stringify([store?.business.id, deferredQuery, productId, stageId, unitId]);
+  const pageCount = Math.max(1, Math.ceil(rows.length / 50));
+  const page = pagination.key === pageKey ? Math.min(pagination.page, pageCount) : 1;
+  const visibleRows = rows.slice((page - 1) * 50, page * 50);
 
   if (loading) {
     return (
-      <TraceabilityShell eyebrow="Produção" title="Registos">
+      <TraceabilityShell eyebrow="Produção" title="Registos de dados">
         <div className={styles.cardPad}>A carregar…</div>
       </TraceabilityShell>
     );
@@ -59,13 +75,23 @@ export default function RegistosPage() {
 
   if (!store?.completed) {
     return (
-      <TraceabilityShell eyebrow="Produção" title="Registos">
+      <TraceabilityShell eyebrow="Produção" title="Registos de dados">
         <EmptyWorkspace />
       </TraceabilityShell>
     );
   }
 
   const canEdit = hasPermission(localUser, 'production.write', store.business.id);
+
+  async function deleteRecord(recordId: string) {
+    if (!store || !canEdit) return;
+    const record = store.records.find((item) => item.id === recordId);
+    if (!record) return;
+    const recordLabel = `${productName(store, record.productId)} · ${stageName(store, record.stageId)} · ${formatDate(record.recordedAt || record.createdAt, true)}`;
+    if (!(await confirmMessage(`Eliminar este registo de dados?\n\n${recordLabel}\n\nSó este registo será removido. O produto, o lote e os restantes registos serão mantidos. Esta ação não pode ser anulada.`))) return;
+    persist({ ...store, records: store.records.filter((item) => item.id !== recordId) });
+    setFeedback('O registo de dados foi eliminado. Os restantes dados foram mantidos.');
+  }
 
   function exportCsv() {
     if (!store) return;
@@ -88,9 +114,9 @@ export default function RegistosPage() {
 
   return (
     <TraceabilityShell
-      eyebrow="Produção · Registos"
-      title="Registos de produção"
-      description="Histórico semanal por lote, etapa e unidade de produção. Cada registo pode ser editado sem alterar os restantes."
+      eyebrow="Produção · Registos de dados"
+      title="Registos de dados"
+      description="Histórico dos dados introduzidos por lote, etapa e unidade de produção. Cada registo pode ser editado ou eliminado sem alterar os restantes."
       actions={(
         <>
           <button className={styles.secondary} type="button" onClick={exportCsv}>Exportar CSV</button>
@@ -98,6 +124,7 @@ export default function RegistosPage() {
         </>
       )}
     >
+      {feedback ? <div className={styles.success} style={{ marginBottom: 14 }} role="status">{feedback}</div> : null}
       <section className={styles.card}>
         <div className={styles.toolbar}>
           <input
@@ -160,7 +187,7 @@ export default function RegistosPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((record) => {
+              {visibleRows.map((record) => {
                 const primaryUnitId = record.productionUnitId || record.productionUnitIds[0];
                 const legacyExtraUnits = Math.max(0, record.productionUnitIds.length - 1);
                 return (
@@ -181,9 +208,14 @@ export default function RegistosPage() {
                     </td>
                     <td>
                       {canEdit ? (
-                        <Link className={styles.smallButton} href={`/dashboard/producao/registos/${record.id}`}>
-                          Editar
-                        </Link>
+                        <div className={styles.actions}>
+                          <Link className={styles.smallButton} href={`/dashboard/producao/registos/${record.id}`}>
+                            Editar
+                          </Link>
+                          <button className={styles.danger} type="button" onClick={() => deleteRecord(record.id)}>
+                            Eliminar
+                          </button>
+                        </div>
                       ) : <span className={styles.muted}>Consulta</span>}
                     </td>
                   </tr>
@@ -198,6 +230,14 @@ export default function RegistosPage() {
             </tbody>
           </table>
         </div>
+        <nav className={styles.toolbar} aria-label="Páginas dos registos de dados">
+          <span role="status">{rows.length ? `${(page - 1) * 50 + 1}–${Math.min(page * 50, rows.length)} de ${rows.length} registos` : '0 registos'}</span>
+          <div className={styles.toolbarGroup}>
+            <button type="button" className={styles.secondary} disabled={page === 1} onClick={() => setPagination({ key: pageKey, page: page - 1 })}>Anterior</button>
+            <span>Página {page} de {pageCount}</span>
+            <button type="button" className={styles.secondary} disabled={page === pageCount} onClick={() => setPagination({ key: pageKey, page: page + 1 })}>Seguinte</button>
+          </div>
+        </nav>
       </section>
     </TraceabilityShell>
   );

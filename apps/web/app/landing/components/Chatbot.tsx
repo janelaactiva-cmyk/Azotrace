@@ -1,6 +1,20 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import styles from './Chatbot.module.css';
+import { normalizeQuestion } from '~/lib/azoia-answers';
+import { findChatbotQuestion, renderChatbotAnswer } from '~/lib/chatbot-questions';
+import { useChatbotQuestions } from '~/lib/use-chatbot-questions';
+import { usePlanCatalog } from '~/lib/use-plan-catalog';
+
+const SupportTicketPanel = dynamic(() => import('~/components/SupportTicketPanel'), {
+  loading: () => <p role="status">A abrir o suporte…</p>,
+});
+
+const PublicHelpPanel = dynamic(() => import('~/components/PublicHelpPanel'), {
+  loading: () => <p role="status">A abrir o formulário de ajuda…</p>,
+});
 
 interface Message {
   id: string;
@@ -9,56 +23,29 @@ interface Message {
   timestamp: Date;
 }
 
-interface Question {
-  id: number;
-  question: string;
-  answer: string;
-  category: string;
-  is_active: boolean;
-}
-
-export default function Chatbot() {
-  const [isOpen, setIsOpen] = useState(false);
+export default function Chatbot({ mode = 'help', initialOpen = false }: { mode?: 'help' | 'tickets'; initialOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(initialOpen);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportVisited, setSupportVisited] = useState(false);
+  const { catalog, error: catalogError } = usePlanCatalog();
+  const isTechnicalHelp = (value: string) => normalizeQuestion(value) === 'preciso de ajuda tecnica';
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [suggestions, setSuggestions] = useState<string[]>([
-    'Como funciona a Azotrace?',
-    'Quais os preços?',
-    'Como criar QR Codes?',
-    'Preciso de ajuda técnica',
-  ]);
-  
+  const { questions, loading: questionsLoading, error: questionsError } = useChatbotQuestions(isOpen);
+  const suggestions = questions.filter(row => row.is_active).slice(0, 4).map(row => row.question);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // ✅ Buscar perguntas da API
-  useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        const response = await fetch('/api/chatbot?active=true');
-        const data = await response.json();
-        setQuestions(data);
-        
-        // ✅ Atualizar sugestões com as perguntas da BD
-        if (data.length > 0) {
-          const questionTexts = data.map((q: Question) => q.question);
-          setSuggestions(questionTexts.slice(0, 4));
-        }
-      } catch (error) {
-        console.error('Erro ao buscar perguntas:', error);
-      }
-    };
-    fetchQuestions();
-  }, []);
+  useEffect(() => { if (supportOpen) setSupportVisited(true); }, [supportOpen]);
 
   // Mensagem de boas-vindas
   useEffect(() => {
     setMessages([
       {
         id: '1',
-        text: '👋 Olá! Sou o assistente da Azotrace. Como posso ajudar-te?',
+        text: 'Olá! Sou o AZOIA. Como posso ajudar?',
         sender: 'bot',
         timestamp: new Date(),
       },
@@ -79,87 +66,21 @@ export default function Chatbot() {
     }
   }, [isOpen]);
 
-  // ✅ Função para encontrar resposta na BD
-  const findAnswerInDB = (userMessage: string): string | null => {
-    const msg = userMessage.toLowerCase().trim();
-    
-    for (const q of questions) {
-      if (msg.includes(q.question.toLowerCase())) {
-        return q.answer;
-      }
-    }
-    
-    // Verificar por palavras-chave
-    const keywords = ['como', 'funciona', 'preço', 'suporte', 'ajuda', 'qr code', 'preços'];
-    for (const keyword of keywords) {
-      if (msg.includes(keyword)) {
-        const match = questions.find(q => 
-          q.question.toLowerCase().includes(keyword)
-        );
-        if (match) return match.answer;
-      }
-    }
-    
-    return null;
-  };
-
-  // ✅ Respostas padrão (fallback)
-  const getFallbackResponse = (userMessage: string): string => {
-    const msg = userMessage.toLowerCase();
-    
-    if (msg.includes('preço') || msg.includes('custo') || msg.includes('valor') || msg.includes('€')) {
-      return '💰 Os planos Base, Essential e Pro estão disponíveis no preçário atualizado desta página, com opções para produtores individuais e empresas. Posso ajudar-te a escolher o melhor plano?';
-    }
-    
-    if (msg.includes('qr code') || msg.includes('qr') || msg.includes('codigo')) {
-      return '📱 A Azotrace gera QR Codes únicos para cada produto. Basta registar o produto na plataforma e o código é gerado automaticamente!';
-    }
-    
-    if (msg.includes('como funciona') || msg.includes('funciona') || msg.includes('plataforma')) {
-      return '🔧 A Azotrace funciona em 4 passos simples: 1️⃣ Registas o produto, 2️⃣ Geras o QR Code, 3️⃣ Aplicas no produto, 4️⃣ O cliente descobre a história do produto ao digitalizar o código.';
-    }
-    
-    if (msg.includes('contacto') || msg.includes('falar') || msg.includes('email') || msg.includes('telefone')) {
-      return '📞 Podes contactar-nos por email geral@azotrace.pt ou pelo telefone +351 296 286 288. Estamos disponíveis de segunda a sexta, das 9h às 18h.';
-    }
-    
-    if (msg.includes('ajuda') || msg.includes('suporte') || msg.includes('problema')) {
-      return '🛠️ A nossa equipa de suporte está disponível para te ajudar! Envia um email para suporte@azotrace.pt que responderemos rapidamente.';
-    }
-    
-    if (msg.includes('obrigado') || msg.includes('obrigada') || msg.includes('👍')) {
-      return '🙏 De nada! Estou aqui para ajudar. Se precisares de mais alguma coisa, é só perguntar.';
-    }
-    
-    if (msg.includes('olá') || msg.includes('oi') || msg.includes('bom dia')) {
-      return '👋 Olá! Como posso ajudar-te hoje? Pergunta-me sobre a Azotrace, preços, ou como criar QR Codes.';
-    }
-    
-    // ✅ Sugerir perguntas da BD quando não encontra resposta
-    if (questions.length > 0) {
-      const suggestions = questions
-        .slice(0, 3)
-        .map(q => `• ${q.question}`)
-        .join('\n');
-      return `🤔 Ainda não tenho uma resposta para essa pergunta específica.\n\nPodes perguntar-me sobre:\n${suggestions}`;
-    }
-    
-    return '🤔 Obrigado pela tua mensagem! A nossa equipa vai analisar e responder em breve. Enquanto isso, posso ajudar com outras questões sobre a Azotrace.';
-  };
-
-  // ✅ Função principal de resposta
   const getBotResponse = (userMessage: string): string => {
-    // 1. Tentar encontrar na base de dados
-    const dbAnswer = findAnswerInDB(userMessage);
-    if (dbAnswer) return dbAnswer;
-    
-    // 2. Fallback para respostas padrão
-    return getFallbackResponse(userMessage);
+    if (questionsError) return questionsError;
+    if (questionsLoading) return 'As perguntas estão a ser carregadas. Tente novamente dentro de instantes.';
+    const matched = findChatbotQuestion(userMessage, questions);
+    if (matched) return renderChatbotAnswer(matched.answer, catalogError ? null : catalog);
+    const normalized = normalizeQuestion(userMessage);
+    if (/^(ola|bom dia|boa tarde|boa noite)$/.test(normalized)) return 'Olá! Sou o AZOIA. Como posso ajudar?';
+    if (/^(obrigado|obrigada)$/.test(normalized)) return 'De nada. Estou disponível para ajudar.';
+    return 'Não encontrei uma resposta para essa questão. Pode escolher uma das perguntas sugeridas ou utilizar ' + (mode === 'tickets' ? 'o suporte de tickets.' : 'o formulário de ajuda.');
   };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
+    if (isTechnicalHelp(message)) { setMessage(''); setSupportOpen(true); return; }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -186,7 +107,9 @@ export default function Chatbot() {
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    setMessage(suggestion);
+    setMessage('');
+    if (isTechnicalHelp(suggestion)) { setSupportOpen(true); return; }
+    
     setTimeout(() => {
       const userMessage: Message = {
         id: Date.now().toString(),
@@ -216,9 +139,11 @@ export default function Chatbot() {
   };
 
   return (
-    <div style={{ position: 'fixed', bottom: '90px', right: '24px', zIndex: 9999 }}>
+    <div className={styles.root} style={{ position: 'fixed', bottom: '90px', right: '24px', zIndex: 9999 }}>
       {/* Botão do Chat */}
       <button
+        aria-label={isOpen ? 'Fechar o AZOIA' : 'Abrir o AZOIA'}
+        aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
         style={{
           width: '60px',
@@ -237,7 +162,7 @@ export default function Chatbot() {
           position: 'relative'
         }}
       >
-        {isOpen ? <span>✕</span> : <span>💬</span>}
+        {isOpen ? <span>✕</span> : <img src="/assets/images/azoia-head-azotrace.webp" alt="" aria-hidden="true" width={38} height={38} style={{display:'block'}} />}
         {!isOpen && (
           <span style={{
             position: 'absolute',
@@ -253,7 +178,7 @@ export default function Chatbot() {
       </button>
 
       {/* Janela do Chat */}
-      {isOpen && (
+      {(
         <div style={{
           position: 'absolute',
           bottom: '70px',
@@ -267,7 +192,7 @@ export default function Chatbot() {
           borderRadius: '16px',
           boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
           border: '1px solid rgba(255,255,255,0.2)',
-          display: 'flex',
+          display: isOpen ? 'flex' : 'none',
           flexDirection: 'column',
           overflow: 'hidden',
           animation: 'chatSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
@@ -293,10 +218,10 @@ export default function Chatbot() {
                 justifyContent: 'center',
                 fontSize: '18px'
               }}>
-                🤖
+                <img src="/assets/images/azoia-head-azotrace.webp" alt="" aria-hidden="true" width={32} height={32} style={{display:'block'}} />
               </div>
               <div>
-                <div style={{ fontWeight: '600', fontSize: '15px' }}>Assistente Azotrace</div>
+                <div style={{ fontWeight: '600', fontSize: '15px' }}>AZOIA</div>
                 <div style={{ fontSize: '12px', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span style={{
                     display: 'inline-block',
@@ -329,6 +254,8 @@ export default function Chatbot() {
             </button>
           </div>
 
+          <div hidden={!supportOpen} style={{flex:1,minHeight:0,overflowY:'auto'}}>{supportVisited && (mode === 'tickets' ? <SupportTicketPanel onBack={()=>setSupportOpen(false)}/> : <PublicHelpPanel onBack={()=>setSupportOpen(false)}/>)}</div>
+          <div hidden={supportOpen} style={{display:supportOpen?'none':'flex',flex:1,minHeight:0,flexDirection:'column'}}>
           {/* Mensagens */}
           <div style={{
             flex: 1,
@@ -357,6 +284,7 @@ export default function Chatbot() {
                     background: msg.sender === 'bot' ? 'white' : 'linear-gradient(135deg, #234D87 0%, #1a3a6b 100%)',
                     color: msg.sender === 'bot' ? '#1f2937' : 'white',
                     fontSize: '14px',
+                    whiteSpace: 'pre-line',
                     lineHeight: '1.6',
                     boxShadow: msg.sender === 'bot' ? '0 2px 8px rgba(0,0,0,0.04)' : '0 2px 8px rgba(35, 77, 135, 0.2)',
                     wordBreak: 'break-word'
@@ -388,6 +316,7 @@ export default function Chatbot() {
             borderTop: '1px solid #e5e7eb',
             background: 'white'
           }}>
+            {questionsError && <p role="status" style={{fontSize:12,margin:0,color:'#000'}}>{questionsError}</p>}
             {suggestions.map((suggestion) => (
               <button
                 key={suggestion}
@@ -408,6 +337,7 @@ export default function Chatbot() {
             ))}
           </div>
 
+          <div style={{padding:'8px 16px',background:'#fff',borderTop:'1px solid #e5e7eb'}}><button type="button" onClick={()=>setSupportOpen(true)} style={{border:'1px solid #234d87',borderRadius:8,padding:'8px 12px',background:'#fff',color:'#234d87'}}>{mode === 'tickets' ? 'Ajuda técnica · Criar ticket' : 'Precisa de ajuda? · Formulário'}</button></div>
           {/* Input */}
           <form onSubmit={handleSend} style={{
             padding: '12px 16px',
@@ -422,7 +352,7 @@ export default function Chatbot() {
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Escreve a tua mensagem..."
+              placeholder="Escreva a sua mensagem"
               style={{
                 flex: 1,
                 padding: '10px 14px',
@@ -451,6 +381,7 @@ export default function Chatbot() {
               Enviar
             </button>
           </form>
+          </div>
         </div>
       )}
     </div>

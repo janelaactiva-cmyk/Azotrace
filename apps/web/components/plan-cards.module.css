@@ -1,1 +1,20 @@
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;font-family:system-ui,sans-serif;color:#172033;text-align:left}.card{position:relative;display:flex;flex-direction:column;padding:28px;border:1px solid #dce4ed;border-radius:18px;background:#fff;box-shadow:0 8px 24px #17203308}.recommended{border:2px solid #2563eb}.badge{align-self:flex-start;background:#eaf1ff;color:#234d87;border-radius:24px;padding:5px 10px;font-size:12px;font-weight:700}.card h3{font-size:25px;margin:18px 0 8px}.description{color:#586577;line-height:1.5;min-height:66px}.price{font-size:29px;font-weight:800;letter-spacing:-.04em;line-height:1.3}.price span{font-size:13px;font-weight:500;letter-spacing:0}.monthly{font-size:12px;color:#586577;line-height:1.6}.card ul{list-style:none;padding:0;margin:20px 0 26px;flex:1}.card li{padding:9px 0 9px 20px;position:relative;font-size:14px;line-height:1.45;border-bottom:1px solid #edf1f5}.card li:before{content:'✓';position:absolute;left:0;color:#198557}.card button,.card a{display:block;width:100%;box-sizing:border-box;text-align:center;text-decoration:none;background:#234d87;color:white;border:0;border-radius:9px;padding:13px;cursor:pointer;font-size:14px;font-weight:700}.recommended button,.recommended a{background:#2563eb}.card button:disabled{opacity:.55;cursor:default}.card a:focus-visible,.card button:focus-visible{outline:3px solid #60a5fa;outline-offset:4px}@media(max-width:1000px){.grid{gap:12px}.card{padding:20px}.price{font-size:24px}}@media(max-width:740px){.grid{grid-template-columns:1fr}.description{min-height:0}.price{font-size:30px}}
+.grid{--plan-surface:#fff;--plan-text:#172033;--plan-muted:#586577;--plan-border:#dce4ed;--plan-divider:#edf1f5;--plan-accent:#2563eb;--plan-badge-bg:#eaf1ff;--plan-badge-text:#234d87;--plan-check:#198557;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;font-family:system-ui,sans-serif;color:var(--plan-text);text-align:left}
+:global(html.dark) .grid{--plan-surface:#1f2937;--plan-text:#f3f4f6;--plan-muted:#b6c2d2;--plan-border:#475569;--plan-divider:#374151;--plan-accent:#60a5fa;--plan-badge-bg:#233c64;--plan-badge-text:#dbeafe;--plan-check:#6ee7b7}
+.card{position:relative;display:flex;flex-direction:column;padding:28px;border:1px solid var(--plan-border);border-radius:18px;background:var(--plan-surface);color:var(--plan-text);box-shadow:0 8px 24px #17203308}
+.recommended{border:2px solid var(--plan-accent)}
+.badge{align-self:flex-start;background:var(--plan-badge-bg);color:var(--plan-badge-text);border-radius:24px;padding:5px 10px;font-size:12px;font-weight:700}
+/* Cores locais prevalecem sobre as regras globais da landing para h3/p/li/span. */
+.grid .card h3{color:var(--plan-text)!important;font-size:25px;margin:18px 0 8px}
+.grid .description{color:var(--plan-muted)!important;line-height:1.5;min-height:66px}
+.price{color:var(--plan-text);font-size:29px;font-weight:800;letter-spacing:-.04em;line-height:1.3}
+.grid .price span{color:var(--plan-text)!important;font-size:13px;font-weight:500;letter-spacing:0}
+.grid .monthly{font-size:12px;color:var(--plan-muted)!important;line-height:1.6}
+.card ul{list-style:none;padding:0;margin:20px 0 26px;flex:1}
+.grid .card li{color:var(--plan-text)!important;padding:9px 0 9px 20px;position:relative;font-size:14px;line-height:1.45;border-bottom:1px solid var(--plan-divider)}
+.card li:before{content:'✓';position:absolute;left:0;color:var(--plan-check)}
+.grid .card button,.grid .card a{display:block;width:100%;box-sizing:border-box;text-align:center;text-decoration:none;background:#234d87;color:white!important;border:0;border-radius:9px;padding:13px;cursor:pointer;font-size:14px;font-weight:700}
+.grid .recommended button,.grid .recommended a{background:#2563eb}
+.card button:disabled{opacity:.55;cursor:default}
+.card a:focus-visible,.card button:focus-visible{outline:3px solid #60a5fa;outline-offset:4px}
+@media(max-width:1000px){.grid{gap:12px}.card{padding:20px}.price{font-size:24px}}
+@media(max-width:740px){.grid{grid-template-columns:1fr}.grid .description{min-height:0}.price{font-size:30px}}

@@ -1,66 +1,30 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '~/lib/supabase/server';
-
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> } // ✅ Definir params como Promise
-) {
-  try {
-    const body = await request.json();
-    const { question, answer, category, is_active, order_position } = body;
-
-    // ✅ Aguardar a resolução de params
-    const { id } = await params;
-
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from('chatbot_questions')
-      .update({
-        question,
-        answer,
-        category,
-        is_active,
-        order_position,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id) // ✅ Usar a variável `id` desembrulhada
-      .select()
-      .single();
-
-    if (error) {
-      console.error('❌ Erro ao atualizar:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(data);
-  } catch (error: any) {
-    console.error('❌ Erro no PUT:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+import { getSupabaseAdminClient } from '~/lib/supabase-admin';
+import { authorizeChatbot, chatbotPayload, chatbotFailure } from '~/lib/chatbot-server';
+type Context = {params: Promise<{id:string}>};
+async function prepare(request: Request, context: Context) {
+  const denied = await authorizeChatbot(request); if (denied) return {response:denied};
+  const {id} = await context.params;
+  if (!/^[1-9]\d*$/.test(id)) return {response:Response.json({error:'Pergunta inválida.'},{status:400})};
+  return {id};
 }
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> } // ✅ Definir params como Promise
-) {
+export async function PUT(request: Request, context: Context) {
+  const auth = await prepare(request,context); if (auth.response) return auth.response;
+  let payload;
+  try { payload = chatbotPayload(await request.json()); }
+  catch (cause) { return Response.json({error:cause instanceof Error ? cause.message : 'Dados inválidos.'},{status:400}); }
   try {
-    // ✅ Aguardar a resolução de params
-    const { id } = await params;
-
-    const supabase = await createClient();
-    const { error } = await supabase
-      .from('chatbot_questions')
-      .delete()
-      .eq('id', id); // ✅ Usar a variável `id` desembrulhada
-
-    if (error) {
-      console.error('❌ Erro ao eliminar:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('❌ Erro no DELETE:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+    const {data,error} = await getSupabaseAdminClient().from('chatbot_questions').update({...payload,updated_at:new Date().toISOString()}).eq('id',auth.id!).select().maybeSingle();
+    if (error) return chatbotFailure(error);
+    if (!data) return Response.json({error:'Esta pergunta já não existe. Atualiza a lista.'},{status:404});
+    return Response.json(data);
+  } catch { return chatbotFailure(null); }
+}
+export async function DELETE(request: Request, context: Context) {
+  const auth = await prepare(request,context); if (auth.response) return auth.response;
+  try {
+    const {data,error} = await getSupabaseAdminClient().from('chatbot_questions').delete().eq('id',auth.id!).select('id').maybeSingle();
+    if (error) return chatbotFailure(error);
+    if (!data) return Response.json({error:'Esta pergunta já não existe. Atualiza a lista.'},{status:404});
+    return Response.json({success:true});
+  } catch { return chatbotFailure(null); }
 }

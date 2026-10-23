@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useBusiness } from '~/lib/business-context';
@@ -18,6 +19,7 @@ import {
 import styles from './business-workspace-switcher.module.css';
 
 export function BusinessWorkspaceSwitcher() {
+  const router = useRouter();
   const { selectedBusinessId, setSelectedBusiness } = useBusiness();
   const user = useLocalUser();
   const [businesses, setBusinesses] = useState<LocalBusinessSummary[]>([]);
@@ -75,7 +77,7 @@ export function BusinessWorkspaceSwitcher() {
     setSelectedBusiness(next.id as any, next.kind, next.name);
     setCurrentId(next.id);
     document.documentElement.style.setProperty('--azotrace-business-accent', next.accentColor);
-    window.location.assign('/dashboard');
+    router.push('/dashboard');
   };
 
   if (!businesses.length) {

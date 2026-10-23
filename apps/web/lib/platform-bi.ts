@@ -1,0 +1,62 @@
+import {platformMonth,platformYearStart} from '~/app/dashboard/_lib/platform-summary';
+import {supportPlan} from '~/lib/support-priority';
+export type Plan='all'|'Base'|'Essential'|'Pro';
+export type BiFilters={year:number;month:number;plan:Plan};
+export type Company={id:string;name:string;active:boolean;created_at:string};
+export type Subscription={id:string;company_id:string|null;plan_name:string|null;status:string;started_at:string|null;expires_at:string|null;created_at:string;stripe_session_id:string|null};
+export type Workspace={business_id:string;company_id:string|null;completed:boolean;created_at:string;updated_at:string;state?:{batches?:{createdAt?:string}[];records?:{createdAt?:string}[];qrCodes?:{createdAt?:string}[]}};
+export type Ticket={id:string;ticket_number:number;company_id:string|null;created_by_user_id:string|null;subject:string;status:string;priority:string;created_at:string;resolved_at:string|null};
+export type Message={id:string;ticket_id:string;author_user_id:string|null;is_internal:boolean;created_at:string};
+export type Payment={id:string;created:number;payment_status:string;currency:string|null;amount_total:number|null;metadata:Record<string,string>|null};
+export type Order={id:string;target_plan:string;status:string};
+export type Source<T>={rows:T[];available:boolean;warning?:string};
+export type BiInput={companies:Source<Company>;subscriptions:Source<Subscription>;workspaces:Source<Workspace>;tickets:Source<Ticket>;messages:Source<Message>;payments:Source<Payment>;orders:Source<Order>;testMode:boolean};
+export function parseBiFilters(url:URL,now=new Date()):BiFilters{
+ const year=Number(url.searchParams.get('year')||platformMonth(now).slice(0,4)),month=Number(url.searchParams.get('month')||0),plan=url.searchParams.get('plan')||'all';
+ if(!Number.isInteger(year)||year<2020||year>Number(platformMonth(now).slice(0,4))||!Number.isInteger(month)||month<0||month>12||!['all','Base','Essential','Pro'].includes(plan))throw Error('Filtros inválidos.');
+ return{year,month,plan:plan as Plan};
+}
+const stamp=(value:string|null|undefined)=>value?Date.parse(value):NaN;
+export function activeSubscription(row:Subscription,now:number){return row.status==='active'&&Number.isFinite(stamp(row.started_at))&&Number.isFinite(stamp(row.expires_at))&&stamp(row.started_at)<=now&&stamp(row.expires_at)>now;}
+export function buildBi(input:BiInput,filters:BiFilters,now=new Date()){
+ const period=(year:number)=>{const start=platformYearStart(year),end=platformYearStart(year+1);const current=platformMonth(now);const cut=filters.year===Number(current.slice(0,4))?`${year}${now.toISOString().slice(4)}`:null;return{start,end,cut:cut?Date.parse(cut)/1000:end}};
+ const current=period(filters.year),previous=period(filters.year-1);
+ const inside=(date:string|number,prev=false)=>{const milliseconds=typeof date==='number'?date*1000:stamp(date);if(!Number.isFinite(milliseconds))return false;const p=prev?previous:current;const m=platformMonth(milliseconds);return milliseconds>=p.start*1000&&milliseconds<Math.min(p.end,p.cut)*1000&&(!filters.month||Number(m.slice(5))===filters.month)};
+ // Os totais de estado são atuais; não são apresentados como fotografias históricas.
+ const byCompany=new Map<string,Subscription[]>();for(const row of input.subscriptions.rows)if(row.company_id){const list=byCompany.get(row.company_id)||[];list.push(row);byCompany.set(row.company_id,list)}
+ const currentSub=(id:string)=>[...(byCompany.get(id)||[])].sort((a,b)=>Number(activeSubscription(b,+now))-Number(activeSubscription(a,+now))||stamp(b.created_at)-stamp(a.created_at)||b.id.localeCompare(a.id))[0];
+ const eligible=(id:string|null)=>filters.plan==='all'||!!id&&supportPlan(currentSub(id)?.plan_name)===filters.plan;
+ const companies=input.companies.rows.filter(c=>eligible(c.id)),companyIds=new Set(companies.map(c=>c.id));
+ const subscriptions=input.subscriptions.rows.filter(s=>eligible(s.company_id)),workspaces=input.workspaces.rows.filter(w=>companyIds.has(w.company_id||''));
+ const companyRows=companies.map(c=>{const sub=currentSub(c.id),spaces=workspaces.filter(w=>w.company_id===c.id);return{id:c.id,name:c.name,active:c.active,plan:supportPlan(sub?.plan_name)||'Sem plano identificado',createdAt:c.created_at,businesses:spaces.length,onboarding:input.workspaces.available?spaces.some(w=>w.completed):null,licence:sub?(activeSubscription(sub,+now)?'Ativa':sub.status==='canceled'?'Cancelada':sub.expires_at&&stamp(sub.expires_at)<=+now?'Expirada':'Por verificar'):'Sem subscrição',expiresAt:sub?.expires_at||null}});
+ const series=Array.from({length:12},(_,i)=>({month:i+1,newCompanies:0,previousCompanies:0,paymentsCents:0,previousPaymentsCents:0,tickets:0,records:0}));
+ for(const c of companies){if(inside(c.created_at))series[Number(platformMonth(c.created_at).slice(5))-1]!.newCompanies++;if(inside(c.created_at,true))series[Number(platformMonth(c.created_at).slice(5))-1]!.previousCompanies++}
+ const knownSessions=new Set(input.subscriptions.rows.map(s=>s.stripe_session_id).filter(Boolean)),orders=new Map(input.orders.rows.map(o=>[o.id,o]));
+ const paymentRows:{id:string;date:string;plan:string;cents:number;setup:boolean;previous:boolean}[]=[],seen=new Set<string>();let otherCurrencies=0;
+ for(const p of input.payments.rows){if(seen.has(p.id))continue;seen.add(p.id);if(p.payment_status!=='paid'||!Number.isSafeInteger(p.amount_total)||p.amount_total!<0)continue;if(!knownSessions.has(p.id)&&!p.metadata?.azotrace_checkout&&!p.metadata?.plano_nome&&!p.metadata?.azotrace_billing_order_id)continue;
+  if(p.currency!=='eur'){otherCurrencies++;continue}const plan=supportPlan(p.metadata?.plano_nome||p.metadata?.plano||orders.get(p.metadata?.azotrace_billing_order_id||'')?.target_plan)||'Por identificar';if(filters.plan!=='all'&&plan!==filters.plan)continue;
+  const prev=inside(p.created,true);if(!inside(p.created)&&!prev)continue;const month=Number(platformMonth(p.created*1000).slice(5));series[month-1]![prev?'previousPaymentsCents':'paymentsCents']+=p.amount_total!;
+  paymentRows.push({id:p.id,date:new Date(p.created*1000).toISOString(),plan,cents:p.amount_total!,setup:p.metadata?.include_setup==='true',previous:prev});
+ }
+ for(const w of workspaces)for(const r of w.state?.records||[])if(r.createdAt&&inside(r.createdAt))series[Number(platformMonth(r.createdAt).slice(5))-1]!.records++;
+ const tickets=input.tickets.rows.filter(t=>eligible(t.company_id));const periodTickets=tickets.filter(t=>inside(t.created_at));for(const t of periodTickets)series[Number(platformMonth(t.created_at).slice(5))-1]!.tickets++;
+ const responses:number[]=[],resolutions:number[]=[];for(const t of periodTickets){const reply=input.messages.rows.filter(m=>m.ticket_id===t.id&&!m.is_internal&&m.author_user_id&&m.author_user_id!==t.created_by_user_id&&stamp(m.created_at)>=stamp(t.created_at)).sort((a,b)=>stamp(a.created_at)-stamp(b.created_at))[0];if(reply)responses.push((stamp(reply.created_at)-stamp(t.created_at))/3600000);if(t.status==='resolved'&&t.resolved_at&&stamp(t.resolved_at)>=stamp(t.created_at)&&stamp(t.resolved_at)<=+now)resolutions.push((stamp(t.resolved_at)-stamp(t.created_at))/3600000)}
+ const average=(values:number[])=>values.length?values.reduce((a,b)=>a+b,0)/values.length:null;
+ const available=(key:keyof BiInput)=>key==='testMode'?true:(input[key] as Source<unknown>).available;
+ const result={filters,generatedAt:now.toISOString(),testMode:input.testMode,available:{companies:available('companies'),subscriptions:available('subscriptions'),usage:available('workspaces'),support:available('tickets'),responses:available('messages'),payments:available('payments')},warnings:Object.entries(input).flatMap(([key,value])=>typeof value==='object'&&'warning'in value&&value.warning?[{source:key,message:value.warning}]:[]),
+  totals:{companies:companies.length,activeCompanies:companies.filter(c=>c.active).length,activeSubscriptions:subscriptions.filter(s=>activeSubscription(s,+now)).length,newCompanies:companies.filter(c=>inside(c.created_at)).length,previousCompanies:companies.filter(c=>inside(c.created_at,true)).length,paymentsCents:paymentRows.filter(p=>!p.previous).reduce((a,p)=>a+p.cents,0),previousPaymentsCents:paymentRows.filter(p=>p.previous).reduce((a,p)=>a+p.cents,0),payments:paymentRows.filter(p=>!p.previous).length,onboarding:companyRows.filter(c=>c.onboarding===true).length,renewals:companyRows.filter(c=>c.licence==='Ativa'&&stamp(c.expiresAt)<=+now+30*86400000).length,businesses:workspaces.length,records:series.reduce((s,m)=>s+m.records,0),batches:workspaces.reduce((s,w)=>s+(w.state?.batches?.length||0),0),qrCodes:workspaces.reduce((s,w)=>s+(w.state?.qrCodes?.length||0),0),tickets:periodTickets.length,backlog:tickets.filter(t=>t.status!=='resolved').length,firstResponseHours:available('messages')?average(responses):null,responseSample:responses.length,resolutionHours:average(resolutions),resolutionSample:resolutions.length,otherCurrencies},
+  series:filters.month?series.filter(s=>s.month===filters.month):series,companies:companyRows,
+  plans:['Base','Essential','Pro','Por identificar'].map(plan=>({plan,cents:paymentRows.filter(p=>!p.previous&&p.plan===plan).reduce((s,p)=>s+p.cents,0),payments:paymentRows.filter(p=>!p.previous&&p.plan===plan).length,active:subscriptions.filter(s=>activeSubscription(s,+now)&&(supportPlan(s.plan_name)||'Por identificar')===plan).length})),
+  payments:paymentRows.filter(p=>!p.previous).sort((a,b)=>b.date.localeCompare(a.date)),tickets:periodTickets.map(t=>({id:t.id,number:t.ticket_number,subject:t.subject,status:t.status,priority:t.priority,createdAt:t.created_at,resolvedAt:t.resolved_at})).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)),
+  definitions:['Valores de estado (empresas, licenças, onboarding, lotes e QR guardados) são atuais.','Novas empresas, registos, tickets e recebimentos usam o período selecionado.','Comparação com o mesmo período do ano anterior; o ano atual é limitado à data de consulta.','O filtro de plano usa a licença atual para clientes, utilização e suporte; nos pagamentos usa o plano do checkout ou da ordem original.','Recebimentos brutos em EUR, com IVA e extras, de checkouts Stripe pagos criados no período. A data é a criação do checkout, podendo diferir da liquidação. Não deduz taxas ou reembolsos.','Os tempos de suporte são médias em horas corridas dos tickets criados no período que já têm resposta ou resolução.','Contagens de utilização refletem os registos atualmente conservados no Supabase; registos eliminados e dados apenas locais não são recuperados.']};
+ return result;
+}
+export type BiReport=ReturnType<typeof buildBi>;
+export function csvCell(value:unknown){const text=String(value??'');return '"'+(/^[\s]*[=+@-]/.test(text)?"'":'')+text.replaceAll('"','""')+'"';}
+export function reportCsv(report:BiReport,tab:string){let rows:unknown[][]=[];
+ if(tab==='clientes')rows=[['Empresa','Plano atual','Estado licença','Negócios','Onboarding'],...report.companies.map(c=>[c.name,c.plan,c.licence,c.businesses,c.onboarding===null?'Sem dados':c.onboarding?'Concluído':'Por concluir'])];
+ else if(tab==='suporte')rows=[['Ticket','Assunto','Estado','Urgência','Criado'],...report.tickets.map(t=>[t.number,t.subject,({open:'Por fazer',in_progress:'Em curso',waiting:'Aguardar resposta',resolved:'Concluído'} as Record<string,string>)[t.status]||'Por verificar',({high:'Muito urgente',medium:'Urgente',low:'Não urgente'} as Record<string,string>)[t.priority]||'Por verificar',t.createdAt])];
+ else if(tab==='receitas')rows=[['Checkout','Criado','Plano','EUR bruto','Inclui configuração'],...report.payments.map(p=>[p.id,p.date,p.plan,(p.cents/100).toFixed(2),p.setup?'Sim':'Não'])];
+ else rows=[['Mês','Novas empresas','Novas empresas ano anterior','EUR bruto','EUR ano anterior','Tickets criados','Registos de dados'],...report.series.map(m=>[`${report.filters.year}-${String(m.month).padStart(2,'0')}`,report.available.companies?m.newCompanies:'Sem dados',report.available.companies?m.previousCompanies:'Sem dados',report.available.payments?(m.paymentsCents/100).toFixed(2):'Sem dados',report.available.payments?(m.previousPaymentsCents/100).toFixed(2):'Sem dados',report.available.support?m.tickets:'Sem dados',report.available.usage?m.records:'Sem dados'])];
+ return '\uFEFF'+[['Relatório Azotrace',report.filters.year,report.filters.month||'Ano',report.filters.plan,report.testMode?'Stripe de teste':''],...rows].map(r=>r.map(csvCell).join(';')).join('\r\n');
+}

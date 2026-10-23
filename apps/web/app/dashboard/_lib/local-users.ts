@@ -291,7 +291,14 @@ export function permissionForPath(pathname: string): LocalPermission {
 }
 
 export function canAccessPath(user: LocalAppUser, pathname: string, businessId?: string | null) {
+  if (/^\/dashboard\/super-admin\/blockchain(?:\/|$)/.test(pathname)) return user.active && user.role === 'superadmin';
+  if (/^\/dashboard\/administracao\/empresa(?:\/|$)/.test(pathname)) return user.active && (user.role === 'superadmin' || user.role === 'admin' && Boolean(user.companyId && getLocalCompany(user.companyId)?.active));
+  if (/^\/dashboard\/super-admin\/empresas(?:\/|$)/.test(pathname)) return user.active && user.role === 'superadmin';
   if (['/dashboard/configuracoes', '/dashboard/administracao/configuracoes', '/dashboard/super-admin/configuracoes'].includes(pathname)) return user.active;
+  if (pathname.startsWith('/dashboard/administracao/configuracoes/')) {
+    const personal = ['/dashboard/administracao/configuracoes/multifator', '/dashboard/administracao/configuracoes/preferencias'].includes(pathname.replace(/\/$/, ''));
+    return user.active && (personal || user.role === 'superadmin');
+  }
   const permission = permissionForPath(pathname);
   // O Dashboard raiz pode abrir mesmo quando a sessão acabou de mudar de empresa/utilizador;
   // o seletor de negócio corrige de seguida o contexto para um negócio permitido.

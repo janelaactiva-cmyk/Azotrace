@@ -1,4 +1,7 @@
 'use client';
+import { confirmMessage } from '~/lib/app-messages';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -35,7 +38,7 @@ export default function PageClient() {
     setOnlineUsers(all);
     setUsers(actor.role === 'superadmin' ? all : all.filter((user) => user.companyId === actor.companyId && user.role !== 'superadmin'));
     setCurrentId(actor.id); setError('');
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível carregar utilizadores.'); }
+    } catch (cause) { setError(uiMessagePt(cause instanceof Error ? cause.message : 'Não foi possível carregar utilizadores.')); }
   };
 
   useEffect(() => {
@@ -51,8 +54,8 @@ export default function PageClient() {
 
   const remove = async (user: LocalAppUser) => {
     if (!canManageUser(actor, user)) return;
-    if (!window.confirm(`Eliminar o utilizador ${user.name || user.email}?`)) return;
-    try { await deleteSupabaseManagedUser(user.id); await refresh(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível eliminar.'); }
+    if (!(await confirmMessage(`Eliminar o utilizador ${user.name || user.email}?`))) return;
+    try { await deleteSupabaseManagedUser(user.id); await refresh(); } catch (cause) { setError(uiMessagePt(cause instanceof Error ? cause.message : 'Não foi possível eliminar.')); }
   };
 
   const impersonate = (user: LocalAppUser) => {

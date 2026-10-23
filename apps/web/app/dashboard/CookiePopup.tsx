@@ -1,4 +1,5 @@
 'use client';
+import { showMessage } from '~/lib/app-messages';
 
 import { useState, useEffect } from 'react';
 
@@ -95,9 +96,9 @@ export default function CookiePopup() {
 
         <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
           <button
-            onClick={() => {
+            onClick={async () => {
               navigator.clipboard.writeText(cookies);
-              alert('🍪 Cookies copiados!');
+              (await showMessage('🍪 Cookies copiados!'));
             }}
             style={{
               padding: '6px 14px',

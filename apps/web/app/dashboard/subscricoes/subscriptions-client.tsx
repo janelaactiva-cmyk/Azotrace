@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { useTheme } from '~/lib/theme-context';
 import { LOCAL_PLANS, type LocalPlan, annualExpiry, localDate } from '../_lib/local-subscriptions';
@@ -12,6 +14,7 @@ import { usePlanCatalog } from '~/lib/use-plan-catalog';
 import { PlanCardsView } from '~/components/PlanCards';
 import { defaultCatalogData } from '~/lib/plan-catalog';
 import { useLocalUser } from '../_lib/use-local-user';
+import { linkedCompanySubscription } from '~/lib/company-directory';
 const money = (n: number) => new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(n);
 const date = subscriptionDateLabel;
 const labels: Record<string,string> = { active: 'Ativa', inactive: 'Inativa', canceled: 'Cancelada', expired: 'Expirada', scheduled: 'Agendada', unknown: 'Por verificar' };
@@ -24,6 +27,8 @@ export default function SubscriptionsPage() {
  const { theme } = useTheme(); const generation = useRef(0);
  const [data, setData] = useState<OnlineBilling | null>(null), [error,setError] = useState(''), [notice,setNotice] = useState('');
  const detailsRef = useRef<HTMLElement | null>(null);
+ const companyLink=useRef({companyId:'',subscriptionId:'',applied:false});
+ const [companyFilter,setCompanyFilter]=useState('');
  const [viewRequest,setViewRequest] = useState<{id:string} | null>(null);
  const [selectedId,setSelectedId] = useState(''), [search,setSearch] = useState(''), [busy,setBusy] = useState(false);
  const [historyFilter,setHistoryFilter] = useState<HistoryKind|'all'>('all'), [statusFilter,setStatusFilter] = useState('all');
@@ -34,10 +39,21 @@ export default function SubscriptionsPage() {
  const control: CSSProperties = { padding:10,border:'1px solid #9ca3af',borderRadius:8,background:dark?'#1f2937':'white',color:'inherit' };
  async function refresh(clear=false) {
   const g=++generation.current;if(clear){setData(null);setPending(null);setEditor(null);}
-  try { const next=await loadOnlineBilling(); if(g!==generation.current)return;setData(next);setError('');setSelectedId(id=>next.subscriptions.some(s=>s.id===id)?id:next.subscriptions[0]?.id||''); }
-  catch(e){if(g===generation.current){setData(null);setError(e instanceof Error?e.message:'Não foi possível carregar as subscrições.');}}
+  try { const next=await loadOnlineBilling(); if(g!==generation.current)return;setData(next);setError('');
+   const link=companyLink.current;
+   if(link.companyId&&!link.applied){
+    link.applied=true;
+    const target=linkedCompanySubscription(next.subscriptions,link.companyId,link.subscriptionId);
+    setSelectedId(target?.id||'');
+    if(target)setViewRequest({id:target.id});
+    else setNotice('Não existe uma subscrição associada a esta empresa. As compras por associar são geridas separadamente.');
+   }else setSelectedId(id=>next.subscriptions.some(s=>s.id===id&&(!link.companyId||s.companyId===link.companyId))?id:next.subscriptions.find(s=>!link.companyId||s.companyId===link.companyId)?.id||''); }
+  catch(e){if(g===generation.current){setData(null);setError(uiMessagePt(e instanceof Error?e.message:'Não foi possível carregar as subscrições.'));}}
  }
  useEffect(()=>{
+  const requestedCompany=new URLSearchParams(window.location.search);
+  companyLink.current={companyId:requestedCompany.get('empresa')||'',subscriptionId:requestedCompany.get('subscricao')||'',applied:false};
+  setCompanyFilter(companyLink.current.companyId);
   void refresh(); const reload=()=>void refresh(), session=()=>void refresh(true);
   window.addEventListener(ONLINE_BILLING_EVENT,reload);window.addEventListener(LOCAL_SESSION_EVENT,session);
   const timer=window.setInterval(reload,15000); const focus=()=>void refresh();window.addEventListener('focus',focus);
@@ -72,15 +88,15 @@ export default function SubscriptionsPage() {
  const clientOrders=data?.orders.filter(order=>clientSubscriptionIds.has(order.subscriptionId))||[];
  const estimate=selected&&pending&&catalog?proportionalPlanChange(selected,pending,catalog.plans,now):null;
  const endingWithin=(row:OnlineSubscription,days:number)=>billingStatus(row,now)==='active'&&(subscriptionTiming(row,now)?.remainingDays??Infinity)<=days;
- const rows=data?.subscriptions.filter(s=>(statusFilter==='all'||billingStatus(s,now)===statusFilter)&&(renewalFilter===null||endingWithin(s,renewalFilter))&&`${company(s.companyId)} ${s.billingName} ${s.billingEmail} ${s.nif} ${s.planName}`.toLowerCase().includes(search.toLowerCase()))||[];
+ const rows=data?.subscriptions.filter(s=>(!companyFilter||s.companyId===companyFilter)&&(statusFilter==='all'||billingStatus(s,now)===statusFilter)&&(renewalFilter===null||endingWithin(s,renewalFilter))&&`${company(s.companyId)} ${s.billingName} ${s.billingEmail} ${s.nif} ${s.planName}`.toLowerCase().includes(search.toLowerCase()))||[];
  const active=selected&&billingStatus(selected,now)==='active'&&selected.plan&&selected.companyId;
  async function act(fn:()=>Promise<unknown>, message:string) {
-  setBusy(true);setError('');try{await fn();setNotice(message);await refresh();setPending(null);}catch(e){setError(e instanceof Error?e.message:'Não foi possível guardar.');}finally{setBusy(false);}
+  setBusy(true);setError('');try{await fn();setNotice(message);await refresh();setPending(null);}catch(e){setError(uiMessagePt(e instanceof Error?e.message:'Não foi possível guardar.'));}finally{setBusy(false);}
  }
  async function change() {
   if(!catalog||catalogError||!selected?.plan||!pending||pending===selected.plan||busy)return;
   if(billedPrice(pending)<billedPrice(selected.plan))await act(()=>downgradeOnlinePlan(selected,pending),'Downgrade aplicado imediatamente, sem reembolso. A validade foi mantida.');
-  else {setBusy(true);setError('');try{window.location.assign(await checkoutOnlineUpgrade(selected,pending,catalog.version));}catch(e){setError(e instanceof Error?e.message:'Não foi possível abrir o Stripe.');setBusy(false);}}
+  else {setBusy(true);setError('');try{window.location.assign(await checkoutOnlineUpgrade(selected,pending,catalog.version));}catch(e){setError(uiMessagePt(e instanceof Error?e.message:'Não foi possível abrir o Stripe.'));setBusy(false);}}
  }
  return <div style={{maxWidth:1300,margin:'0 auto',display:'grid',gap:20,color:dark?'#f9fafb':'#111827'}}>
   <header style={{display:'flex',justifyContent:'space-between',gap:16,flexWrap:'wrap'}}><div><h1 style={{margin:'0 0 6px',fontSize:25}}>{sa?'Pagamentos e subscrições — clientes':'A minha subscrição'}</h1><p style={{color:muted}}>Compras e subscrições registadas na base de dados.</p></div><div><button style={control} disabled={busy} onClick={()=>void refresh()}>Atualizar</button>{sa?<a href="/dashboard/subscricoes/planos" style={{...button,display:'inline-block',marginLeft:10,textDecoration:'none'}}>Gerir planos e preços</a>:null}{sa?<button style={{...button,marginLeft:10}} disabled={busy} onClick={()=>setEditor('create')}>+ Registar subscrição</button>:null}</div></header>
@@ -90,6 +106,7 @@ export default function SubscriptionsPage() {
    <PlanCardsView catalog={displayedCatalog} selected={selected?.plan||undefined} disabled={!catalog||busy||!!catalogError||!!error||!data||!!selected&&(!active||!selected.plan)} onChoose={selected?plan=>setPending(plan.id===selected.plan?null:plan.id):undefined}/>
   </section>:null}
   {error?<div role="alert" style={{...card,borderColor:'#ef4444'}}>{error}</div>:null}
+  {companyFilter?<div style={card}><p>A mostrar pagamentos e subscrições de <strong>{company(companyFilter)}</strong>.</p><div style={{display:'flex',gap:12,flexWrap:'wrap',marginTop:12}}><a style={control} href={'/dashboard/super-admin/empresas?empresa='+encodeURIComponent(companyFilter)}>Voltar à ficha da empresa</a><button type="button" style={control} onClick={()=>{companyLink.current={companyId:'',subscriptionId:'',applied:true};setCompanyFilter('');setNotice('');const url=new URL(window.location.href);url.searchParams.delete('empresa');url.searchParams.delete('subscricao');window.history.replaceState(null,'',url.pathname+url.search+url.hash);}}>Mostrar todas as empresas</button></div></div>:null}
   {notice?<div role="status" style={{...card,borderColor:'#10b981'}}>{notice}</div>:null}
   {data?<section aria-label="Resumo das subscrições" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12}}>
    <div style={card}><span style={{color:muted}}>Subscrições ativas</span><strong style={{display:'block',fontSize:28,marginTop:8}}>{data.subscriptions.filter(row=>billingStatus(row,now)==='active').length}</strong></div>
@@ -125,7 +142,7 @@ function BillingEditor({existing,data,card,control,onCancel,onSaved}:{existing?:
   // Não arredonda datas históricas se apenas se alterarem os contactos.
   const fields={...form,startedAt:existing?.startedAt?.slice(0,10)===form.startedAt?existing.startedAt:form.startedAt,expiresAt:existing?.expiresAt?.slice(0,10)===form.expiresAt?existing.expiresAt:form.expiresAt};
   await onlineRpc('az_billing_admin',{input:{action:existing?'update':'create',id:existing?.id,version:existing?.version,fields}});await onSaved();
- }catch(e){setError(e instanceof Error?e.message:'Não foi possível guardar.');}finally{setBusy(false);}}
+ }catch(e){setError(uiMessagePt(e instanceof Error?e.message:'Não foi possível guardar.'));}finally{setBusy(false);}}
  const field=(key:keyof typeof form,value:string)=>setForm(f=>({...f,[key]:value}));
  return <form style={card} onSubmit={submit}><h2>{existing?'Editar dados e validade':'Registo manual de subscrição'}</h2><p>Esta operação não cobra pagamentos. As alterações ficam identificadas no histórico.</p>{error?<p role="alert">{error}</p>:null}<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16}}>
  <label>Empresa titular<br/><select style={control} required disabled={!!existing} value={form.companyId} onChange={e=>field('companyId',e.target.value)}><option value="">Selecionar empresa</option>{data.companies.filter(c=>data.eligibleCompanyIds.includes(c.id)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>

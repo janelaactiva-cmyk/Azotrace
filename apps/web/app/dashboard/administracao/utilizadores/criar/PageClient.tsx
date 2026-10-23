@@ -1,4 +1,6 @@
 'use client';
+import { uiMessagePt } from '~/lib/ui-messages-pt';
+
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -69,7 +71,7 @@ export default function PageClient() {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); if (saving) return; setError('');
     if (!name.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) return setError('Indique nome e email válidos.');
-    if (password.length < 8) return setError('A palavra-passe temporária deve ter pelo menos 8 caracteres.');
+    if (password.length < 8) return setError("A password temporária deve ter pelo menos 8 caracteres.");
     if (!canCreateRole(actor, role)) return setError('Sem permissão para este perfil.');
     if (createCompany && !newCompanyName.trim()) return setError('Indique o nome da empresa.');
     setSaving(true);
@@ -79,13 +81,13 @@ export default function PageClient() {
         newCompanyName: createCompany ? newCompanyName.trim() : undefined,
         businessIds: role === 'admin' ? [] : businessIds, permissions });
       router.push('/dashboard/administracao/utilizadores');
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível criar a conta.'); }
+    } catch (cause) { setError(uiMessagePt(cause instanceof Error ? cause.message : 'Não foi possível criar a conta.')); }
     finally { setSaving(false); }
   };
 
   return (
     <form onSubmit={submit} style={{ display: 'grid', gap: 20, maxWidth: 980 }}>
-      <label style={{ display: 'grid', gap: 8 }}>Palavra-passe temporária<input required type="password" minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>
+      <label style={{ display: 'grid', gap: 8 }}>password temporária<input required type="password" minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>
       <header>
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800 }}>{actor.role === 'superadmin' ? 'Criar Admin ou utilizador' : 'Criar utilizador'}</h1>
         <p style={{ margin: '6px 0 0', fontSize: 14, color: '#6b7280' }}>

@@ -1,9 +1,5 @@
 export default function DashboardLoading() {
-  return (
-    <div className="flex min-h-[400px] w-full items-center justify-center">
-      <div className="text-sm text-muted-foreground animate-pulse">
-        A carregar...
-      </div>
-    </div>
-  );
+  return <section aria-busy="true" aria-label="A carregar a página" style={{ padding: '24px 0' }}>
+    <p role="status">A carregar a página…</p>
+  </section>;
 }
